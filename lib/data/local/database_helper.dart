@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:path/path.dart';
 import '../models/incentive_record.dart';
@@ -8,18 +8,29 @@ class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
   static Database? _database;
 
+  // In-memory storage fallback saat dijalankan di browser (Web)
+  final List<IncentiveRecord> _webIncentives = [];
+  final List<SaRecord> _webSaRecords = [];
+  int _webIncentiveIdCounter = 1;
+  int _webSaIdCounter = 1;
+
   DatabaseHelper._init();
 
-  Future<Database> get database async {
+  Future<Database?> get database async {
+    if (kIsWeb) return null;
     if (_database != null) return _database!;
     _database = await _initDB('dsa_tracker_v2.db');
     return _database!;
   }
 
   Future<Database> _initDB(String filePath) async {
-    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      sqfliteFfiInit();
-      databaseFactory = databaseFactoryFfi;
+    if (!kIsWeb) {
+      if (defaultTargetPlatform == TargetPlatform.windows ||
+          defaultTargetPlatform == TargetPlatform.linux ||
+          defaultTargetPlatform == TargetPlatform.macOS) {
+        sqfliteFfiInit();
+        databaseFactory = databaseFactoryFfi;
+      }
     }
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);
@@ -80,35 +91,83 @@ class DatabaseHelper {
 
   // --- Incentive History CRUD ---
   Future<int> insertRecord(IncentiveRecord record) async {
-    final db = await instance.database;
+    if (kIsWeb) {
+      final id = _webIncentiveIdCounter++;
+      final newRecord = IncentiveRecord(
+        id: id,
+        periode: record.periode,
+        position: record.position,
+        city: record.city,
+        basicFee: record.basicFee,
+        totalSa: record.totalSa,
+        pmBase: record.pmBase,
+        multRate: record.multRate,
+        multBonus: record.multBonus,
+        progInc: record.progInc,
+        specialInc: record.specialInc,
+        monthlySubtotal: record.monthlySubtotal,
+        grandTotal: record.grandTotal,
+      );
+      _webIncentives.insert(0, newRecord);
+      return id;
+    }
+    final db = (await instance.database)!;
     return await db.insert('history', record.toMap());
   }
 
   Future<List<IncentiveRecord>> getAllRecords() async {
-    final db = await instance.database;
+    if (kIsWeb) {
+      return List.unmodifiable(_webIncentives);
+    }
+    final db = (await instance.database)!;
     final result = await db.query('history', orderBy: 'id DESC');
     return result.map((json) => IncentiveRecord.fromMap(json)).toList();
   }
 
   Future<int> deleteRecord(int id) async {
-    final db = await instance.database;
+    if (kIsWeb) {
+      _webIncentives.removeWhere((r) => r.id == id);
+      return 1;
+    }
+    final db = (await instance.database)!;
     return await db.delete('history', where: 'id = ?', whereArgs: [id]);
   }
 
   // --- SA Customer History CRUD ---
   Future<int> insertSaRecord(SaRecord record) async {
-    final db = await instance.database;
+    if (kIsWeb) {
+      final id = _webSaIdCounter++;
+      final newRecord = SaRecord(
+        id: id,
+        idPelanggan: record.idPelanggan,
+        nama: record.nama,
+        noKtp: record.noKtp,
+        alamat: record.alamat,
+        paket: record.paket,
+        tanggalPasang: record.tanggalPasang,
+      );
+      _webSaRecords.insert(0, newRecord);
+      return id;
+    }
+    final db = (await instance.database)!;
     return await db.insert('sa_history', record.toMap());
   }
 
   Future<List<SaRecord>> getAllSaRecords() async {
-    final db = await instance.database;
+    if (kIsWeb) {
+      return List.unmodifiable(_webSaRecords);
+    }
+    final db = (await instance.database)!;
     final result = await db.query('sa_history', orderBy: 'id DESC');
     return result.map((json) => SaRecord.fromMap(json)).toList();
   }
 
   Future<int> deleteSaRecord(int id) async {
-    final db = await instance.database;
+    if (kIsWeb) {
+      _webSaRecords.removeWhere((r) => r.id == id);
+      return 1;
+    }
+    final db = (await instance.database)!;
     return await db.delete('sa_history', where: 'id = ?', whereArgs: [id]);
   }
 }
