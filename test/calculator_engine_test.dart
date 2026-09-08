@@ -23,6 +23,12 @@ void main() {
       expect(res.grandTotal, 2773184.0);
     });
 
+    test('Basic Fee OJT dan Pro sesuai acuan update', () {
+      expect(CalculatorEngine.getBasicFee(PositionType.ojt), 1700000.0);
+      expect(CalculatorEngine.getBasicFee(PositionType.pro), 2100000.0);
+      expect(CalculatorEngine.getBasicFee(PositionType.elite), 2773184.0);
+    });
+
     test('Perhitungan 20 SA dengan tiering September', () {
       // 5 x f100, 5 x f125, 5 x f200, 5 x fwa = 20 SA
       final res = CalculatorEngine.calculateDetailed(

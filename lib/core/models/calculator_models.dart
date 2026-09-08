@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 enum PositionType {
   ojt('OJT', 'On Job Training', Icons.school),
   pro('Pro', 'Professional', Icons.star),
-  elite('Elite', 'Elite Agent', Icons.diamond),
-  spv('SPV', 'Supervisor', Icons.military_tech);
+  elite('Elite', 'Elite Agent', Icons.diamond);
 
   final String label;
   final String subtitle;

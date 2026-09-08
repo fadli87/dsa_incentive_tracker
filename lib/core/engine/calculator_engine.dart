@@ -6,13 +6,11 @@ class CalculatorEngine {
   static double getBasicFee(PositionType position) {
     switch (position) {
       case PositionType.ojt:
-        return 2000000.0;
+        return 1700000.0;
       case PositionType.pro:
-        return 2500000.0;
+        return 2100000.0;
       case PositionType.elite:
         return 2773184.0; // Angka pasti Cilacap sesuai acuan
-      case PositionType.spv:
-        return 3500000.0;
     }
   }
 

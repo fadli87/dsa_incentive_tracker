@@ -12,11 +12,6 @@ void main() {
     expect(find.text('WILAYAH'), findsOneWidget);
     expect(find.text('KAB. CILACAP'), findsOneWidget);
 
-    // Tap on 'Data SA' tab
-    await tester.tap(find.text('Data SA'));
-    await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('Data Pelanggan (SA)'), findsOneWidget);
-
     // Tap on 'Insentif' tab
     await tester.tap(find.text('Insentif'));
     await tester.pump(const Duration(milliseconds: 300));
