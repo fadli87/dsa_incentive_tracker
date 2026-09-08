@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'ui/screens/main_navigation.dart';
+import 'ui/screens/splash_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,7 +19,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'DSA Tracker V2',
+      title: 'DSA Calculator',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
@@ -33,7 +33,7 @@ class MyApp extends StatelessWidget {
           elevation: 2,
         ),
       ),
-      home: const MainNavigation(),
+      home: const SplashScreen(),
     );
   }
 }

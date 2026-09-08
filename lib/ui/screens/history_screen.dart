@@ -148,8 +148,38 @@ class HistoryScreen extends ConsumerWidget {
           }
           return ListView.builder(
             padding: const EdgeInsets.symmetric(vertical: 10),
-            itemCount: records.length,
+            itemCount: records.length + 1,
             itemBuilder: (context, index) {
+              if (index == records.length) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24.0),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(Icons.copyright, size: 12, color: Color(0xFF002B66)),
+                          SizedBox(width: 4),
+                          Text(
+                            "Copyright D'Azhars Studio",
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF002B66),
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Creative Tech Agency · All Rights Reserved',
+                        style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+                      ),
+                    ],
+                  ),
+                );
+              }
               final r = records[index];
               final fmtTotal = _fmt(r.grandTotal);
 

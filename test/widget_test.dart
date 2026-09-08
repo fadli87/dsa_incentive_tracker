@@ -3,10 +3,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dsa_incentive_tracker/main.dart';
 
 void main() {
-  testWidgets('App renders and navigates tabs smoke test',
+  testWidgets('App renders SplashScreen and navigates to Calculator',
       (WidgetTester tester) async {
     await tester.pumpWidget(const ProviderScope(child: MyApp()));
     await tester.pump(const Duration(milliseconds: 300));
+
+    // Verifikasi Splash Screen dan Copyright D'Azhars Studio
+    expect(find.text('DSA INCENTIVE TRACKER'), findsOneWidget);
+    expect(find.text("Copyright D'Azhars Studio"), findsOneWidget);
+
+    // Transisi setelah splash timer selesai
+    await tester.pump(const Duration(milliseconds: 3000));
+    await tester.pumpAndSettle();
 
     expect(find.text('KALKULATOR INCENTIVE'), findsOneWidget);
     expect(find.text('WILAYAH'), findsOneWidget);
@@ -16,5 +24,10 @@ void main() {
     await tester.tap(find.text('Insentif'));
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Histori Pencapaian'), findsOneWidget);
+
+    // Tap on 'Panduan' tab
+    await tester.tap(find.text('Panduan'));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('PANDUAN & SKEMA INSENTIF'), findsOneWidget);
   });
 }

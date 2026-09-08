@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'calculator_screen.dart';
-// import 'sa_list_screen.dart'; // Disembunyikan sementara sesuai permintaan
 import 'history_screen.dart';
+import 'guide_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -15,6 +15,7 @@ class _MainNavigationState extends State<MainNavigation> {
   final List<Widget> _screens = const [
     CalculatorScreen(),
     HistoryScreen(),
+    GuideScreen(),
   ];
 
   @override
@@ -37,6 +38,11 @@ class _MainNavigationState extends State<MainNavigation> {
             icon: Icon(Icons.account_balance_wallet_outlined),
             selectedIcon: Icon(Icons.account_balance_wallet),
             label: 'Insentif',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.menu_book_outlined),
+            selectedIcon: Icon(Icons.menu_book),
+            label: 'Panduan',
           ),
         ],
       ),

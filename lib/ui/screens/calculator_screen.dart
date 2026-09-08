@@ -7,6 +7,8 @@ import '../../data/models/incentive_record.dart';
 import '../widgets/position_selector_tabs.dart';
 import '../widgets/tier_productivity_table.dart';
 import '../widgets/result_card.dart';
+import 'guide_screen.dart';
+import '../../core/models/calculator_models.dart';
 
 class CalculatorScreen extends ConsumerStatefulWidget {
   const CalculatorScreen({super.key});
@@ -86,6 +88,11 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            tooltip: "Tentang & Copyright",
+            onPressed: () => _showAboutStudioDialog(context),
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Reset Input',
@@ -289,7 +296,9 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      'Progresif: ${_fmt(result.progInc)}',
+                      result.multRate > 0 && result.position != PositionType.ojt
+                          ? 'Booster (${result.multRate}x): ${_fmt(result.multBonus)}'
+                          : 'Progresif: ${_fmt(result.progInc)}',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -372,7 +381,137 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 18),
+
+          // 9. Copyright Footer
+          Padding(
+            padding: const EdgeInsets.only(bottom: 24.0),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.copyright, size: 12, color: Color(0xFF002B66)),
+                    SizedBox(width: 4),
+                    Text(
+                      "Copyright D'Azhars Studio",
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF002B66),
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Creative Tech Agency · All Rights Reserved',
+                  style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAboutStudioDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        contentPadding: const EdgeInsets.all(20),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.asset(
+                'assets/images/app_icon.png',
+                width: 90,
+                height: 90,
+                fit: BoxFit.contain,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'DSA INCENTIVE TRACKER',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF002B66),
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Effective September 2026',
+              style: TextStyle(
+                fontSize: 11,
+                color: Color(0xFFF15A24),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Aplikasi kalkulator dan pencatatan insentif untuk tim Account Executive DSA D2D.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey.shade700,
+                height: 1.4,
+              ),
+            ),
+            const Divider(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                Icon(Icons.copyright, size: 13, color: Color(0xFF002B66)),
+                SizedBox(width: 4),
+                Text(
+                  "Copyright D'Azhars Studio",
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF002B66),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 2),
+            Text(
+              'Creative Tech Agency · All Rights Reserved',
+              style: TextStyle(fontSize: 10.5, color: Colors.grey.shade500),
+            ),
+          ],
+        ),
+        actions: [
+          OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFF002B66),
+              side: const BorderSide(color: Color(0xFF002B66)),
+            ),
+            icon: const Icon(Icons.menu_book, size: 16),
+            label: const Text('Buka Panduan Skema'),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const GuideScreen()),
+              );
+            },
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text(
+              'Tutup',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.grey,
+              ),
+            ),
+          ),
         ],
       ),
     );

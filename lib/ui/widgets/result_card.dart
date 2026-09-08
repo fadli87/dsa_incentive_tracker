@@ -41,6 +41,10 @@ class ResultCard extends StatelessWidget {
         ((results['multBonus'] as num?)?.toDouble() ?? 0.0);
     final specialInc = calculationResult?.specialInc ??
         ((results['specialInc'] as num?)?.toDouble() ?? 0.0);
+    final lumpSumBonus = calculationResult?.lumpSumBonus ??
+        ((results['lumpSumBonus'] as num?)?.toDouble() ?? 0.0);
+    final isOjt = calculationResult?.position == PositionType.ojt ||
+        positionName == 'OJT';
     final monthlySubtotal = calculationResult?.monthlySubtotal ??
         ((results['monthlySubtotal'] as num?)?.toDouble() ??
             ((results['grandTotal'] as num?)?.toDouble() ?? 0.0));
@@ -97,10 +101,16 @@ class ResultCard extends StatelessWidget {
 
                 _buildRincianItem(
                   title: 'Progresif SA',
-                  subtitle: 'Kumulatif $totalSa aktivasi (lihat tabel tier)',
+                  subtitle: isOjt
+                      ? 'Tier OJT kumulatif $totalSa aktivasi'
+                      : multRate > 0
+                          ? 'Hilang karena perhitungan Multiplier aktif (${multRate}x)'
+                          : 'Tier Pro/Elite kumulatif $totalSa aktivasi',
                   value: _fmt(progInc),
                   highlightValue: progInc > 0,
-                  badge: '$totalSa aktivasi',
+                  badge: isOjt || multRate == 0
+                      ? '$totalSa aktivasi'
+                      : 'Diganti Booster',
                 ),
                 const Divider(height: 16),
 
@@ -112,15 +122,38 @@ class ResultCard extends StatelessWidget {
                 ),
                 const Divider(height: 16),
 
-                _buildRincianItem(
-                  title: 'Booster (${multRate}x)',
-                  subtitle: multRate > 0
-                      ? '${multRate}x × Product Mix (${_fmt(pmBase)})'
-                      : 'Belum mencapai syarat multiplier min. 7 SA',
-                  value: _fmt(multBonus),
-                  highlightValue: multBonus > 0,
-                ),
-                const Divider(height: 16),
+                if (isOjt) ...[
+                  _buildRincianItem(
+                    title: 'Lump Sum Bonus OJT',
+                    subtitle: totalSa >= 7
+                        ? 'Capaian ≥ 7 SA (Rp 600.000)'
+                        : totalSa >= 3
+                            ? 'Capaian ≥ 3 SA (Rp 325.000)'
+                            : 'Belum mencapai syarat min. 3 SA',
+                    value: _fmt(lumpSumBonus),
+                    highlightValue: lumpSumBonus > 0,
+                  ),
+                  const Divider(height: 16),
+                  _buildRincianItem(
+                    title: 'Booster (Multiplier)',
+                    subtitle: 'Tidak berlaku untuk OJT (khusus Pro & Elite)',
+                    value: 'Rp 0',
+                    highlightValue: false,
+                  ),
+                  const Divider(height: 16),
+                ] else ...[
+                  _buildRincianItem(
+                    title: multRate > 0
+                        ? 'Booster Multiplier (${multRate}x)'
+                        : 'Booster Multiplier',
+                    subtitle: multBonus > 0
+                        ? '${multRate}x × Product Mix Base (${_fmt(pmBase)})'
+                        : 'Belum mencapai syarat multiplier min. 7 SA',
+                    value: _fmt(multBonus),
+                    highlightValue: multBonus > 0,
+                  ),
+                  const Divider(height: 16),
+                ],
 
                 _buildRincianItem(
                   title: 'Special PXGY',

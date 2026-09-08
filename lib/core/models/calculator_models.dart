@@ -18,6 +18,7 @@ class TierRow {
   final double multiplier;
   final int unitsInTier;
   final double subtotalProgressive;
+  final double multiplierBonus;
   final bool isCurrentTier;
 
   const TierRow({
@@ -26,6 +27,7 @@ class TierRow {
     required this.multiplier,
     required this.unitsInTier,
     required this.subtotalProgressive,
+    this.multiplierBonus = 0.0,
     this.isCurrentTier = false,
   });
 }
@@ -40,6 +42,7 @@ class CalculationResult {
   final double multBonus;
   final double progInc;
   final double specialInc;
+  final double lumpSumBonus;
   final List<TierRow> tierRows;
   final double monthlySubtotal;
   final double grandTotal;
@@ -54,6 +57,7 @@ class CalculationResult {
     required this.multBonus,
     required this.progInc,
     required this.specialInc,
+    this.lumpSumBonus = 0.0,
     required this.tierRows,
     required this.monthlySubtotal,
     required this.grandTotal,
@@ -70,6 +74,7 @@ class CalculationResult {
       'multBonus': multBonus,
       'progInc': progInc,
       'specialInc': specialInc,
+      'lumpSumBonus': lumpSumBonus,
       'monthlySubtotal': monthlySubtotal,
       'grandTotal': grandTotal,
     };
