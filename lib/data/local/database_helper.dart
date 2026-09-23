@@ -1,4 +1,4 @@
-import 'dart:io' show Platform;
+import 'dart:io' show Platform, Directory;
 import 'package:flutter/foundation.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:path/path.dart';
@@ -49,14 +49,53 @@ class DatabaseHelper {
         databaseFactory = databaseFactoryFfi;
       }
     }
-    final dbPath = await getDatabasesPath();
-    final path = join(dbPath, filePath);
-    return await openDatabase(
-      path,
-      version: 5,
-      onCreate: _createDB,
-      onUpgrade: _onUpgrade,
-    );
+
+    String dbFolder;
+    if (!kIsWeb && Platform.isWindows) {
+      final localAppData = Platform.environment['LOCALAPPDATA'] ??
+          Platform.environment['APPDATA'] ??
+          '';
+      if (localAppData.isNotEmpty) {
+        dbFolder = join(localAppData, 'DSAIncentiveTracker', 'databases');
+      } else {
+        dbFolder = await getDatabasesPath();
+      }
+    } else {
+      dbFolder = await getDatabasesPath();
+    }
+
+    try {
+      final dir = Directory(dbFolder);
+      if (!dir.existsSync()) {
+        dir.createSync(recursive: true);
+      }
+    } catch (_) {}
+
+    final path = join(dbFolder, filePath);
+    try {
+      return await openDatabase(
+        path,
+        version: 5,
+        onCreate: _createDB,
+        onUpgrade: _onUpgrade,
+      );
+    } catch (e) {
+      // Fallback path bila terjadi conflict locking dengan multiple instance
+      if (!kIsWeb && Platform.isWindows) {
+        final fallbackDir = Directory(
+            join(Platform.environment['TEMP'] ?? '.', 'DSAIncentiveTracker'));
+        if (!fallbackDir.existsSync()) {
+          fallbackDir.createSync(recursive: true);
+        }
+        return await openDatabase(
+          join(fallbackDir.path, filePath),
+          version: 5,
+          onCreate: _createDB,
+          onUpgrade: _onUpgrade,
+        );
+      }
+      rethrow;
+    }
   }
 
   Future<void> _createDB(Database db, int version) async {
