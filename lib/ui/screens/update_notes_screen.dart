@@ -19,6 +19,16 @@ class UpdateNotesScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildVersionCard(
+              version: 'Ver.1.0.3',
+              date: 'September 2026',
+              changes: [
+                'Implementasi skema kalkulator SPV September 2026 (Basic Fee Rp 4.5jt, Bonus KPI, Survival, Graduation & Monthly Performance).',
+                'Pembaruan fitur edit histori insentif dan sinkronisasi data.',
+                'Penyempurnaan kalkulasi multiplier dan unit tests.',
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildVersionCard(
               version: 'Ver.1.0.2',
               date: 'September 2026',
               changes: [
