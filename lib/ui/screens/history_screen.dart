@@ -3,9 +3,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../data/models/incentive_record.dart';
 import '../../providers/history_provider.dart';
+import '../../core/engine/calculator_engine.dart';
+import '../../core/models/calculator_models.dart';
+import '../widgets/result_card.dart';
+import '../widgets/tier_productivity_table.dart';
+import 'edit_history_screen.dart';
 
 class HistoryScreen extends ConsumerWidget {
   const HistoryScreen({super.key});
+
+  PositionType _positionFromLabel(String label) {
+    return PositionType.values.firstWhere(
+      (p) => p.label == label,
+      orElse: () => PositionType.elite,
+    );
+  }
 
   String _fmt(num val) {
     return NumberFormat.currency(
@@ -15,7 +27,7 @@ class HistoryScreen extends ConsumerWidget {
     ).format(val);
   }
 
-  void _showDetailDialog(BuildContext context, IncentiveRecord r) {
+  void _showDetailDialog(BuildContext context, WidgetRef ref, IncentiveRecord r) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -74,6 +86,18 @@ class HistoryScreen extends ConsumerWidget {
           ],
         ),
         actions: [
+          OutlinedButton.icon(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => EditHistoryScreen(record: r),
+                ),
+              );
+            },
+            icon: const Icon(Icons.edit, size: 16),
+            label: const Text('Edit'),
+          ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
             child: const Text('Tutup'),
@@ -82,6 +106,8 @@ class HistoryScreen extends ConsumerWidget {
       ),
     );
   }
+
+
 
   Widget _buildDetailRow(
     String label,
@@ -173,7 +199,7 @@ class HistoryScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Creative Tech Agency · All Rights Reserved',
+                        'Creative Tech Agency · All Rights Reserved • Ver.1.0.2',
                         style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
                       ),
                     ],
@@ -226,7 +252,7 @@ class HistoryScreen extends ConsumerWidget {
                   child: ListTile(
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 6),
-                    onTap: () => _showDetailDialog(context, r),
+                    onTap: () => _showDetailDialog(context, ref, r),
                     leading: CircleAvatar(
                       backgroundColor: const Color(0xFF002B66),
                       foregroundColor: Colors.white,

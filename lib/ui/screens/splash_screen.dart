@@ -198,12 +198,12 @@ class _SplashScreenState extends State<SplashScreen>
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 2),
                       Text(
-                        'Creative Tech Agency · All Rights Reserved',
+                        'Creative Tech Agency · All Rights Reserved • Ver.1.0.2',
                         style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.grey.shade600,
+                          fontSize: 11,
+                          color: Colors.grey.shade500,
                           letterSpacing: 0.2,
                         ),
                       ),

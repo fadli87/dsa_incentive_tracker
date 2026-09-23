@@ -36,7 +36,7 @@ class DatabaseHelper {
     final path = join(dbPath, filePath);
     return await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -57,7 +57,15 @@ class DatabaseHelper {
         prog_inc REAL NOT NULL,
         special_inc REAL NOT NULL,
         monthly_subtotal REAL NOT NULL DEFAULT 0.0,
-        grand_total REAL NOT NULL
+        grand_total REAL NOT NULL,
+        f0 INTEGER NOT NULL DEFAULT 0,
+        f50 INTEGER NOT NULL DEFAULT 0,
+        f100 INTEGER NOT NULL DEFAULT 0,
+        f125 INTEGER NOT NULL DEFAULT 0,
+        f200 INTEGER NOT NULL DEFAULT 0,
+        fwa INTEGER NOT NULL DEFAULT 0,
+        p35 INTEGER NOT NULL DEFAULT 0,
+        p6 INTEGER NOT NULL DEFAULT 0
       )
     ''');
 
@@ -87,6 +95,14 @@ class DatabaseHelper {
             "ALTER TABLE history ADD COLUMN monthly_subtotal REAL NOT NULL DEFAULT 0.0");
       } catch (_) {}
     }
+    if (oldVersion < 3) {
+      for (final col in ['f0', 'f50', 'f100', 'f125', 'f200', 'fwa', 'p35', 'p6']) {
+        try {
+          await db.execute(
+              "ALTER TABLE history ADD COLUMN $col INTEGER NOT NULL DEFAULT 0");
+        } catch (_) {}
+      }
+    }
   }
 
   // --- Incentive History CRUD ---
@@ -107,12 +123,37 @@ class DatabaseHelper {
         specialInc: record.specialInc,
         monthlySubtotal: record.monthlySubtotal,
         grandTotal: record.grandTotal,
+        f0: record.f0,
+        f50: record.f50,
+        f100: record.f100,
+        f125: record.f125,
+        f200: record.f200,
+        fwa: record.fwa,
+        p35: record.p35,
+        p6: record.p6,
       );
       _webIncentives.insert(0, newRecord);
       return id;
     }
     final db = (await instance.database)!;
     return await db.insert('history', record.toMap());
+  }
+
+  Future<int> updateRecord(IncentiveRecord record) async {
+    if (record.id == null) return 0;
+    if (kIsWeb) {
+      final index = _webIncentives.indexWhere((r) => r.id == record.id);
+      if (index == -1) return 0;
+      _webIncentives[index] = record;
+      return 1;
+    }
+    final db = (await instance.database)!;
+    return await db.update(
+      'history',
+      record.toMap(),
+      where: 'id = ?',
+      whereArgs: [record.id],
+    );
   }
 
   Future<List<IncentiveRecord>> getAllRecords() async {

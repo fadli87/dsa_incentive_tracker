@@ -386,7 +386,7 @@ class GuideScreen extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                'Creative Tech Agency · All Rights Reserved',
+                'Creative Tech Agency · All Rights Reserved • Ver.1.0.2',
                 style: TextStyle(fontSize: 10.5, color: Colors.grey.shade500),
               ),
               const SizedBox(height: 20),

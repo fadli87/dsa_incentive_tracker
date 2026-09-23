@@ -23,6 +23,14 @@ class HistoryNotifier extends AsyncNotifier<List<IncentiveRecord>> {
       return await DatabaseHelper.instance.getAllRecords();
     });
   }
+
+  Future<void> updateRecord(IncentiveRecord record) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      await DatabaseHelper.instance.updateRecord(record);
+      return await DatabaseHelper.instance.getAllRecords();
+    });
+  }
 }
 
 final historyProvider =

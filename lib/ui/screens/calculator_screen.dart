@@ -7,8 +7,10 @@ import '../../data/models/incentive_record.dart';
 import '../widgets/position_selector_tabs.dart';
 import '../widgets/tier_productivity_table.dart';
 import '../widgets/result_card.dart';
-import 'guide_screen.dart';
 import '../../core/models/calculator_models.dart';
+import 'guide_screen.dart';
+import 'history_screen.dart';
+import 'update_notes_screen.dart';
 
 class CalculatorScreen extends ConsumerStatefulWidget {
   const CalculatorScreen({super.key});
@@ -365,6 +367,14 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
                 specialInc: result.specialInc,
                 monthlySubtotal: result.monthlySubtotal,
                 grandTotal: result.grandTotal,
+                f0: int.tryParse(_controllers['f0']!.text) ?? 0,
+                f50: int.tryParse(_controllers['f50']!.text) ?? 0,
+                f100: int.tryParse(_controllers['f100']!.text) ?? 0,
+                f125: int.tryParse(_controllers['f125']!.text) ?? 0,
+                f200: int.tryParse(_controllers['f200']!.text) ?? 0,
+                fwa: int.tryParse(_controllers['fwa']!.text) ?? 0,
+                p35: int.tryParse(_controllers['p35']!.text) ?? 0,
+                p6: int.tryParse(_controllers['p6']!.text) ?? 0,
               );
               await ref.read(historyProvider.notifier).addRecord(record);
               _clearAllFields();
@@ -406,7 +416,7 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Creative Tech Agency · All Rights Reserved',
+                  'Creative Tech Agency · All Rights Reserved • Ver.1.0.2',
                   style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
                 ),
               ],
@@ -482,7 +492,7 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
             ),
             const SizedBox(height: 2),
             Text(
-              'Creative Tech Agency · All Rights Reserved',
+              'Creative Tech Agency · All Rights Reserved • Ver.1.0.2',
               style: TextStyle(fontSize: 10.5, color: Colors.grey.shade500),
             ),
           ],
@@ -499,6 +509,20 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
               Navigator.of(ctx).pop();
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const GuideScreen()),
+              );
+            },
+          ),
+          OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFF002B66),
+              side: const BorderSide(color: Color(0xFF002B66)),
+            ),
+            icon: const Icon(Icons.system_update, size: 16),
+            label: const Text('Catatan Update'),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const UpdateNotesScreen()),
               );
             },
           ),
