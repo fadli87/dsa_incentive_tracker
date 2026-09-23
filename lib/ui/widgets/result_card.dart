@@ -250,6 +250,31 @@ class ResultCard extends StatelessWidget {
                   ),
                 ),
               ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: Colors.white24),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(Icons.verified, size: 12, color: Colors.amberAccent),
+                    SizedBox(width: 4),
+                    Text(
+                      'XL SATU CILACAP · TSC PIPIN',
+                      style: TextStyle(
+                        color: Colors.amberAccent,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),

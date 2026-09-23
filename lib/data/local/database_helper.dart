@@ -1,23 +1,40 @@
+import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:path/path.dart';
 import '../models/incentive_record.dart';
 import '../models/sa_record.dart';
+import '../models/user_profile.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
   static Database? _database;
 
-  // In-memory storage fallback saat dijalankan di browser (Web)
+  bool get _isInMemory {
+    if (kIsWeb) return true;
+    try {
+      return Platform.environment.containsKey('FLUTTER_TEST');
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // In-memory storage fallback saat dijalankan di browser (Web) atau testing
   final List<IncentiveRecord> _webIncentives = [];
   final List<SaRecord> _webSaRecords = [];
+  UserProfile _webUserProfile = const UserProfile(
+    name: '',
+    salesCode: '',
+    branch: 'XL SATU CILACAP',
+    tsc: 'TSC PIPIN',
+  );
   int _webIncentiveIdCounter = 1;
   int _webSaIdCounter = 1;
 
   DatabaseHelper._init();
 
   Future<Database?> get database async {
-    if (kIsWeb) return null;
+    if (_isInMemory) return null;
     if (_database != null) return _database!;
     _database = await _initDB('dsa_tracker_v2.db');
     return _database!;
@@ -36,7 +53,7 @@ class DatabaseHelper {
     final path = join(dbPath, filePath);
     return await openDatabase(
       path,
-      version: 3,
+      version: 5,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -74,10 +91,23 @@ class DatabaseHelper {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         id_pelanggan TEXT NOT NULL,
         nama TEXT NOT NULL,
-        no_ktp TEXT NOT NULL,
+        no_hp_utama TEXT NOT NULL DEFAULT '',
+        no_hp_alternatif TEXT NOT NULL DEFAULT '',
         alamat TEXT NOT NULL,
+        latitude REAL,
+        longitude REAL,
         paket TEXT NOT NULL,
         tanggal_pasang TEXT NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE user_profile (
+        id INTEGER PRIMARY KEY,
+        name TEXT NOT NULL,
+        sales_code TEXT NOT NULL,
+        branch TEXT NOT NULL DEFAULT 'XL SATU CILACAP',
+        tsc TEXT NOT NULL DEFAULT 'TSC PIPIN'
       )
     ''');
   }
@@ -103,11 +133,60 @@ class DatabaseHelper {
         } catch (_) {}
       }
     }
+    if (oldVersion < 4) {
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS user_profile (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            sales_code TEXT NOT NULL,
+            branch TEXT NOT NULL DEFAULT 'XL SATU CILACAP',
+            tsc TEXT NOT NULL DEFAULT 'TSC PIPIN'
+          )
+        ''');
+      } catch (_) {}
+
+      // Migrasi sa_history untuk menghapus kolom no_ktp
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS sa_history_temp (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id_pelanggan TEXT NOT NULL,
+            nama TEXT NOT NULL,
+            alamat TEXT NOT NULL,
+            paket TEXT NOT NULL,
+            tanggal_pasang TEXT NOT NULL
+          )
+        ''');
+        await db.execute('''
+          INSERT OR IGNORE INTO sa_history_temp (id, id_pelanggan, nama, alamat, paket, tanggal_pasang)
+          SELECT id, id_pelanggan, nama, alamat, paket, tanggal_pasang FROM sa_history
+        ''');
+        await db.execute('DROP TABLE IF EXISTS sa_history');
+        await db.execute('ALTER TABLE sa_history_temp RENAME TO sa_history');
+      } catch (_) {}
+    }
+    if (oldVersion < 5) {
+      try {
+        await db.execute(
+            "ALTER TABLE sa_history ADD COLUMN no_hp_utama TEXT NOT NULL DEFAULT ''");
+      } catch (_) {}
+      try {
+        await db.execute(
+            "ALTER TABLE sa_history ADD COLUMN no_hp_alternatif TEXT NOT NULL DEFAULT ''");
+      } catch (_) {}
+      try {
+        await db.execute("ALTER TABLE sa_history ADD COLUMN latitude REAL");
+      } catch (_) {}
+      try {
+        await db.execute("ALTER TABLE sa_history ADD COLUMN longitude REAL");
+      } catch (_) {}
+    }
   }
 
   // --- Incentive History CRUD ---
   Future<int> insertRecord(IncentiveRecord record) async {
-    if (kIsWeb) {
+    if (_isInMemory) {
       final id = _webIncentiveIdCounter++;
       final newRecord = IncentiveRecord(
         id: id,
@@ -141,7 +220,7 @@ class DatabaseHelper {
 
   Future<int> updateRecord(IncentiveRecord record) async {
     if (record.id == null) return 0;
-    if (kIsWeb) {
+    if (_isInMemory) {
       final index = _webIncentives.indexWhere((r) => r.id == record.id);
       if (index == -1) return 0;
       _webIncentives[index] = record;
@@ -157,7 +236,7 @@ class DatabaseHelper {
   }
 
   Future<List<IncentiveRecord>> getAllRecords() async {
-    if (kIsWeb) {
+    if (_isInMemory) {
       return List.unmodifiable(_webIncentives);
     }
     final db = (await instance.database)!;
@@ -166,7 +245,7 @@ class DatabaseHelper {
   }
 
   Future<int> deleteRecord(int id) async {
-    if (kIsWeb) {
+    if (_isInMemory) {
       _webIncentives.removeWhere((r) => r.id == id);
       return 1;
     }
@@ -174,16 +253,19 @@ class DatabaseHelper {
     return await db.delete('history', where: 'id = ?', whereArgs: [id]);
   }
 
-  // --- SA Customer History CRUD ---
+  // --- SA Customer History CRUD (100% Offline Local Storage) ---
   Future<int> insertSaRecord(SaRecord record) async {
-    if (kIsWeb) {
+    if (_isInMemory) {
       final id = _webSaIdCounter++;
       final newRecord = SaRecord(
         id: id,
         idPelanggan: record.idPelanggan,
         nama: record.nama,
-        noKtp: record.noKtp,
+        noHpUtama: record.noHpUtama,
+        noHpAlternatif: record.noHpAlternatif,
         alamat: record.alamat,
+        latitude: record.latitude,
+        longitude: record.longitude,
         paket: record.paket,
         tanggalPasang: record.tanggalPasang,
       );
@@ -195,7 +277,7 @@ class DatabaseHelper {
   }
 
   Future<List<SaRecord>> getAllSaRecords() async {
-    if (kIsWeb) {
+    if (_isInMemory) {
       return List.unmodifiable(_webSaRecords);
     }
     final db = (await instance.database)!;
@@ -204,11 +286,42 @@ class DatabaseHelper {
   }
 
   Future<int> deleteSaRecord(int id) async {
-    if (kIsWeb) {
+    if (_isInMemory) {
       _webSaRecords.removeWhere((r) => r.id == id);
       return 1;
     }
     final db = (await instance.database)!;
     return await db.delete('sa_history', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // --- User Profile (100% Offline Local Storage) ---
+  Future<UserProfile> getUserProfile() async {
+    if (_isInMemory) {
+      return _webUserProfile;
+    }
+    final db = (await instance.database)!;
+    final result = await db.query('user_profile', where: 'id = 1', limit: 1);
+    if (result.isNotEmpty) {
+      return UserProfile.fromMap(result.first);
+    }
+    return const UserProfile(
+      name: '',
+      salesCode: '',
+      branch: 'XL SATU CILACAP',
+      tsc: 'TSC PIPIN',
+    );
+  }
+
+  Future<void> saveUserProfile(UserProfile profile) async {
+    if (_isInMemory) {
+      _webUserProfile = profile;
+      return;
+    }
+    final db = (await instance.database)!;
+    await db.insert(
+      'user_profile',
+      profile.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 }

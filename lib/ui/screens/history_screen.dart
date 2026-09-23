@@ -3,21 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../data/models/incentive_record.dart';
 import '../../providers/history_provider.dart';
-import '../../core/engine/calculator_engine.dart';
-import '../../core/models/calculator_models.dart';
-import '../widgets/result_card.dart';
-import '../widgets/tier_productivity_table.dart';
 import 'edit_history_screen.dart';
 
 class HistoryScreen extends ConsumerWidget {
   const HistoryScreen({super.key});
-
-  PositionType _positionFromLabel(String label) {
-    return PositionType.values.firstWhere(
-      (p) => p.label == label,
-      orElse: () => PositionType.elite,
-    );
-  }
 
   String _fmt(num val) {
     return NumberFormat.currency(
@@ -199,7 +188,7 @@ class HistoryScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Creative Tech Agency · All Rights Reserved • Ver.1.0.3',
+                        'Creative Tech Agency · All Rights Reserved • Ver.1.0.5',
                         style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
                       ),
                     ],

@@ -146,6 +146,26 @@ class _SplashScreenState extends State<SplashScreen>
                           ),
                         ),
                       ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF002B66).withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                              color: const Color(0xFF002B66).withValues(alpha: 0.2)),
+                        ),
+                        child: const Text(
+                          'XL SATU CILACAP · TSC PIPIN',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF002B66),
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -200,7 +220,7 @@ class _SplashScreenState extends State<SplashScreen>
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Creative Tech Agency · All Rights Reserved • Ver.1.0.3',
+                        'Creative Tech Agency · All Rights Reserved • Ver.1.0.5',
                         style: TextStyle(
                           fontSize: 11,
                           color: Colors.grey.shade500,

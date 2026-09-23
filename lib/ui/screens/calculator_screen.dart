@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../providers/calculator_provider.dart';
 import '../../providers/history_provider.dart';
+import '../../providers/user_info_provider.dart';
 import '../../data/models/incentive_record.dart';
 import '../../core/models/calculator_models.dart';
 import '../widgets/position_selector_tabs.dart';
@@ -10,8 +11,8 @@ import '../widgets/tier_productivity_table.dart';
 import '../widgets/result_card.dart';
 import '../widgets/spv_calculator_view.dart';
 import 'guide_screen.dart';
-import 'history_screen.dart';
 import 'update_notes_screen.dart';
+import 'user_info_screen.dart';
 
 class CalculatorScreen extends ConsumerStatefulWidget {
   const CalculatorScreen({super.key});
@@ -66,6 +67,7 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
     final state = ref.watch(calculatorProvider);
     final notifier = ref.read(calculatorProvider.notifier);
     final result = state.calculationResult;
+    final userProfileAsync = ref.watch(userInfoProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7FB),
@@ -85,12 +87,20 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
               ),
             ),
             Text(
-              'Hitung estimasi penghasilan berdasarkan posisi dan aktivasi',
+              'XL SATU CILACAP · TSC PIPIN · Effective Sept 2026',
               style: TextStyle(fontSize: 10.5, color: Colors.white70),
             ),
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.person_outline),
+            tooltip: 'Info Pengguna',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const UserInfoScreen()),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.info_outline),
             tooltip: "Tentang & Copyright",
@@ -106,6 +116,110 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 14.0),
         children: [
+          // Banner Info Pengguna & Watermark
+          userProfileAsync.when(
+            data: (profile) {
+              final hasName = profile.name.trim().isNotEmpty;
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: const Color(0xFF002B66).withValues(alpha: 0.15),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: InkWell(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const UserInfoScreen()),
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 18,
+                        backgroundColor: const Color(0xFF002B66),
+                        foregroundColor: Colors.white,
+                        child: Text(
+                          hasName ? profile.name[0].toUpperCase() : '?',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              hasName ? profile.name : 'Atur Info Pengguna (Nama & Sales Code)',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12.5,
+                                color: hasName ? const Color(0xFF002B66) : Colors.orange.shade900,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Row(
+                              children: [
+                                if (profile.salesCode.isNotEmpty) ...[
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                    margin: const EdgeInsets.only(right: 6),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF002B66).withValues(alpha: 0.08),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      profile.salesCode,
+                                      style: const TextStyle(
+                                        fontSize: 9.5,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF002B66),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                const Expanded(
+                                  child: Text(
+                                    'XL SATU CILACAP · TSC PIPIN',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.grey,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(
+                        hasName ? Icons.edit_outlined : Icons.arrow_forward_ios,
+                        size: 16,
+                        color: const Color(0xFF002B66),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+            loading: () => const SizedBox.shrink(),
+            error: (_, _) => const SizedBox.shrink(),
+          ),
+
           // 1. Selector Tabs Posisi
           PositionSelectorTabs(
             selectedPosition: state.position,
@@ -422,7 +536,7 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Creative Tech Agency · All Rights Reserved • Ver.1.0.3',
+                  'Creative Tech Agency · All Rights Reserved • Ver.1.0.5',
                   style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
                 ),
               ],
@@ -498,7 +612,7 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
             ),
             const SizedBox(height: 2),
             Text(
-              'Creative Tech Agency · All Rights Reserved • Ver.1.0.3',
+              'Creative Tech Agency · All Rights Reserved • Ver.1.0.5',
               style: TextStyle(fontSize: 10.5, color: Colors.grey.shade500),
             ),
           ],
