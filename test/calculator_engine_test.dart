@@ -23,7 +23,6 @@ void main() {
       expect(res.grandTotal, 2773184.0);
     });
 
-<<<<<<< HEAD
     test('Basic Fee OJT, Pro, dan Elite sesuai acuan terbaru', () {
       expect(CalculatorEngine.getBasicFee(PositionType.ojt), 1900000.0);
       expect(CalculatorEngine.getBasicFee(PositionType.pro), 2600000.0);
@@ -106,9 +105,6 @@ void main() {
 
     test('Perhitungan 20 SA AE Elite: Progresif SA HILANG karena perhitungan Multiplier sudah ada', () {
       // 5 x f100, 5 x f125, 5 x f200, 5 x fwa = 20 SA
-=======
-    test('Perhitungan 20 SA dengan tiering September', () {
->>>>>>> 2e16fea (feat: implementasi skema kalkulator SPV September 2026, basic fee Rp 4.5jt, dan update v1.0.2)
       final res = CalculatorEngine.calculateDetailed(
         position: PositionType.elite,
         f0: 0,
@@ -124,7 +120,6 @@ void main() {
       expect(res.totalSa, 20);
       expect(res.pmBase, 2375000.0);
       expect(res.multRate, 4.0);
-<<<<<<< HEAD
 
       // Multiplier per tier:
       // Tier 2: 450k * 1.5 = 675k
