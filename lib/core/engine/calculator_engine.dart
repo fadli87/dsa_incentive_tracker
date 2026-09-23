@@ -10,8 +10,236 @@ class CalculatorEngine {
       case PositionType.pro:
         return 2600000.0;
       case PositionType.elite:
-        return 2773184.0;
+        return 2773184.0; // Angka pasti Cilacap sesuai acuan
+      case PositionType.spv:
+        return 4500000.0; // Sesuai acuan skema SPV September 2026
     }
+  }
+
+  /// Helper untuk mendapatkan tarif per SA Regular (ARPU < 279k)
+  static double getSpvRegularRate(int count) {
+    if (count >= 101) return 60000.0;
+    if (count >= 61) return 35000.0;
+    if (count >= 41) return 25000.0;
+    if (count >= 11) return 20000.0;
+    return 0.0;
+  }
+
+  /// Helper untuk mendapatkan tarif per SA PXGY & High ARPU (>= 279k)
+  static double getSpvPxgyRate(int count) {
+    if (count >= 101) return 80000.0;
+    if (count >= 61) return 40000.0;
+    if (count >= 41) return 35000.0;
+    if (count >= 11) return 30000.0;
+    return 20000.0;
+  }
+
+  /// Helper untuk menghitung Participation Bonus Multiplier
+  static double getSpvParticipationMultiplier(double rate) {
+    if (rate >= 0.805) return 1.25;
+    if (rate >= 0.705) return 1.00;
+    if (rate >= 0.605) return 0.75;
+    if (rate >= 0.505) return 0.60;
+    return 0.0;
+  }
+
+  /// Helper untuk menghitung KPI Multiplier SPV
+  static double getSpvKpiMultiplier({
+    required int mobSpv,
+    required int activeAgents,
+    required double ojtRatio,
+  }) {
+    if (mobSpv <= 3) {
+      return 1.0; // 100% dari Product Mix
+    }
+    if (activeAgents >= 8) {
+      return ojtRatio >= 0.40 ? 1.05 : 1.20;
+    } else if (activeAgents == 7) {
+      return ojtRatio >= 0.40 ? 0.75 : 1.00;
+    } else if (activeAgents == 6) {
+      return ojtRatio >= 0.40 ? 0.55 : 0.60;
+    } else if (activeAgents == 5) {
+      return ojtRatio >= 0.40 ? 0.50 : 0.55;
+    }
+    return 0.0;
+  }
+
+  /// Perhitungan terstruktur dan lengkap untuk skema SPV September 2026
+  static SpvCalculationResult calculateSpvDetailed({
+    String city = defaultCity,
+    required int qtyRegular,
+    required int qtyPxgy,
+    required int totalActiveAgents,
+    required int agentEarnAf,
+    required int mobSpv,
+    required int ojtCount,
+    required int m3Baseline,
+    required int m3Surviving,
+    required int m5Baseline,
+    required int m5Surviving,
+    required int ojtToProNormal,
+    required int ojtToProAccel,
+    required int proToEliteNormal,
+    required int proToEliteAccel,
+  }) {
+    final double basicFee = getBasicFee(PositionType.spv);
+    final int totalTeamSa = qtyRegular + qtyPxgy;
+
+    // 1. Productivity Mix
+    final double rateReg = getSpvRegularRate(qtyRegular);
+    final double subtotalReg = qtyRegular * rateReg;
+    final double ratePx = getSpvPxgyRate(qtyPxgy);
+    final double subtotalPx = qtyPxgy * ratePx;
+    final double totalProductMix = subtotalReg + subtotalPx;
+
+    final productMixDetail = SpvProductMixDetail(
+      qtyRegular: qtyRegular,
+      rateRegular: rateReg,
+      subtotalRegular: subtotalReg,
+      qtyPxgy: qtyPxgy,
+      ratePxgy: ratePx,
+      subtotalPxgy: subtotalPx,
+      totalProductMix: totalProductMix,
+    );
+
+    // 2. Participation Bonus
+    final double partRate = totalActiveAgents > 0
+        ? (agentEarnAf / totalActiveAgents)
+        : 0.0;
+    final double partMultiplier = (mobSpv <= 3)
+        ? 0.0
+        : getSpvParticipationMultiplier(partRate);
+    final double partBonus = (mobSpv <= 3)
+        ? 0.0
+        : partMultiplier * totalProductMix;
+
+    final participationDetail = SpvParticipationDetail(
+      agentEarnAf: agentEarnAf,
+      totalActiveAgents: totalActiveAgents,
+      participationRate: partRate,
+      multiplier: partMultiplier,
+      participationBonus: partBonus,
+    );
+
+    // 3. KPI Bonus
+    final double ojtRatio = totalActiveAgents > 0
+        ? (ojtCount / totalActiveAgents)
+        : 0.0;
+    final double kpiMultiplier = getSpvKpiMultiplier(
+      mobSpv: mobSpv,
+      activeAgents: totalActiveAgents,
+      ojtRatio: ojtRatio,
+    );
+
+    final double totalKpiBonus = (mobSpv <= 3)
+        ? (1.0 * totalProductMix)
+        : (kpiMultiplier * (totalProductMix + partBonus));
+
+    final kpiBonusDetail = SpvKpiBonusDetail(
+      mobSpv: mobSpv,
+      totalActiveAgents: totalActiveAgents,
+      ojtCount: ojtCount,
+      ojtRatio: ojtRatio,
+      kpiMultiplier: kpiMultiplier,
+      productMix: productMixDetail,
+      participation: participationDetail,
+      totalKpiBonus: totalKpiBonus,
+    );
+
+    // 4. Survival Rate M3 & M5
+    final double m3Rate = m3Baseline > 0 ? (m3Surviving / m3Baseline) : 0.0;
+    final bool m3Passed = m3Rate >= 0.8999;
+    final double m3AmountSubs = m3Passed ? (m3Surviving * 25000.0) : 0.0;
+    final double m3LumpSum = m3Passed ? 2000000.0 : 0.0;
+    final double m3Total = m3AmountSubs + m3LumpSum;
+
+    final m3Detail = SpvSurvivalDetail(
+      saBaseline: m3Baseline,
+      saSurviving: m3Surviving,
+      survivalRate: m3Rate,
+      gateRequired: 0.90,
+      isGatePassed: m3Passed,
+      ratePerSubs: 25000.0,
+      amountSubs: m3AmountSubs,
+      lumpSumBonus: m3LumpSum,
+      totalBonus: m3Total,
+    );
+
+    final double m5Rate = m5Baseline > 0 ? (m5Surviving / m5Baseline) : 0.0;
+    final bool m5Passed = m5Rate >= 0.7999;
+    final double m5AmountSubs = m5Passed ? (m5Surviving * 25000.0) : 0.0;
+    final double m5LumpSum = m5Passed ? 2000000.0 : 0.0;
+    final double m5Total = m5AmountSubs + m5LumpSum;
+
+    final m5Detail = SpvSurvivalDetail(
+      saBaseline: m5Baseline,
+      saSurviving: m5Surviving,
+      survivalRate: m5Rate,
+      gateRequired: 0.80,
+      isGatePassed: m5Passed,
+      ratePerSubs: 25000.0,
+      amountSubs: m5AmountSubs,
+      lumpSumBonus: m5LumpSum,
+      totalBonus: m5Total,
+    );
+
+    final double totalSurvivalIncentive = m3Total + m5Total;
+
+    // 5. Graduation Bonus
+    final double totalGraduation = (ojtToProNormal * 500000.0) +
+        (ojtToProAccel * 700000.0) +
+        (proToEliteNormal * 600000.0) +
+        (proToEliteAccel * 800000.0);
+
+    final graduationDetail = SpvGraduationDetail(
+      ojtToProNormal: ojtToProNormal,
+      ojtToProAccel: ojtToProAccel,
+      proToEliteNormal: proToEliteNormal,
+      proToEliteAccel: proToEliteAccel,
+      totalBonus: totalGraduation,
+    );
+
+    // 6. Monthly Performance Bonus (Lump Sum)
+    double monthlyPerfBonus = 0.0;
+    String monthlyPerfDesc = '< 160 SA (Belum memenuhi syarat)';
+    if (totalTeamSa >= 250) {
+      monthlyPerfBonus = 5000000.0;
+      monthlyPerfDesc = '>= 250 SA (Lump sum Rp 5.000.000)';
+    } else if (totalTeamSa >= 200) {
+      monthlyPerfBonus = 3500000.0;
+      monthlyPerfDesc = '200 – 249 SA (Lump sum Rp 3.500.000)';
+    } else if (totalTeamSa >= 160) {
+      monthlyPerfBonus = 2500000.0;
+      monthlyPerfDesc = '160 – 199 SA (Lump sum Rp 2.500.000)';
+    }
+
+    final monthlyPerfDetail = SpvMonthlyPerformanceDetail(
+      totalTeamSa: totalTeamSa,
+      bonusAmount: monthlyPerfBonus,
+      tierDescription: monthlyPerfDesc,
+    );
+
+    // Total Insentif (Poin 1 + Poin 2 + Poin 3 + Poin 4)
+    final double totalIncentive = totalKpiBonus +
+        totalSurvivalIncentive +
+        totalGraduation +
+        monthlyPerfBonus;
+
+    final double grandTotal = basicFee + totalIncentive;
+
+    return SpvCalculationResult(
+      city: city,
+      basicFee: basicFee,
+      totalTeamSa: totalTeamSa,
+      kpiBonus: kpiBonusDetail,
+      m3Survival: m3Detail,
+      m5Survival: m5Detail,
+      totalSurvivalIncentive: totalSurvivalIncentive,
+      graduation: graduationDetail,
+      monthlyPerformance: monthlyPerfDetail,
+      totalIncentive: totalIncentive,
+      grandTotal: grandTotal,
+    );
   }
 
   /// Perhitungan terstruktur dan lengkap yang mengembalikan CalculationResult

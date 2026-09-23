@@ -4,10 +4,11 @@ import 'package:intl/intl.dart';
 import '../../providers/calculator_provider.dart';
 import '../../providers/history_provider.dart';
 import '../../data/models/incentive_record.dart';
+import '../../core/models/calculator_models.dart';
 import '../widgets/position_selector_tabs.dart';
 import '../widgets/tier_productivity_table.dart';
 import '../widgets/result_card.dart';
-import '../../core/models/calculator_models.dart';
+import '../widgets/spv_calculator_view.dart';
 import 'guide_screen.dart';
 import 'history_screen.dart';
 import 'update_notes_screen.dart';
@@ -111,6 +112,10 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
             onPositionChanged: (pos) => notifier.setPosition(pos),
           ),
           const SizedBox(height: 14),
+
+          if (state.position == PositionType.spv) ...[
+            const SpvCalculatorView(),
+          ] else ...[
 
           // 2. Card Wilayah & Basic Fee
           Card(
@@ -391,6 +396,7 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
             ),
           ),
+          ],
           const SizedBox(height: 18),
 
           // 9. Copyright Footer

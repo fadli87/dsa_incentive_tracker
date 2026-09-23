@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'calculator_screen.dart';
+import 'sa_list_screen.dart';
 import 'history_screen.dart';
 import 'guide_screen.dart';
 
@@ -14,6 +15,7 @@ class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
   final List<Widget> _screens = const [
     CalculatorScreen(),
+    SaListScreen(),
     HistoryScreen(),
     GuideScreen(),
   ];
@@ -33,6 +35,11 @@ class _MainNavigationState extends State<MainNavigation> {
             icon: Icon(Icons.calculate_outlined),
             selectedIcon: Icon(Icons.calculate),
             label: 'Kalkulator',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.people_outline),
+            selectedIcon: Icon(Icons.people),
+            label: 'Data SA',
           ),
           NavigationDestination(
             icon: Icon(Icons.account_balance_wallet_outlined),
