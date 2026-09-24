@@ -25,11 +25,11 @@ void main() {
     await tester.pump(const Duration(milliseconds: 3500));
     await tester.pumpAndSettle();
 
-    // Verifikasi Tab 1: Dashboard XLSMART
-    expect(find.text('XLSMART'), findsOneWidget);
-    expect(find.text('My Attendance'), findsOneWidget);
-    expect(find.text('LEADS'), findsOneWidget);
-    expect(find.text('My Sales'), findsOneWidget);
+    // Verifikasi Tab 1: Dashboard DSA XL Satu Handbook
+    expect(find.text('Buku Saku Digital Sales'), findsOneWidget);
+    expect(find.text('Menu Utama'), findsOneWidget);
+    expect(find.text('Kalkulator Insentif'), findsOneWidget);
+    expect(find.text('Katalog Paket'), findsOneWidget);
 
     // Tap on 'Kalkulator' tab
     await tester.tap(find.text('Kalkulator'));
