@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dashboard_screen.dart';
 import 'calculator_screen.dart';
 import 'product_catalog_screen.dart';
 import 'sa_list_screen.dart';
@@ -14,25 +15,38 @@ class MainNavigation extends StatefulWidget {
 
 class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
-  final List<Widget> _screens = const [
-    CalculatorScreen(),
-    ProductCatalogScreen(),
-    SaListScreen(),
-    HistoryScreen(),
-    GuideScreen(),
-  ];
+
+  void _navigateToTab(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final List<Widget> screens = [
+      DashboardScreen(onNavigateToTab: _navigateToTab),
+      const CalculatorScreen(),
+      const ProductCatalogScreen(),
+      const SaListScreen(),
+      const HistoryScreen(),
+      const GuideScreen(),
+    ];
+
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
-        children: _screens,
+        children: screens,
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (index) => setState(() => _currentIndex = index),
         destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.dashboard_outlined),
+            selectedIcon: Icon(Icons.dashboard),
+            label: 'Dashboard',
+          ),
           NavigationDestination(
             icon: Icon(Icons.calculate_outlined),
             selectedIcon: Icon(Icons.calculate),

@@ -1,8 +1,8 @@
 ; Inno Setup Script for DSA Incentive Tracker
 ; XL SATU CILACAP · TSC PIPIN
 
-#define MyAppName "DSA Incentive Tracker"
-#define MyAppVersion "1.0.5"
+#define MyAppName "DSA XL Satu Handbook"
+#define MyAppVersion "1.0.6"
 #define MyAppPublisher "D'Azhars Studio"
 #define MyAppExeName "dsa_incentive_tracker.exe"
 
@@ -14,7 +14,7 @@ AppPublisher={#MyAppPublisher}
 DefaultDirName={autopf}\{#MyAppName}
 DisableProgramGroupPage=yes
 OutputDir=Output
-OutputBaseFilename=DSA_Incentive_Tracker_Setup_v{#MyAppVersion}
+OutputBaseFilename=DSA_XL_Satu_Handbook_Setup_v{#MyAppVersion}
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern

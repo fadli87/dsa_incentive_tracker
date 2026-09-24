@@ -19,9 +19,24 @@ class UpdateNotesScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildVersionCard(
-              version: 'Ver.1.0.5',
+              version: 'Ver.1.0.6',
               date: 'September 2026',
               isLatest: true,
+              changes: [
+                'Pembaruan Nama Aplikasi Resmi: DSA XL Satu Handbook.',
+                'Dashboard Baru XLSMART: Header gradient interaktif, greeting identitas sales, dan quick shortcut profil.',
+                'Kartu Attendance (Absensi Kerja Sales): Indikator My Attendance dan Min Attendance (25 hari) yang dapat disesuaikan.',
+                'Ringkasan KPI Real-Time: Panel Leads, Sales, dan SA Paid terintegrasi otomatis dengan database lokal.',
+                'Grid 8 Quick Actions: Akses cepat ke POS, Apartment, Home Complaint, Lead, Building ID, Sales, DSA Dashboard, dan Homepass.',
+                'Panel My Sales Pipeline: Pelacakan status SO Created, WO Created, dan SA Installation dengan filter bulan & tahun.',
+                'Navigasi Utama 6 Tab: Dashboard, Kalkulator Insentif, Paket Jualan, Data SA, Histori Insentif, dan Panduan Skema.',
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildVersionCard(
+              version: 'Ver.1.0.5',
+              date: 'September 2026',
+              isLatest: false,
               changes: [
                 'Penambahan Screen Baru: Katalog Paket Jualan Sales XL Satu (Launch 19 September 2026) pada menu navigasi utama.',
                 'Katalog 5 Kategori Tab: Internet Only (FTTH & FWA), FMC Kuota HP Sekeluarga, Advance Pay (PXGY Bayar 3 Dapat 4), Combo TV (FM Footprint), dan S&K + Kode OWS.',

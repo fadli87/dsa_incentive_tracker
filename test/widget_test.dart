@@ -17,7 +17,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
 
     // Verifikasi Splash Screen dan Copyright D'Azhars Studio
-    expect(find.text('DSA INCENTIVE TRACKER'), findsOneWidget);
+    expect(find.text('DSA XL SATU HANDBOOK'), findsOneWidget);
     expect(find.text("Copyright D'Azhars Studio"), findsOneWidget);
     expect(find.text('XL SATU CILACAP · TSC PIPIN'), findsOneWidget);
 
@@ -25,6 +25,15 @@ void main() {
     await tester.pump(const Duration(milliseconds: 3500));
     await tester.pumpAndSettle();
 
+    // Verifikasi Tab 1: Dashboard XLSMART
+    expect(find.text('XLSMART'), findsOneWidget);
+    expect(find.text('My Attendance'), findsOneWidget);
+    expect(find.text('LEADS'), findsOneWidget);
+    expect(find.text('My Sales'), findsOneWidget);
+
+    // Tap on 'Kalkulator' tab
+    await tester.tap(find.text('Kalkulator'));
+    await tester.pumpAndSettle();
     expect(find.text('KALKULATOR INCENTIVE'), findsOneWidget);
     expect(find.text('WILAYAH'), findsOneWidget);
     expect(find.text('KAB. CILACAP'), findsOneWidget);

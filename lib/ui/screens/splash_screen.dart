@@ -121,7 +121,7 @@ class _SplashScreenState extends State<SplashScreen>
 
                       // Nama Aplikasi & Subtitle
                       const Text(
-                        'DSA INCENTIVE TRACKER',
+                        'DSA XL SATU HANDBOOK',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w900,
