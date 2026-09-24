@@ -65,8 +65,8 @@ class GuideScreen extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 14.0),
       children: [
-        // Watermark Banner
-        _buildWatermarkBanner(),
+        // Identity Banner
+        _buildIdentityBanner(),
         const SizedBox(height: 12),
 
         // Banner Pengenalan AE
@@ -414,8 +414,8 @@ class GuideScreen extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 14.0),
       children: [
-        // Watermark Banner
-        _buildWatermarkBanner(),
+        // Identity Banner
+        _buildIdentityBanner(),
         const SizedBox(height: 12),
 
         // Banner Pengenalan SPV
@@ -669,7 +669,7 @@ class GuideScreen extends StatelessWidget {
   // HELPER WIDGETS
   // ==========================================
 
-  Widget _buildWatermarkBanner() {
+  Widget _buildIdentityBanner() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
@@ -685,7 +685,7 @@ class GuideScreen extends StatelessWidget {
           Icon(Icons.verified, size: 14, color: Color(0xFF002B66)),
           SizedBox(width: 6),
           Text(
-            'WATERMARK: XL SATU CILACAP · TSC PIPIN',
+            'XL SATU CILACAP · TSC PIPIN',
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.bold,

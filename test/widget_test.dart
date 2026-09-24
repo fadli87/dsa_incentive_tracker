@@ -7,7 +7,7 @@ import 'package:dsa_incentive_tracker/data/models/user_profile.dart';
 import 'package:dsa_incentive_tracker/ui/screens/user_info_screen.dart';
 
 void main() {
-  testWidgets('App renders SplashScreen, Watermark, and Navigates properly',
+  testWidgets('App renders SplashScreen, Identity, and Navigates properly',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1.0;
@@ -115,7 +115,7 @@ void main() {
     expect(parsed.idPelanggan, 'CIL-001');
   });
 
-  test('UserProfile model handles branch and tsc watermark defaults', () {
+  test('UserProfile model handles branch and tsc defaults', () {
     const profile = UserProfile(
       name: 'Rudi',
       salesCode: 'DSA123',

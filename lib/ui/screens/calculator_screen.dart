@@ -116,7 +116,7 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 14.0),
         children: [
-          // Banner Info Pengguna & Watermark
+          // Banner Info Pengguna
           userProfileAsync.when(
             data: (profile) {
               final hasName = profile.name.trim().isNotEmpty;

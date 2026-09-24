@@ -320,7 +320,7 @@ class _UserInfoScreenState extends ConsumerState<UserInfoScreen> {
 
                 const SizedBox(height: 16),
 
-                // Watermark & Privacy Notice
+                // Privacy Notice
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -339,7 +339,7 @@ class _UserInfoScreenState extends ConsumerState<UserInfoScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'WATERMARK: XL SATU CILACAP · TSC PIPIN',
+                              'XL SATU CILACAP · TSC PIPIN',
                               style: TextStyle(
                                 fontSize: 11.5,
                                 fontWeight: FontWeight.bold,

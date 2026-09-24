@@ -43,7 +43,7 @@ class UpdateNotesScreen extends StatelessWidget {
                 'Penyimpanan database SA 100% offline lokal dengan penghapusan nomor KTP demi privasi dan keamanan data.',
                 'Penambahan modul Panduan Skema Supervisor (SPV) September 2026 (Basic Fee, Bonus KPI, Survival Rate, Graduation Bonus, Monthly Performance Bonus).',
                 'Screen baru Info Pengguna (Nama Sales & Sales Code) dengan Virtual ID Card dan penyimpanan lokal persisten.',
-                'Penyematan identitas resmi watermark "XL SATU CILACAP · TSC PIPIN" pada antarmuka aplikasi.',
+                'Penyematan identitas resmi "XL SATU CILACAP · TSC PIPIN" pada antarmuka aplikasi.',
               ],
             ),
             const SizedBox(height: 16),
