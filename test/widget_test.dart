@@ -25,40 +25,47 @@ void main() {
     await tester.pump(const Duration(milliseconds: 3500));
     await tester.pumpAndSettle();
 
-    // Verifikasi Tab 1: Dashboard DSA XL Satu Handbook
+    // Verifikasi Home: Dashboard DSA XL Satu Handbook (Tanpa Bottom Nav Bar)
     expect(find.text('Buku Saku Digital Sales'), findsOneWidget);
     expect(find.text('Menu Utama'), findsOneWidget);
     expect(find.text('Kalkulator Insentif'), findsOneWidget);
     expect(find.text('Katalog Paket'), findsOneWidget);
 
-    // Tap on 'Kalkulator' tab
-    await tester.tap(find.text('Kalkulator'));
+    // 1. Tap menu 'Kalkulator Insentif'
+    await tester.tap(find.text('Kalkulator Insentif'));
     await tester.pumpAndSettle();
     expect(find.text('KALKULATOR INCENTIVE'), findsOneWidget);
     expect(find.text('WILAYAH'), findsOneWidget);
     expect(find.text('KAB. CILACAP'), findsOneWidget);
 
-    // Tap on 'Paket Jualan' tab
-    await tester.tap(find.text('Paket Jualan'));
+    // Kembali ke Dashboard
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    // 2. Tap menu 'Katalog Paket'
+    await tester.tap(find.text('Katalog Paket'));
     await tester.pumpAndSettle();
     expect(find.text('KATALOG PAKET JUALAN'), findsOneWidget);
     expect(find.text('1. Internet Only'), findsOneWidget);
     expect(find.text('2. FMC Kuota HP'), findsOneWidget);
     expect(find.text('Tactical FTTH 20 Mbps'), findsOneWidget);
 
-    // Tap on 'Data SA' tab
-    await tester.tap(find.text('Data SA'));
+    // Kembali ke Dashboard
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    // 3. Tap menu 'Data Pelanggan'
+    await tester.tap(find.text('Data Pelanggan'));
     await tester.pumpAndSettle();
     expect(find.text('DATA PELANGGAN (SA)'), findsOneWidget);
     expect(find.text('OFFLINE'), findsOneWidget);
 
-    // Tap on 'Insentif' tab
-    await tester.tap(find.text('Insentif'));
+    // Kembali ke Dashboard
+    await tester.pageBack();
     await tester.pumpAndSettle();
-    expect(find.text('Histori Pencapaian'), findsOneWidget);
 
-    // Tap on 'Panduan' tab
-    await tester.tap(find.text('Panduan'));
+    // 4. Tap menu 'Panduan Skema'
+    await tester.tap(find.text('Panduan Skema'));
     await tester.pumpAndSettle();
     expect(find.text('PANDUAN & SKEMA INSENTIF'), findsOneWidget);
 

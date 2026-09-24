@@ -10,9 +10,7 @@ import 'history_screen.dart';
 import 'guide_screen.dart';
 
 class DashboardScreen extends ConsumerWidget {
-  final Function(int tabIndex)? onNavigateToTab;
-
-  const DashboardScreen({super.key, this.onNavigateToTab});
+  const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -291,15 +289,11 @@ class DashboardScreen extends ConsumerWidget {
                         title: 'Kalkulator Insentif',
                         subtitle: 'Simulasi komisi AE',
                         onTap: () {
-                          if (onNavigateToTab != null) {
-                            onNavigateToTab!(1);
-                          } else {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const CalculatorScreen()),
-                            );
-                          }
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const CalculatorScreen()),
+                          );
                         },
                       ),
 
@@ -311,15 +305,11 @@ class DashboardScreen extends ConsumerWidget {
                         title: 'Katalog Paket',
                         subtitle: 'FTTH, FWA & FMC',
                         onTap: () {
-                          if (onNavigateToTab != null) {
-                            onNavigateToTab!(2);
-                          } else {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const ProductCatalogScreen()),
-                            );
-                          }
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const ProductCatalogScreen()),
+                          );
                         },
                       ),
 
@@ -331,15 +321,11 @@ class DashboardScreen extends ConsumerWidget {
                         title: 'Data Pelanggan',
                         subtitle: 'Pencatatan pasang baru',
                         onTap: () {
-                          if (onNavigateToTab != null) {
-                            onNavigateToTab!(3);
-                          } else {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const SaListScreen()),
-                            );
-                          }
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const SaListScreen()),
+                          );
                         },
                       ),
 
@@ -351,15 +337,11 @@ class DashboardScreen extends ConsumerWidget {
                         title: 'Peta Pelanggan',
                         subtitle: 'Pin lokasi & GPS',
                         onTap: () {
-                          if (onNavigateToTab != null) {
-                            onNavigateToTab!(3);
-                          } else {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const SaListScreen()),
-                            );
-                          }
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const SaListScreen()),
+                          );
                         },
                       ),
 
@@ -371,15 +353,11 @@ class DashboardScreen extends ConsumerWidget {
                         title: 'Histori Insentif',
                         subtitle: 'Rekap pencapaian',
                         onTap: () {
-                          if (onNavigateToTab != null) {
-                            onNavigateToTab!(4);
-                          } else {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const HistoryScreen()),
-                            );
-                          }
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const HistoryScreen()),
+                          );
                         },
                       ),
 
@@ -391,15 +369,11 @@ class DashboardScreen extends ConsumerWidget {
                         title: 'Panduan Skema',
                         subtitle: 'Aturan AE & SPV',
                         onTap: () {
-                          if (onNavigateToTab != null) {
-                            onNavigateToTab!(5);
-                          } else {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const GuideScreen()),
-                            );
-                          }
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const GuideScreen()),
+                          );
                         },
                       ),
 
