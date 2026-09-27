@@ -6,7 +6,8 @@ plugins {
 
 android {
     namespace = "com.xlsmart.dsa_incentive_tracker"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 35
+    ndkVersion = "28.2.13676358"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
