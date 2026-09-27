@@ -80,12 +80,13 @@ jobs:
         run: flutter build windows --release
 
       - name: Setup Inno Setup
-        uses: Platane/inno-setup-action@v1.1
-        with:
-          version: '6.2.2'
+        run: choco install innosetup --no-progress
+        shell: powershell
 
       - name: Compile Inno Setup Installer
-        run: iscc windows_installer.iss
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" windows_installer.iss
+        shell: powershell
 
       - name: Prepare Windows Assets
         id: prep_win
