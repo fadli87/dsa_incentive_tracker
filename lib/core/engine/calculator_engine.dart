@@ -65,6 +65,7 @@ class CalculatorEngine {
   }
 
   /// Perhitungan terstruktur dan lengkap untuk skema SPV September 2026
+  /// Perhitungan terstruktur dan lengkap untuk skema SPV September 2026
   static SpvCalculationResult calculateSpvDetailed({
     String city = defaultCity,
     required int qtyRegular,
@@ -81,6 +82,8 @@ class CalculatorEngine {
     required int ojtToProAccel,
     required int proToEliteNormal,
     required int proToEliteAccel,
+    int quarterlyTeamSa = 0,
+    double quarterlyM3SurvivalRate = 0.0,
   }) {
     final double basicFee = getBasicFee(PositionType.spv);
     final int totalTeamSa = qtyRegular + qtyPxgy;
@@ -219,11 +222,18 @@ class CalculatorEngine {
       tierDescription: monthlyPerfDesc,
     );
 
-    // Total Insentif (Poin 1 + Poin 2 + Poin 3 + Poin 4)
+    // 7. Quarterly Bonus SPV (Poin 5)
+    final quarterlyDetail = calculateSpvQuarterly(
+      quarterlyTeamSa: quarterlyTeamSa,
+      m3SurvivalRate: quarterlyM3SurvivalRate,
+    );
+
+    // Total Insentif (Poin 1 + Poin 2 + Poin 3 + Poin 4 + Poin 5)
     final double totalIncentive = totalKpiBonus +
         totalSurvivalIncentive +
         totalGraduation +
-        monthlyPerfBonus;
+        monthlyPerfBonus +
+        quarterlyDetail.totalQuarterlyBonus;
 
     final double grandTotal = basicFee + totalIncentive;
 
@@ -237,8 +247,155 @@ class CalculatorEngine {
       totalSurvivalIncentive: totalSurvivalIncentive,
       graduation: graduationDetail,
       monthlyPerformance: monthlyPerfDetail,
+      quarterlyDetail: quarterlyDetail,
       totalIncentive: totalIncentive,
       grandTotal: grandTotal,
+    );
+  }
+
+  /// Perhitungan Quarterly Bonus untuk SPV
+  static SpvQuarterlyDetail calculateSpvQuarterly({
+    required int quarterlyTeamSa,
+    required double m3SurvivalRate,
+  }) {
+    final bool isGatePassed = m3SurvivalRate >= 0.7999;
+    double baseBonus = 0.0;
+    int incrementalSa = 0;
+    double incrementalBonus = 0.0;
+
+    if (quarterlyTeamSa >= 500) {
+      baseBonus = 12000000.0;
+      incrementalSa = quarterlyTeamSa - 500;
+      incrementalBonus = incrementalSa * 30000.0;
+    } else if (quarterlyTeamSa >= 450) {
+      baseBonus = 12000000.0;
+    } else if (quarterlyTeamSa >= 400) {
+      baseBonus = 10000000.0;
+    } else if (quarterlyTeamSa >= 350) {
+      baseBonus = 8000000.0;
+    } else if (quarterlyTeamSa >= 300) {
+      baseBonus = 6000000.0;
+    } else if (quarterlyTeamSa >= 250) {
+      baseBonus = 4500000.0;
+    } else if (quarterlyTeamSa >= 200) {
+      baseBonus = 3000000.0;
+    } else if (quarterlyTeamSa >= 150) {
+      baseBonus = 2000000.0;
+    } else if (quarterlyTeamSa >= 50) {
+      baseBonus = 1500000.0;
+    }
+
+    final double total = isGatePassed ? (baseBonus + incrementalBonus) : 0.0;
+
+    return SpvQuarterlyDetail(
+      quarterlyTeamSa: quarterlyTeamSa,
+      m3SurvivalRate: m3SurvivalRate,
+      isGatePassed: isGatePassed,
+      baseBonus: baseBonus,
+      incrementalSa: incrementalSa,
+      incrementalBonus: incrementalBonus,
+      totalQuarterlyBonus: total,
+    );
+  }
+
+  /// Perhitungan Survival Rate untuk DSA / AE (M3 & M5)
+  static DsaSurvivalDetail calculateDsaSurvival({
+    required int m3Base,
+    required int m3Surv,
+    required int m5Base,
+    required int m5Surv,
+  }) {
+    final double m3Rate = m3Base > 0 ? (m3Surv / m3Base) : 0.0;
+    final bool m3GatePassed = m3Rate >= 0.8999;
+    final double m3Total = m3GatePassed ? (m3Surv * 100000.0) : 0.0;
+
+    final double m5Rate = m5Base > 0 ? (m5Surv / m5Base) : 0.0;
+    final bool m5GatePassed = m5Rate >= 0.7999;
+    final double m5Total = m5GatePassed ? (m5Surv * 80000.0) : 0.0;
+
+    return DsaSurvivalDetail(
+      m3Base: m3Base,
+      m3Surv: m3Surv,
+      m3Rate: m3Rate,
+      m3GatePassed: m3GatePassed,
+      m3Total: m3Total,
+      m5Base: m5Base,
+      m5Surv: m5Surv,
+      m5Rate: m5Rate,
+      m5GatePassed: m5GatePassed,
+      m5Total: m5Total,
+      totalSurvivalBonus: m3Total + m5Total,
+    );
+  }
+
+  /// Perhitungan Quarterly Bonus untuk DSA / AE (Pro & Elite)
+  static DsaQuarterlyDetail calculateDsaQuarterly({
+    required PositionType position,
+    required int quarterlySa,
+    required double m3SurvivalRate,
+  }) {
+    if (position == PositionType.ojt) {
+      return DsaQuarterlyDetail.empty;
+    }
+
+    final bool isGatePassed = m3SurvivalRate >= 0.8999;
+    double baseBonus = 0.0;
+    int incrementalSa = 0;
+    double incrementalBonus = 0.0;
+
+    if (quarterlySa >= 60) {
+      baseBonus = 20000000.0;
+      incrementalSa = quarterlySa - 60;
+      incrementalBonus = incrementalSa * 10000.0;
+    } else if (quarterlySa >= 45) {
+      baseBonus = 15000000.0;
+    } else if (quarterlySa >= 30) {
+      baseBonus = 2000000.0;
+    }
+
+    final double total = isGatePassed ? (baseBonus + incrementalBonus) : 0.0;
+
+    return DsaQuarterlyDetail(
+      quarterlySa: quarterlySa,
+      m3SurvivalRate: m3SurvivalRate,
+      isGatePassed: isGatePassed,
+      baseBonus: baseBonus,
+      incrementalSa: incrementalSa,
+      incrementalBonus: incrementalBonus,
+      totalQuarterlyBonus: total,
+    );
+  }
+
+  /// Perhitungan Net Add Incentive untuk DSA / AE (Pro & Elite)
+  static DsaNetAddDetail calculateDsaNetAdd({
+    required PositionType position,
+    required int baselineActiveSubs,
+    required int currentActiveSubs,
+  }) {
+    if (position == PositionType.ojt) {
+      return DsaNetAddDetail.empty;
+    }
+
+    final int diff = currentActiveSubs - baselineActiveSubs;
+    final int incrementalSa = diff > 0 ? (diff > 10 ? 10 : diff) : 0;
+    double ratePerSa = 0.0;
+
+    if (baselineActiveSubs >= 200) {
+      ratePerSa = 150000.0;
+    } else if (baselineActiveSubs >= 100) {
+      ratePerSa = 100000.0;
+    } else if (baselineActiveSubs >= 80) {
+      ratePerSa = 50000.0;
+    }
+
+    final double total = incrementalSa * ratePerSa;
+
+    return DsaNetAddDetail(
+      baselineActiveSubs: baselineActiveSubs,
+      currentActiveSubs: currentActiveSubs,
+      incrementalSa: incrementalSa,
+      ratePerSa: ratePerSa,
+      totalNetAddBonus: total,
     );
   }
 
@@ -254,6 +411,14 @@ class CalculatorEngine {
     required int fwa,
     required int p35,
     required int p6,
+    int m3Base = 0,
+    int m3Surv = 0,
+    int m5Base = 0,
+    int m5Surv = 0,
+    int quarterlySa = 0,
+    double quarterlyM3SurvivalRate = 0.0,
+    int baselineActiveSubs = 0,
+    int currentActiveSubs = 0,
   }) {
     final int totalSa = f0 + f50 + f100 + f125 + f200 + fwa + p35 + p6;
 
@@ -483,6 +648,25 @@ class CalculatorEngine {
         lumpSumBonus;
     final double grandTotal = monthlySubtotal;
 
+    final survivalDetail = calculateDsaSurvival(
+      m3Base: m3Base,
+      m3Surv: m3Surv,
+      m5Base: m5Base,
+      m5Surv: m5Surv,
+    );
+
+    final quarterlyDetail = calculateDsaQuarterly(
+      position: position,
+      quarterlySa: quarterlySa,
+      m3SurvivalRate: quarterlyM3SurvivalRate,
+    );
+
+    final netAddDetail = calculateDsaNetAdd(
+      position: position,
+      baselineActiveSubs: baselineActiveSubs,
+      currentActiveSubs: currentActiveSubs,
+    );
+
     return CalculationResult(
       position: position,
       city: city,
@@ -497,6 +681,9 @@ class CalculatorEngine {
       tierRows: tierRows,
       monthlySubtotal: monthlySubtotal,
       grandTotal: grandTotal,
+      survivalDetail: survivalDetail,
+      quarterlyDetail: quarterlyDetail,
+      netAddDetail: netAddDetail,
     );
   }
 

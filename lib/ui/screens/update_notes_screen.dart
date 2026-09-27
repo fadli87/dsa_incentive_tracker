@@ -19,9 +19,25 @@ class UpdateNotesScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildVersionCard(
-              version: 'Ver.1.0.6',
+              version: 'Ver.1.0.7',
               date: 'September 2026',
               isLatest: true,
+              changes: [
+                'AURA Sales AI Coach: Asisten cerdas dual-engine (Gemini 2.5 Flash + Offline Rule Engine) untuk analisis KPI, strategi penutupan sales, dan rekomendasi target.',
+                'Cellular Telephony & RF Signal Diagnostics: Monitoring sinyal seluler live (RSRP, RSRQ, SINR), kalkulator EARFCN (Band 3 & Band 40), pemisahan eNodeB/Cell ID, Speed Test, dan Drive Test GPS logging.',
+                'GIS Maps 380 Tower BTS XL: Peta interaktif lengkap dengan 380 titik BTS XL, visualisasi warna hex asli KMZ, dan filter status operasional.',
+                'Dissolved Coverage 24 Kecamatan: Poligon jangkauan FWA/FTTH terpadu per kecamatan tanpa sekat kotak-kotak grid (SPV area dieliminasi).',
+                'Homepass Target Bangunan Prioritas: Visualisasi titik bangunan kategori A, B, C, D dengan performa 60 FPS menggunakan GPU Canvas rendering dan background isolate parsing.',
+                'Pencarian Koordinat & ShareLoc WhatsApp / Google Maps: Input desimal Lat/Long, DMS, deteksi otomatis link Google Maps (goo.gl), pesan ShareLoc WhatsApp, tombol tempel cepat, auto fly-to kamera, serta shortcut "Input SA".',
+                'Toggle Switch Floating & Quick Layer Control: Kontrol saklar cepat ON/OFF untuk Coverage dan Homepass di floating bar.',
+                'Peningkatan Stabilitas & UI Fixes: Eliminasi RenderFlex overflow dan optimasi build MSVC Windows Desktop.',
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildVersionCard(
+              version: 'Ver.1.0.6',
+              date: 'September 2026',
+              isLatest: false,
               changes: [
                 'Pembaruan Nama Aplikasi Resmi: DSA XL Satu Handbook.',
                 'Dashboard Baru XLSMART: Header gradient interaktif, greeting identitas sales, dan quick shortcut profil.',

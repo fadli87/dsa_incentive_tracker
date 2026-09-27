@@ -324,6 +324,23 @@ class DatabaseHelper {
     return result.map((json) => SaRecord.fromMap(json)).toList();
   }
 
+  Future<int> updateSaRecord(SaRecord record) async {
+    if (record.id == null) return 0;
+    if (_isInMemory) {
+      final index = _webSaRecords.indexWhere((r) => r.id == record.id);
+      if (index == -1) return 0;
+      _webSaRecords[index] = record;
+      return 1;
+    }
+    final db = (await instance.database)!;
+    return await db.update(
+      'sa_history',
+      record.toMap(),
+      where: 'id = ?',
+      whereArgs: [record.id],
+    );
+  }
+
   Future<int> deleteSaRecord(int id) async {
     if (_isInMemory) {
       _webSaRecords.removeWhere((r) => r.id == id);

@@ -306,6 +306,16 @@ class SaListScreen extends ConsumerWidget {
                                 ],
                               ),
                             ),
+                            IconButton(
+                              icon: const Icon(Icons.edit_outlined, size: 20, color: Color(0xFF002B66)),
+                              tooltip: 'Edit Data Pelanggan',
+                              onPressed: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => SaFormScreen(initialRecord: r),
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                         const Divider(height: 18),

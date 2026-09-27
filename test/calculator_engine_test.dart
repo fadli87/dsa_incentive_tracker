@@ -331,5 +331,132 @@ void main() {
       expect(res.kpiBonus.kpiMultiplier, 1.0);
       expect(res.kpiBonus.totalKpiBonus, 850000.0);
     });
+
+    test('Simulasi SPV Quarterly Bonus 510 SA Tim (Slide Halaman 8 & 9)', () {
+      // Sesuai contoh Slide SPV Hal 8: SPV mendapatkan 510 SA Tim dengan M3 Survival >= 80%
+      // Quarterly Bonus = 12.000.000 + [(510 - 500) x 30.000] = 12.300.000
+      final qResult = CalculatorEngine.calculateSpvQuarterly(
+        quarterlyTeamSa: 510,
+        m3SurvivalRate: 0.85,
+      );
+
+      expect(qResult.isGatePassed, isTrue);
+      expect(qResult.baseBonus, 12000000.0);
+      expect(qResult.incrementalSa, 10);
+      expect(qResult.incrementalBonus, 300000.0);
+      expect(qResult.totalQuarterlyBonus, 12300000.0);
+
+      // Jika M3 Survival < 80%, bonus = 0
+      final qFail = CalculatorEngine.calculateSpvQuarterly(
+        quarterlyTeamSa: 510,
+        m3SurvivalRate: 0.75,
+      );
+      expect(qFail.isGatePassed, isFalse);
+      expect(qFail.totalQuarterlyBonus, 0.0);
+    });
+  });
+
+  group('CalculatorEngine Tests - DSA Survival Rate, Quarterly & Net Add (September 2026)', () {
+    test('DSA Survival Rate M3 (@100k Gate >=90%) dan M5 (@80k Gate >=80%)', () {
+      // 10 SA baseline, 9 surviving M3 (90% - Lolos)
+      // 10 SA baseline, 8 surviving M5 (80% - Lolos)
+      final surv = CalculatorEngine.calculateDsaSurvival(
+        m3Base: 10,
+        m3Surv: 9,
+        m5Base: 10,
+        m5Surv: 8,
+      );
+
+      expect(surv.m3GatePassed, isTrue);
+      expect(surv.m3Total, 900000.0); // 9 * 100k
+      expect(surv.m5GatePassed, isTrue);
+      expect(surv.m5Total, 640000.0); // 8 * 80k
+      expect(surv.totalSurvivalBonus, 1540000.0);
+
+      // Kasus Gate M3 gagal (< 90%)
+      final survFail = CalculatorEngine.calculateDsaSurvival(
+        m3Base: 10,
+        m3Surv: 8, // 80% < 90%
+        m5Base: 10,
+        m5Surv: 7, // 70% < 80%
+      );
+      expect(survFail.m3GatePassed, isFalse);
+      expect(survFail.m3Total, 0.0);
+      expect(survFail.m5GatePassed, isFalse);
+      expect(survFail.m5Total, 0.0);
+      expect(survFail.totalSurvivalBonus, 0.0);
+    });
+
+    test('DSA Quarterly Bonus (Slide Hal 6 & 10): 30-44 SA (2jt), 45-59 SA (15jt), >=60 SA (20jt + 10k/inc)', () {
+      // AE Pro/Elite 65 SA Kuartal + M3 >= 90%:
+      // 20.000.000 + (5 * 10.000) = 20.050.000
+      final q65 = CalculatorEngine.calculateDsaQuarterly(
+        position: PositionType.elite,
+        quarterlySa: 65,
+        m3SurvivalRate: 0.92,
+      );
+      expect(q65.isGatePassed, isTrue);
+      expect(q65.baseBonus, 20000000.0);
+      expect(q65.incrementalSa, 5);
+      expect(q65.incrementalBonus, 50000.0);
+      expect(q65.totalQuarterlyBonus, 20050000.0);
+
+      // AE Pro 50 SA Kuartal + M3 >= 90%: 15.000.000
+      final q50 = CalculatorEngine.calculateDsaQuarterly(
+        position: PositionType.pro,
+        quarterlySa: 50,
+        m3SurvivalRate: 0.90,
+      );
+      expect(q50.isGatePassed, isTrue);
+      expect(q50.totalQuarterlyBonus, 15000000.0);
+
+      // AE Pro 35 SA Kuartal + M3 >= 90%: 2.000.000
+      final q35 = CalculatorEngine.calculateDsaQuarterly(
+        position: PositionType.pro,
+        quarterlySa: 35,
+        m3SurvivalRate: 0.91,
+      );
+      expect(q35.isGatePassed, isTrue);
+      expect(q35.totalQuarterlyBonus, 2000000.0);
+
+      // OJT level tidak berhak atas Quarterly Bonus
+      final qOjt = CalculatorEngine.calculateDsaQuarterly(
+        position: PositionType.ojt,
+        quarterlySa: 60,
+        m3SurvivalRate: 0.95,
+      );
+      expect(qOjt.totalQuarterlyBonus, 0.0);
+
+      // Jika Gate M3 < 90%, bonus = 0
+      final qFail = CalculatorEngine.calculateDsaQuarterly(
+        position: PositionType.elite,
+        quarterlySa: 70,
+        m3SurvivalRate: 0.88,
+      );
+      expect(qFail.isGatePassed, isFalse);
+      expect(qFail.totalQuarterlyBonus, 0.0);
+    });
+
+    test('DSA Net Add Incentive (Slide Hal 6, 8, 10): Capping Max 10 Incremental SA', () {
+      // Baseline 150 active subs (Tier 100-199 @ 100k), naik 15 subs -> capped 10 subs = 1.000.000
+      final netAdd = CalculatorEngine.calculateDsaNetAdd(
+        position: PositionType.elite,
+        baselineActiveSubs: 150,
+        currentActiveSubs: 165,
+      );
+      expect(netAdd.incrementalSa, 10);
+      expect(netAdd.ratePerSa, 100000.0);
+      expect(netAdd.totalNetAddBonus, 1000000.0);
+
+      // Baseline 200+ (@ 150k), naik 4 subs = 4 * 150k = 600.000
+      final netAdd200 = CalculatorEngine.calculateDsaNetAdd(
+        position: PositionType.pro,
+        baselineActiveSubs: 210,
+        currentActiveSubs: 214,
+      );
+      expect(netAdd200.incrementalSa, 4);
+      expect(netAdd200.ratePerSa, 150000.0);
+      expect(netAdd200.totalNetAddBonus, 600000.0);
+    });
   });
 }

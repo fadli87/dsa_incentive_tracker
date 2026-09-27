@@ -8,6 +8,14 @@ class CalculatorState {
 
   // DSA Inputs
   final int f0, f50, f100, f125, f200, fwa, p35, p6;
+  final int dsaM3Baseline;
+  final int dsaM3Surviving;
+  final int dsaM5Baseline;
+  final int dsaM5Surviving;
+  final int dsaQuarterlySa;
+  final double dsaQuarterlyM3Rate;
+  final int dsaBaselineActiveSubs;
+  final int dsaCurrentActiveSubs;
   final CalculationResult calculationResult;
   final Map<String, dynamic> results;
 
@@ -26,6 +34,8 @@ class CalculatorState {
   final int spvOjtToProAccel;
   final int spvProToEliteNormal;
   final int spvProToEliteAccel;
+  final int spvQuarterlyTeamSa;
+  final double spvQuarterlyM3Rate;
   final SpvCalculationResult spvCalculationResult;
 
   CalculatorState({
@@ -39,6 +49,14 @@ class CalculatorState {
     this.fwa = 0,
     this.p35 = 0,
     this.p6 = 0,
+    this.dsaM3Baseline = 0,
+    this.dsaM3Surviving = 0,
+    this.dsaM5Baseline = 0,
+    this.dsaM5Surviving = 0,
+    this.dsaQuarterlySa = 0,
+    this.dsaQuarterlyM3Rate = 0.0,
+    this.dsaBaselineActiveSubs = 0,
+    this.dsaCurrentActiveSubs = 0,
     required this.calculationResult,
     required this.results,
     this.spvQtyRegular = 0,
@@ -55,6 +73,8 @@ class CalculatorState {
     this.spvOjtToProAccel = 0,
     this.spvProToEliteNormal = 0,
     this.spvProToEliteAccel = 0,
+    this.spvQuarterlyTeamSa = 0,
+    this.spvQuarterlyM3Rate = 0.0,
     required this.spvCalculationResult,
   });
 
@@ -69,6 +89,14 @@ class CalculatorState {
     int? fwa,
     int? p35,
     int? p6,
+    int? dsaM3Baseline,
+    int? dsaM3Surviving,
+    int? dsaM5Baseline,
+    int? dsaM5Surviving,
+    int? dsaQuarterlySa,
+    double? dsaQuarterlyM3Rate,
+    int? dsaBaselineActiveSubs,
+    int? dsaCurrentActiveSubs,
     int? spvQtyRegular,
     int? spvQtyPxgy,
     int? spvActiveAgents,
@@ -83,6 +111,8 @@ class CalculatorState {
     int? spvOjtToProAccel,
     int? spvProToEliteNormal,
     int? spvProToEliteAccel,
+    int? spvQuarterlyTeamSa,
+    double? spvQuarterlyM3Rate,
   }) {
     final newPosition = position ?? this.position;
     final newCity = city ?? this.city;
@@ -96,6 +126,14 @@ class CalculatorState {
     final newFwa = fwa ?? this.fwa;
     final newP35 = p35 ?? this.p35;
     final newP6 = p6 ?? this.p6;
+    final newDsaM3Base = dsaM3Baseline ?? this.dsaM3Baseline;
+    final newDsaM3Surv = dsaM3Surviving ?? this.dsaM3Surviving;
+    final newDsaM5Base = dsaM5Baseline ?? this.dsaM5Baseline;
+    final newDsaM5Surv = dsaM5Surviving ?? this.dsaM5Surviving;
+    final newDsaQSa = dsaQuarterlySa ?? this.dsaQuarterlySa;
+    final newDsaQM3Rate = dsaQuarterlyM3Rate ?? this.dsaQuarterlyM3Rate;
+    final newDsaBaseActive = dsaBaselineActiveSubs ?? this.dsaBaselineActiveSubs;
+    final newDsaCurrActive = dsaCurrentActiveSubs ?? this.dsaCurrentActiveSubs;
 
     final detailedResult = CalculatorEngine.calculateDetailed(
       position: newPosition,
@@ -108,20 +146,17 @@ class CalculatorState {
       fwa: newFwa,
       p35: newP35,
       p6: newP6,
+      m3Base: newDsaM3Base,
+      m3Surv: newDsaM3Surv,
+      m5Base: newDsaM5Base,
+      m5Surv: newDsaM5Surv,
+      quarterlySa: newDsaQSa,
+      quarterlyM3SurvivalRate: newDsaQM3Rate,
+      baselineActiveSubs: newDsaBaseActive,
+      currentActiveSubs: newDsaCurrActive,
     );
 
-    final legacyMap = CalculatorEngine.calculate(
-      position: newPosition,
-      city: newCity,
-      f0: newF0,
-      f50: newF50,
-      f100: newF100,
-      f125: newF125,
-      f200: newF200,
-      fwa: newFwa,
-      p35: newP35,
-      p6: newP6,
-    );
+    final legacyMap = detailedResult.toLegacyMap();
 
     // SPV
     final newSpvQtyRegular = spvQtyRegular ?? this.spvQtyRegular;
@@ -139,6 +174,8 @@ class CalculatorState {
     final newSpvProToEliteNormal =
         spvProToEliteNormal ?? this.spvProToEliteNormal;
     final newSpvProToEliteAccel = spvProToEliteAccel ?? this.spvProToEliteAccel;
+    final newSpvQuarterlyTeamSa = spvQuarterlyTeamSa ?? this.spvQuarterlyTeamSa;
+    final newSpvQuarterlyM3Rate = spvQuarterlyM3Rate ?? this.spvQuarterlyM3Rate;
 
     final spvResult = CalculatorEngine.calculateSpvDetailed(
       city: newCity,
@@ -156,6 +193,8 @@ class CalculatorState {
       ojtToProAccel: newSpvOjtToProAccel,
       proToEliteNormal: newSpvProToEliteNormal,
       proToEliteAccel: newSpvProToEliteAccel,
+      quarterlyTeamSa: newSpvQuarterlyTeamSa,
+      quarterlyM3SurvivalRate: newSpvQuarterlyM3Rate,
     );
 
     return CalculatorState(
@@ -169,6 +208,14 @@ class CalculatorState {
       fwa: newFwa,
       p35: newP35,
       p6: newP6,
+      dsaM3Baseline: newDsaM3Base,
+      dsaM3Surviving: newDsaM3Surv,
+      dsaM5Baseline: newDsaM5Base,
+      dsaM5Surviving: newDsaM5Surv,
+      dsaQuarterlySa: newDsaQSa,
+      dsaQuarterlyM3Rate: newDsaQM3Rate,
+      dsaBaselineActiveSubs: newDsaBaseActive,
+      dsaCurrentActiveSubs: newDsaCurrActive,
       calculationResult: detailedResult,
       results: legacyMap,
       spvQtyRegular: newSpvQtyRegular,
@@ -185,6 +232,8 @@ class CalculatorState {
       spvOjtToProAccel: newSpvOjtToProAccel,
       spvProToEliteNormal: newSpvProToEliteNormal,
       spvProToEliteAccel: newSpvProToEliteAccel,
+      spvQuarterlyTeamSa: newSpvQuarterlyTeamSa,
+      spvQuarterlyM3Rate: newSpvQuarterlyM3Rate,
       spvCalculationResult: spvResult,
     );
   }
@@ -197,19 +246,6 @@ class CalculatorNotifier extends Notifier<CalculatorState> {
     const initialCity = CalculatorEngine.defaultCity;
 
     final detailedResult = CalculatorEngine.calculateDetailed(
-      position: initialPos,
-      city: initialCity,
-      f0: 0,
-      f50: 0,
-      f100: 0,
-      f125: 0,
-      f200: 0,
-      fwa: 0,
-      p35: 0,
-      p6: 0,
-    );
-
-    final legacyMap = CalculatorEngine.calculate(
       position: initialPos,
       city: initialCity,
       f0: 0,
@@ -238,13 +274,15 @@ class CalculatorNotifier extends Notifier<CalculatorState> {
       ojtToProAccel: 0,
       proToEliteNormal: 0,
       proToEliteAccel: 0,
+      quarterlyTeamSa: 0,
+      quarterlyM3SurvivalRate: 0.0,
     );
 
     return CalculatorState(
       position: initialPos,
       city: initialCity,
       calculationResult: detailedResult,
-      results: legacyMap,
+      results: detailedResult.toLegacyMap(),
       spvCalculationResult: spvResult,
     );
   }
@@ -279,7 +317,60 @@ class CalculatorNotifier extends Notifier<CalculatorState> {
       case 'p6':
         state = state.copyWith(p6: value);
         break;
+      case 'dsaM3Baseline':
+        state = state.copyWith(dsaM3Baseline: value);
+        break;
+      case 'dsaM3Surviving':
+        state = state.copyWith(dsaM3Surviving: value);
+        break;
+      case 'dsaM5Baseline':
+        state = state.copyWith(dsaM5Baseline: value);
+        break;
+      case 'dsaM5Surviving':
+        state = state.copyWith(dsaM5Surviving: value);
+        break;
+      case 'dsaQuarterlySa':
+        state = state.copyWith(dsaQuarterlySa: value);
+        break;
+      case 'dsaBaselineActiveSubs':
+        state = state.copyWith(dsaBaselineActiveSubs: value);
+        break;
+      case 'dsaCurrentActiveSubs':
+        state = state.copyWith(dsaCurrentActiveSubs: value);
+        break;
     }
+  }
+
+  void updateDsaQuarterlyM3Rate(double rate) {
+    state = state.copyWith(dsaQuarterlyM3Rate: rate);
+  }
+
+  void setDsaM3Survival(int baseline, int surviving) {
+    state = state.copyWith(
+      dsaM3Baseline: baseline,
+      dsaM3Surviving: surviving,
+    );
+  }
+
+  void setDsaM5Survival(int baseline, int surviving) {
+    state = state.copyWith(
+      dsaM5Baseline: baseline,
+      dsaM5Surviving: surviving,
+    );
+  }
+
+  void setDsaQuarterly(int quarterlySa, double m3Rate) {
+    state = state.copyWith(
+      dsaQuarterlySa: quarterlySa,
+      dsaQuarterlyM3Rate: m3Rate,
+    );
+  }
+
+  void setDsaNetAdd(int baselineSubs, int currentSubs) {
+    state = state.copyWith(
+      dsaBaselineActiveSubs: baselineSubs,
+      dsaCurrentActiveSubs: currentSubs,
+    );
   }
 
   void updateSpvField(String field, int value) {
@@ -326,7 +417,14 @@ class CalculatorNotifier extends Notifier<CalculatorState> {
       case 'proToEliteAccel':
         state = state.copyWith(spvProToEliteAccel: value);
         break;
+      case 'quarterlyTeamSa':
+        state = state.copyWith(spvQuarterlyTeamSa: value);
+        break;
     }
+  }
+
+  void updateSpvQuarterlyM3Rate(double rate) {
+    state = state.copyWith(spvQuarterlyM3Rate: rate);
   }
 
   void loadSpvPresetA() {
@@ -346,6 +444,8 @@ class CalculatorNotifier extends Notifier<CalculatorState> {
       spvOjtToProAccel: 0,
       spvProToEliteNormal: 1,
       spvProToEliteAccel: 0,
+      spvQuarterlyTeamSa: 510,
+      spvQuarterlyM3Rate: 0.85,
     );
   }
 
@@ -366,6 +466,8 @@ class CalculatorNotifier extends Notifier<CalculatorState> {
       spvOjtToProAccel: 0,
       spvProToEliteNormal: 2,
       spvProToEliteAccel: 0,
+      spvQuarterlyTeamSa: 320,
+      spvQuarterlyM3Rate: 0.88,
     );
   }
 
@@ -379,6 +481,14 @@ class CalculatorNotifier extends Notifier<CalculatorState> {
       fwa: 0,
       p35: 0,
       p6: 0,
+      dsaM3Baseline: 0,
+      dsaM3Surviving: 0,
+      dsaM5Baseline: 0,
+      dsaM5Surviving: 0,
+      dsaQuarterlySa: 0,
+      dsaQuarterlyM3Rate: 0.0,
+      dsaBaselineActiveSubs: 0,
+      dsaCurrentActiveSubs: 0,
       spvQtyRegular: 0,
       spvQtyPxgy: 0,
       spvActiveAgents: 0,
@@ -393,6 +503,8 @@ class CalculatorNotifier extends Notifier<CalculatorState> {
       spvOjtToProAccel: 0,
       spvProToEliteNormal: 0,
       spvProToEliteAccel: 0,
+      spvQuarterlyTeamSa: 0,
+      spvQuarterlyM3Rate: 0.0,
     );
   }
 }

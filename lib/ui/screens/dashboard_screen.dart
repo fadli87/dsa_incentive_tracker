@@ -8,6 +8,9 @@ import 'calculator_screen.dart';
 import 'sa_list_screen.dart';
 import 'history_screen.dart';
 import 'guide_screen.dart';
+import 'network_tools_screen.dart';
+import 'coverage_map_screen.dart';
+import '../../ai/widgets/ai_coach_chat_sheet.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -261,154 +264,204 @@ class DashboardScreen extends ConsumerWidget {
                   const SizedBox(height: 20),
 
                   // ==========================================
-                  // 3. MENU UTAMA (8 FITUR HANDBOOK)
+                  // 3. MENU UTAMA (CIRCULAR ICON GRID 3x3)
                   // ==========================================
-                  const Text(
-                    'Menu Utama',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF002B66),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  GridView.count(
-                    crossAxisCount: 2,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    childAspectRatio: 1.55,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // 1. Kalkulator Insentif
-                      _buildMenuCard(
-                        icon: Icons.calculate_rounded,
-                        iconColor: const Color(0xFF002B66),
-                        iconBgColor: const Color(0xFF002B66).withValues(alpha: 0.08),
-                        title: 'Kalkulator Insentif',
-                        subtitle: 'Simulasi komisi AE',
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => const CalculatorScreen()),
-                          );
-                        },
+                      const Text(
+                        'Menu Utama',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF002B66),
+                        ),
                       ),
-
-                      // 2. Katalog Paket Jualan
-                      _buildMenuCard(
-                        icon: Icons.local_offer_rounded,
-                        iconColor: const Color(0xFFF15A24),
-                        iconBgColor: const Color(0xFFF15A24).withValues(alpha: 0.08),
-                        title: 'Katalog Paket',
-                        subtitle: 'FTTH, FWA & FMC',
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => const ProductCatalogScreen()),
-                          );
-                        },
-                      ),
-
-                      // 3. Data Pelanggan (SA)
-                      _buildMenuCard(
-                        icon: Icons.people_alt_rounded,
-                        iconColor: const Color(0xFF00897B),
-                        iconBgColor: const Color(0xFF00897B).withValues(alpha: 0.08),
-                        title: 'Data Pelanggan',
-                        subtitle: 'Pencatatan pasang baru',
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => const SaListScreen()),
-                          );
-                        },
-                      ),
-
-                      // 4. Peta Sebaran Pelanggan
-                      _buildMenuCard(
-                        icon: Icons.map_rounded,
-                        iconColor: const Color(0xFF1E88E5),
-                        iconBgColor: const Color(0xFF1E88E5).withValues(alpha: 0.08),
-                        title: 'Peta Pelanggan',
-                        subtitle: 'Pin lokasi & GPS',
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => const SaListScreen()),
-                          );
-                        },
-                      ),
-
-                      // 5. Histori Insentif
-                      _buildMenuCard(
-                        icon: Icons.account_balance_wallet_rounded,
-                        iconColor: const Color(0xFF7B1FA2),
-                        iconBgColor: const Color(0xFF7B1FA2).withValues(alpha: 0.08),
-                        title: 'Histori Insentif',
-                        subtitle: 'Rekap pencapaian',
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => const HistoryScreen()),
-                          );
-                        },
-                      ),
-
-                      // 6. Panduan Skema
-                      _buildMenuCard(
-                        icon: Icons.menu_book_rounded,
-                        iconColor: const Color(0xFFD81B60),
-                        iconBgColor: const Color(0xFFD81B60).withValues(alpha: 0.08),
-                        title: 'Panduan Skema',
-                        subtitle: 'Aturan AE & SPV',
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => const GuideScreen()),
-                          );
-                        },
-                      ),
-
-                      // 7. ID Card Sales
-                      _buildMenuCard(
-                        icon: Icons.badge_rounded,
-                        iconColor: const Color(0xFF3949AB),
-                        iconBgColor: const Color(0xFF3949AB).withValues(alpha: 0.08),
-                        title: 'ID Card Sales',
-                        subtitle: 'Profil & identitas resmi',
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => const UserInfoScreen()),
-                          );
-                        },
-                      ),
-
-                      // 8. Catatan Pembaruan
-                      _buildMenuCard(
-                        icon: Icons.update_rounded,
-                        iconColor: const Color(0xFF455A64),
-                        iconBgColor: const Color(0xFF455A64).withValues(alpha: 0.08),
-                        title: 'Info & Pembaruan',
-                        subtitle: 'Versi aplikasi & bantuan',
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => const UpdateNotesScreen()),
-                          );
-                        },
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF002B66).withValues(alpha: 0.06),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '9 Fitur (AI & Sinyal)',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF002B66).withValues(alpha: 0.8),
+                          ),
+                        ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 14),
+
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 18),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.035),
+                          blurRadius: 12,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                      border: Border.all(
+                        color: const Color(0xFF002B66).withValues(alpha: 0.06),
+                      ),
+                    ),
+                    child: GridView.count(
+                      crossAxisCount: 3,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      mainAxisSpacing: 18,
+                      crossAxisSpacing: 10,
+                      childAspectRatio: 0.85,
+                      children: [
+                        // 1. Kalkulator Insentif
+                        _buildCircularMenuItem(
+                          icon: Icons.calculate_rounded,
+                          iconColor: const Color(0xFF0056B3),
+                          gradientColors: const [Color(0xFFE3F2FD), Color(0xFFBBDEFB)],
+                          shadowColor: const Color(0xFF1976D2).withValues(alpha: 0.25),
+                          title: 'Kalkulator Insentif',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const CalculatorScreen()),
+                            );
+                          },
+                        ),
+
+                        // 2. Katalog Paket Jualan
+                        _buildCircularMenuItem(
+                          icon: Icons.local_offer_rounded,
+                          iconColor: const Color(0xFFF15A24),
+                          gradientColors: const [Color(0xFFFFF3E0), Color(0xFFFFE0B2)],
+                          shadowColor: const Color(0xFFF15A24).withValues(alpha: 0.25),
+                          title: 'Katalog Paket',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const ProductCatalogScreen()),
+                            );
+                          },
+                        ),
+
+                        // 3. Data Pelanggan (SA)
+                        _buildCircularMenuItem(
+                          icon: Icons.people_alt_rounded,
+                          iconColor: const Color(0xFF00897B),
+                          gradientColors: const [Color(0xFFE0F2F1), Color(0xFFB2DFDB)],
+                          shadowColor: const Color(0xFF00897B).withValues(alpha: 0.25),
+                          title: 'Data Pelanggan',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const SaListScreen()),
+                            );
+                          },
+                        ),
+
+                        // 4. Sinyal & Speed Test (AURA Network)
+                        _buildCircularMenuItem(
+                          icon: Icons.cell_tower_rounded,
+                          iconColor: const Color(0xFF6366F1),
+                          gradientColors: const [Color(0xFFEEF2FF), Color(0xFFE0E7FF)],
+                          shadowColor: const Color(0xFF6366F1).withValues(alpha: 0.25),
+                          title: 'Sinyal & Speed',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const NetworkToolsScreen()),
+                            );
+                          },
+                        ),
+
+                        // 5. Tanya AI Coach (AURA Offline Assistant)
+                        _buildCircularMenuItem(
+                          icon: Icons.psychology_outlined,
+                          iconColor: const Color(0xFF8B5CF6),
+                          gradientColors: const [Color(0xFFF5F3FF), Color(0xFFEDE9FE)],
+                          shadowColor: const Color(0xFF8B5CF6).withValues(alpha: 0.25),
+                          title: 'Tanya AI Coach',
+                          onTap: () {
+                            AiCoachChatSheet.show(context);
+                          },
+                        ),
+
+                        // 6. Peta Coverage & BTS XL
+                        _buildCircularMenuItem(
+                          icon: Icons.map_rounded,
+                          iconColor: const Color(0xFF1E88E5),
+                          gradientColors: const [Color(0xFFE1F5FE), Color(0xFFB3E5FC)],
+                          shadowColor: const Color(0xFF0288D1).withValues(alpha: 0.25),
+                          title: 'Peta Coverage',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const CoverageMapScreen()),
+                            );
+                          },
+                        ),
+
+                        // 7. Histori Insentif
+                        _buildCircularMenuItem(
+                          icon: Icons.account_balance_wallet_rounded,
+                          iconColor: const Color(0xFF8E24AA),
+                          gradientColors: const [Color(0xFFF3E5F5), Color(0xFFE1BEE7)],
+                          shadowColor: const Color(0xFF8E24AA).withValues(alpha: 0.25),
+                          title: 'Histori Insentif',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const HistoryScreen()),
+                            );
+                          },
+                        ),
+
+                        // 8. Panduan Skema
+                        _buildCircularMenuItem(
+                          icon: Icons.menu_book_rounded,
+                          iconColor: const Color(0xFFD81B60),
+                          gradientColors: const [Color(0xFFFCE4EC), Color(0xFFF8BBD0)],
+                          shadowColor: const Color(0xFFD81B60).withValues(alpha: 0.25),
+                          title: 'Panduan Skema',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const GuideScreen()),
+                            );
+                          },
+                        ),
+
+                        // 9. Catatan Pembaruan & Versi
+                        _buildCircularMenuItem(
+                          icon: Icons.update_rounded,
+                          iconColor: const Color(0xFF546E7A),
+                          gradientColors: const [Color(0xFFECEFF1), Color(0xFFCFD8DC)],
+                          shadowColor: const Color(0xFF546E7A).withValues(alpha: 0.25),
+                          title: 'Info & Versi',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const UpdateNotesScreen()),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
                   ),
 
                   const SizedBox(height: 24),
@@ -450,77 +503,63 @@ class DashboardScreen extends ConsumerWidget {
   }
 
   // ==========================================
-  // HELPER WIDGET MENU CARD
+  // HELPER WIDGET CIRCULAR MENU ITEM
   // ==========================================
-  Widget _buildMenuCard({
+  Widget _buildCircularMenuItem({
     required IconData icon,
     required Color iconColor,
-    required Color iconBgColor,
+    required List<Color> gradientColors,
+    required Color shadowColor,
     required String title,
-    required String subtitle,
     required VoidCallback onTap,
   }) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-          border: Border.all(
-            color: Colors.black.withValues(alpha: 0.06),
-          ),
-        ),
-        child: Row(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 44,
-              height: 44,
+              width: 58,
+              height: 58,
               decoration: BoxDecoration(
-                color: iconBgColor,
-                borderRadius: BorderRadius.circular(12),
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: gradientColors,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: shadowColor,
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+                border: Border.all(
+                  color: Colors.white,
+                  width: 2,
+                ),
               ),
               child: Icon(
                 icon,
                 color: iconColor,
-                size: 24,
+                size: 28,
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF002B66),
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 10.5,
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                ],
+            const SizedBox(height: 8),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              style: const TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF002B66),
+                height: 1.15,
               ),
             ),
           ],

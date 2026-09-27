@@ -161,22 +161,62 @@ class ResultCard extends StatelessWidget {
                   value: _fmt(specialInc),
                   highlightValue: specialInc > 0,
                 ),
+
+                if (calculationResult != null &&
+                    calculationResult!.survivalDetail.totalSurvivalBonus > 0) ...[
+                  const Divider(height: 16),
+                  _buildRincianItem(
+                    title: 'Insentif Survival Rate',
+                    subtitle:
+                        'M3: ${_fmt(calculationResult!.survivalDetail.m3Total)} | M5: ${_fmt(calculationResult!.survivalDetail.m5Total)}',
+                    value: _fmt(calculationResult!.survivalDetail.totalSurvivalBonus),
+                    highlightValue: true,
+                  ),
+                ],
+
+                if (calculationResult != null &&
+                    calculationResult!.quarterlyDetail.totalQuarterlyBonus > 0) ...[
+                  const Divider(height: 16),
+                  _buildRincianItem(
+                    title: 'Quarterly Bonus DSA',
+                    subtitle:
+                        'Pencapaian Kuartal: ${calculationResult!.quarterlyDetail.quarterlySa} SA (M3: ${(calculationResult!.quarterlyDetail.m3SurvivalRate * 100).toStringAsFixed(0)}%)',
+                    value: _fmt(calculationResult!.quarterlyDetail.totalQuarterlyBonus),
+                    highlightValue: true,
+                  ),
+                ],
+
+                if (calculationResult != null &&
+                    calculationResult!.netAddDetail.totalNetAddBonus > 0) ...[
+                  const Divider(height: 16),
+                  _buildRincianItem(
+                    title: 'Net Add Incentive',
+                    subtitle:
+                        'Kenaikan: ${calculationResult!.netAddDetail.incrementalSa} SA @ ${_fmt(calculationResult!.netAddDetail.ratePerSa)}',
+                    value: _fmt(calculationResult!.netAddDetail.totalNetAddBonus),
+                    highlightValue: true,
+                  ),
+                ],
+
                 const Divider(height: 20, thickness: 1.5),
 
                 // Subtotal Bulanan Row
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Subtotal Bulanan',
-                      style: TextStyle(
+                    Text(
+                      calculationResult != null &&
+                              calculationResult!.totalComprehensive != grandTotal
+                          ? 'Total Komprehensif'
+                          : 'Subtotal Bulanan',
+                      style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
                         color: Colors.black87,
                       ),
                     ),
                     Text(
-                      _fmt(monthlySubtotal),
+                      _fmt(calculationResult?.totalComprehensive ?? monthlySubtotal),
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,

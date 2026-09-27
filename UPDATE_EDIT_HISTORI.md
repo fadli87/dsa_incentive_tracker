@@ -1,3 +1,43 @@
+# Dokumentasi Update & Catatan Rilis: DSA XL Satu Handbook (Ver.1.0.7)
+
+## 📌 Ringkasan Pembaruan Utama (September 2026)
+
+Pembaruan besar ini membawa kemampuan AI pintar, diagnostik jaringan seluler lapangan, pemetaan GIS berkinerja tinggi, manajemen homepass target, serta sistem pencarian koordinat dan ShareLoc WhatsApp/Google Maps:
+
+### 1. 🤖 AURA Sales AI Coach (`lib/ai/`)
+- **Dual-Engine AI Architecture:**
+  - Online Engine: Integrasi Google Gemini 2.5 Flash untuk analisis natural language, simulasi closing, dan strategi lapangan tingkat lanjut.
+  - Offline Engine: Rule-based Heuristic Sales Engine lokal (tanpa kuota/sinyal) yang mengevaluasi pipeline penjualan, target tier insentif, dan rekomendasi harian.
+- **Interactive Coach Sheet:** Dialog chat interaktif dengan quick prompts (Strategi Closing, Analisis KPI Hari Ini, Tips Objeksi Harga, Navigasi Area Potensial).
+
+### 2. 📶 Cellular Telephony & RF Signal Diagnostics (`lib/network/`)
+- **Live RF Signal Telemetry:** Pembacaan RSRP, RSRQ, SINR, CQI, TA, dan RSSI dengan visual rating (Sangat Bagus, Bagus, Cukup, Buruk).
+- **EARFCN Calculator (`EarfcnCalculator`):** Deteksi otomatis Band LTE (Band 3 1800 MHz & Band 40 2300 MHz) serta frekuensi Downlink/Uplink.
+- **eNodeB & Sector ID Extractor:** Pemisahan otomatis 20-bit eNodeB ID dan 8-bit Cell ID dari Long Cell ID (ECI).
+- **Speed Test Service & Drive Test Manager:**
+  - Real-time download/upload network speed benchmarking.
+  - GPS-based Drive Test logging untuk pemetaan kualitas sinyal di rute kanvasing sales.
+
+### 3. 🗺️ GIS Maps 380 Tower BTS XL & Dissolved Coverage (`lib/maps/`)
+- **380 Titik Tower BTS XL:** Rendering titik BTS di seluruh Cilacap dengan kode warna hex asli dari file KMZ (`#C2185B`, `#F57C00`, dll.) dan status operasional.
+- **Dissolved Coverage 24 Kecamatan:** Poligon area coverage FWA/FTTH terpadu per kecamatan tanpa kotak-kotak grid (SPV area dihilangkan).
+- **Floating Quick Switch & Layer Control:** Toggle switch cepat ON/OFF untuk Coverage dan Homepass di floating bar & bottom sheet.
+
+### 4. 🏢 Homepass Target Bangunan Prioritas & 60 FPS Canvas Rendering
+- **Kategori Bangunan A/B/C/D:** Visualisasi target homepass per prioritas bangunan.
+- **Hardware-Accelerated CircleLayer Canvas:** Menggantikan ribuan widget tree `Marker` dengan GPU Canvas rendering langsung, menjaga performa tetap stabil di 60 FPS.
+- **Background Isolate Parsing (`compute()`):** Parsing file GeoJSON besar di isolate terpisah tanpa memblokir UI thread.
+
+### 5. 📍 Pencarian Koordinat & ShareLoc WhatsApp / Google Maps (`lib/maps/utils/location_parser.dart`)
+- **Multi-Format Input:** Mendukung Lat/Long desimal (`-7.7188, 109.0156`), format DMS, link pendek Google Maps (`maps.app.goo.gl`), link standar, teks pesan ShareLoc WhatsApp, dan `geo:` URI.
+- **Smart Location Inspector:** Auto-fly kamera ke lokasi, pin penanda lokasi pencarian, deteksi jarak ke BTS XL dan Homepass terdekat, serta tombol cepat "Input SA di Lokasi Ini".
+
+### 6. 🛡️ Stabilitas & Kompilasi Platform
+- **RenderFlex Overflow Fix:** Optimasi `MapInspectorSheet` dan top bar `CoverageMapScreen`.
+- **Windows MSVC C2338 Fix:** Penambahan build macro `_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS` pada `windows/CMakeLists.txt`.
+
+---
+
 # Instruksi Update: Fitur Edit Histori Insentif (DSA Tracker V2)
 
 ## Tujuan

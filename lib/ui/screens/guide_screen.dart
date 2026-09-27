@@ -647,9 +647,41 @@ class GuideScreen extends StatelessWidget {
         ),
         const SizedBox(height: 14),
 
-        // 6. Guiding Principles SPV
+        // 6. Poin 5: Quarterly Bonus SPV
         _buildGuideCard(
-          title: '6. Ketentuan & Validasi SPV (Guiding Principles)',
+          title: '6. Poin 5: Quarterly Bonus Tim SPV',
+          icon: Icons.workspace_premium_outlined,
+          accentColor: Colors.purple.shade800,
+          children: [
+            _buildText(
+              'Bonus kuartalan berdasarkan agregat aktivasi SA tim binaan selama 3 bulan dengan syarat Gate M3 Team ≥ 80%:',
+            ),
+            const SizedBox(height: 8),
+            _buildTierTable(
+              headers: ['Total SA Tim Kuartal', 'Nominal Bonus Kuartal'],
+              rows: [
+                ['50 – 99 SA', 'Rp 1.500.000'],
+                ['100 – 199 SA', 'Rp 3.000.000'],
+                ['200 – 299 SA', 'Rp 5.000.000'],
+                ['300 – 399 SA', 'Rp 7.500.000'],
+                ['400 – 499 SA', 'Rp 10.000.000'],
+                ['≥ 500 SA', 'Rp 12.000.000 + (Rp 30.000 × SA di atas 500)'],
+              ],
+            ),
+            const SizedBox(height: 8),
+            _buildAlertBox(
+              'Syarat Gate M3: Bonus Kuartal SPV hanya cair jika aggregate M3 Retention Rate tim dalam kuartal tersebut mencapai minimal 80%.',
+              Colors.purple.shade50,
+              Colors.purple.shade900,
+              Icons.shield_outlined,
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+
+        // 7. Guiding Principles SPV
+        _buildGuideCard(
+          title: '7. Ketentuan & Validasi SPV (Guiding Principles)',
           icon: Icons.gavel_outlined,
           accentColor: const Color(0xFF002B66),
           children: [

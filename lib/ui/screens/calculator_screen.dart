@@ -36,6 +36,14 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
       'fwa': TextEditingController(),
       'p35': TextEditingController(),
       'p6': TextEditingController(),
+      'dsaM3Baseline': TextEditingController(),
+      'dsaM3Surviving': TextEditingController(),
+      'dsaM5Baseline': TextEditingController(),
+      'dsaM5Surviving': TextEditingController(),
+      'dsaQuarterlySa': TextEditingController(),
+      'dsaQuarterlyM3Rate': TextEditingController(),
+      'dsaBaselineActiveSubs': TextEditingController(),
+      'dsaCurrentActiveSubs': TextEditingController(),
     };
   }
 
@@ -379,6 +387,346 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
           ),
           const SizedBox(height: 14),
 
+          // 4b. Card Simulator Survival Rate (M3 & M5)
+          Card(
+            elevation: 2,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            color: Colors.white,
+            child: Theme(
+              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+              child: ExpansionTile(
+                initiallyExpanded: false,
+                tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+                title: Row(
+                  children: [
+                    const Text('🛡️', style: TextStyle(fontSize: 16)),
+                    const SizedBox(width: 6),
+                    const Text(
+                      'SIMULATOR SURVIVAL RATE',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF002B66),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const Spacer(),
+                    if (result.survivalDetail.totalSurvivalBonus > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade50,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.green.shade300),
+                        ),
+                        child: Text(
+                          _fmt(result.survivalDetail.totalSurvivalBonus),
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green.shade800,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF002B66).withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Text(
+                            '• M3 Regular: Gate ≥ 90% (Rp 100.000 / surviving)\n'
+                            '• M5 Advance: Gate ≥ 80% (Rp 80.000 / surviving)',
+                            style: TextStyle(fontSize: 11, height: 1.4, color: Color(0xFF002B66)),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'M3 Survival (Paket Regular / Bulanan)',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87),
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _controllers['dsaM3Baseline'],
+                                keyboardType: TextInputType.number,
+                                decoration: InputDecoration(
+                                  labelText: 'Baseline SA',
+                                  labelStyle: const TextStyle(fontSize: 11),
+                                  isDense: true,
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                                onChanged: (_) => _updateDsaSurvival(notifier),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: TextField(
+                                controller: _controllers['dsaM3Surviving'],
+                                keyboardType: TextInputType.number,
+                                decoration: InputDecoration(
+                                  labelText: 'Surviving Subs',
+                                  labelStyle: const TextStyle(fontSize: 11),
+                                  isDense: true,
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                                onChanged: (_) => _updateDsaSurvival(notifier),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (result.survivalDetail.m3Base > 0) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            'Rate M3: ${result.survivalDetail.m3Rate.toStringAsFixed(1)}% '
+                            '(${result.survivalDetail.m3GatePassed ? "Lolos Gate ≥ 90% -> ${_fmt(result.survivalDetail.m3Total)}" : "Tidak Lolos Gate < 90%"})',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: result.survivalDetail.m3GatePassed ? Colors.green.shade700 : Colors.red.shade700,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 12),
+                        const Text(
+                          'M5 Survival (Paket < 5 Bulan)',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87),
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _controllers['dsaM5Baseline'],
+                                keyboardType: TextInputType.number,
+                                decoration: InputDecoration(
+                                  labelText: 'Baseline SA',
+                                  labelStyle: const TextStyle(fontSize: 11),
+                                  isDense: true,
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                                onChanged: (_) => _updateDsaSurvival(notifier),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: TextField(
+                                controller: _controllers['dsaM5Surviving'],
+                                keyboardType: TextInputType.number,
+                                decoration: InputDecoration(
+                                  labelText: 'Surviving Subs',
+                                  labelStyle: const TextStyle(fontSize: 11),
+                                  isDense: true,
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                                onChanged: (_) => _updateDsaSurvival(notifier),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (result.survivalDetail.m5Base > 0) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            'Rate M5: ${result.survivalDetail.m5Rate.toStringAsFixed(1)}% '
+                            '(${result.survivalDetail.m5GatePassed ? "Lolos Gate ≥ 80% -> ${_fmt(result.survivalDetail.m5Total)}" : "Tidak Lolos Gate < 80%"})',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: result.survivalDetail.m5GatePassed ? Colors.green.shade700 : Colors.red.shade700,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // 4c. Card Simulator Quarterly Bonus & Net Add
+          if (state.position != PositionType.ojt) ...[
+            Card(
+              elevation: 2,
+              shape:
+                  RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              color: Colors.white,
+              child: Theme(
+                data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                child: ExpansionTile(
+                  initiallyExpanded: false,
+                  tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+                  title: Row(
+                    children: [
+                      const Text('🏆', style: TextStyle(fontSize: 16)),
+                      const SizedBox(width: 6),
+                      const Text(
+                        'SIMULATOR BONUS KUARTAL',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF002B66),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const Spacer(),
+                      if (result.quarterlyDetail.totalQuarterlyBonus + result.netAddDetail.totalNetAddBonus > 0)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.purple.shade50,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.purple.shade300),
+                          ),
+                          child: Text(
+                            _fmt(result.quarterlyDetail.totalQuarterlyBonus + result.netAddDetail.totalNetAddBonus),
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.purple.shade800,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.purple.shade50.withValues(alpha: 0.6),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Text(
+                              '• Tiering Quarterly Bonus (Gate M3 ≥ 90%):\n'
+                              '  30-44 SA: Rp 2Jt | 45-59 SA: Rp 15Jt | ≥60 SA: Rp 20Jt + 10k/inc SA\n'
+                              '• Net Add Active Subs (Capping max 10 inc SA):\n'
+                              '  Base 80-99: @50k | Base 100-199: @100k | Base ≥200: @150k',
+                              style: TextStyle(fontSize: 11, height: 1.4, color: Color(0xFF4A148C)),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            '1. Payout Quarterly Bonus',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87),
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _controllers['dsaQuarterlySa'],
+                                  keyboardType: TextInputType.number,
+                                  decoration: InputDecoration(
+                                    labelText: 'Total SA Kuartal',
+                                    labelStyle: const TextStyle(fontSize: 11),
+                                    isDense: true,
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                  onChanged: (_) => _updateDsaQuarterly(notifier),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: TextField(
+                                  controller: _controllers['dsaQuarterlyM3Rate'],
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                  decoration: InputDecoration(
+                                    labelText: 'M3 Rate (%)',
+                                    labelStyle: const TextStyle(fontSize: 11),
+                                    isDense: true,
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                  onChanged: (_) => _updateDsaQuarterly(notifier),
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (result.quarterlyDetail.quarterlySa > 0) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              'Status: ${result.quarterlyDetail.isGatePassed ? "Lolos Gate (≥ 90%) -> ${_fmt(result.quarterlyDetail.totalQuarterlyBonus)}" : "Tidak Lolos Gate M3 (< 90%)"}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: result.quarterlyDetail.isGatePassed ? Colors.green.shade700 : Colors.red.shade700,
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 14),
+                          const Text(
+                            '2. Net Add Active Subs Booster',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87),
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _controllers['dsaBaselineActiveSubs'],
+                                  keyboardType: TextInputType.number,
+                                  decoration: InputDecoration(
+                                    labelText: 'Baseline Subs (Q Prev)',
+                                    labelStyle: const TextStyle(fontSize: 10.5),
+                                    isDense: true,
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                  onChanged: (_) => _updateDsaNetAdd(notifier),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: TextField(
+                                  controller: _controllers['dsaCurrentActiveSubs'],
+                                  keyboardType: TextInputType.number,
+                                  decoration: InputDecoration(
+                                    labelText: 'Current Subs (Q Ini)',
+                                    labelStyle: const TextStyle(fontSize: 10.5),
+                                    isDense: true,
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                  onChanged: (_) => _updateDsaNetAdd(notifier),
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (result.netAddDetail.baselineActiveSubs > 0) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              'Net Add: +${result.netAddDetail.incrementalSa} SA (Inc) @ ${_fmt(result.netAddDetail.ratePerSa)} -> ${_fmt(result.netAddDetail.totalNetAddBonus)}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: result.netAddDetail.totalNetAddBonus > 0 ? Colors.green.shade700 : Colors.orange.shade800,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+          ],
+
           // 5. Total Aktivasi Highlight Box
           Container(
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
@@ -721,5 +1069,29 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
         ],
       ),
     );
+  }
+
+  void _updateDsaSurvival(CalculatorNotifier notifier) {
+    final m3Base = int.tryParse(_controllers['dsaM3Baseline']!.text) ?? 0;
+    final m3Surv = int.tryParse(_controllers['dsaM3Surviving']!.text) ?? 0;
+    final m5Base = int.tryParse(_controllers['dsaM5Baseline']!.text) ?? 0;
+    final m5Surv = int.tryParse(_controllers['dsaM5Surviving']!.text) ?? 0;
+
+    notifier.setDsaM3Survival(m3Base, m3Surv);
+    notifier.setDsaM5Survival(m5Base, m5Surv);
+  }
+
+  void _updateDsaQuarterly(CalculatorNotifier notifier) {
+    final qSa = int.tryParse(_controllers['dsaQuarterlySa']!.text) ?? 0;
+    final qM3 = double.tryParse(_controllers['dsaQuarterlyM3Rate']!.text) ?? 0.0;
+
+    notifier.setDsaQuarterly(qSa, qM3);
+  }
+
+  void _updateDsaNetAdd(CalculatorNotifier notifier) {
+    final baseSubs = int.tryParse(_controllers['dsaBaselineActiveSubs']!.text) ?? 0;
+    final currSubs = int.tryParse(_controllers['dsaCurrentActiveSubs']!.text) ?? 0;
+
+    notifier.setDsaNetAdd(baseSubs, currSubs);
   }
 }

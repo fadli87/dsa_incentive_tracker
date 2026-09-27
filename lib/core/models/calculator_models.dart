@@ -33,6 +33,104 @@ class TierRow {
   });
 }
 
+class DsaSurvivalDetail {
+  final int m3Base;
+  final int m3Surv;
+  final double m3Rate;
+  final bool m3GatePassed;
+  final double m3Total;
+
+  final int m5Base;
+  final int m5Surv;
+  final double m5Rate;
+  final bool m5GatePassed;
+  final double m5Total;
+
+  final double totalSurvivalBonus;
+
+  const DsaSurvivalDetail({
+    required this.m3Base,
+    required this.m3Surv,
+    required this.m3Rate,
+    required this.m3GatePassed,
+    required this.m3Total,
+    required this.m5Base,
+    required this.m5Surv,
+    required this.m5Rate,
+    required this.m5GatePassed,
+    required this.m5Total,
+    required this.totalSurvivalBonus,
+  });
+
+  static const empty = DsaSurvivalDetail(
+    m3Base: 0,
+    m3Surv: 0,
+    m3Rate: 0.0,
+    m3GatePassed: false,
+    m3Total: 0.0,
+    m5Base: 0,
+    m5Surv: 0,
+    m5Rate: 0.0,
+    m5GatePassed: false,
+    m5Total: 0.0,
+    totalSurvivalBonus: 0.0,
+  );
+}
+
+class DsaQuarterlyDetail {
+  final int quarterlySa;
+  final double m3SurvivalRate;
+  final bool isGatePassed;
+  final double baseBonus;
+  final int incrementalSa;
+  final double incrementalBonus;
+  final double totalQuarterlyBonus;
+
+  const DsaQuarterlyDetail({
+    required this.quarterlySa,
+    required this.m3SurvivalRate,
+    required this.isGatePassed,
+    required this.baseBonus,
+    required this.incrementalSa,
+    required this.incrementalBonus,
+    required this.totalQuarterlyBonus,
+  });
+
+  static const empty = DsaQuarterlyDetail(
+    quarterlySa: 0,
+    m3SurvivalRate: 0.0,
+    isGatePassed: false,
+    baseBonus: 0.0,
+    incrementalSa: 0,
+    incrementalBonus: 0.0,
+    totalQuarterlyBonus: 0.0,
+  );
+}
+
+class DsaNetAddDetail {
+  final int baselineActiveSubs;
+  final int currentActiveSubs;
+  final int incrementalSa;
+  final double ratePerSa;
+  final double totalNetAddBonus;
+
+  const DsaNetAddDetail({
+    required this.baselineActiveSubs,
+    required this.currentActiveSubs,
+    required this.incrementalSa,
+    required this.ratePerSa,
+    required this.totalNetAddBonus,
+  });
+
+  static const empty = DsaNetAddDetail(
+    baselineActiveSubs: 0,
+    currentActiveSubs: 0,
+    incrementalSa: 0,
+    ratePerSa: 0.0,
+    totalNetAddBonus: 0.0,
+  );
+}
+
 class CalculationResult {
   final PositionType position;
   final String city;
@@ -48,6 +146,11 @@ class CalculationResult {
   final double monthlySubtotal;
   final double grandTotal;
 
+  // Komponen Tambahan (Survival Rate, Quarterly & Net Add)
+  final DsaSurvivalDetail survivalDetail;
+  final DsaQuarterlyDetail quarterlyDetail;
+  final DsaNetAddDetail netAddDetail;
+
   const CalculationResult({
     required this.position,
     required this.city,
@@ -62,7 +165,16 @@ class CalculationResult {
     required this.tierRows,
     required this.monthlySubtotal,
     required this.grandTotal,
+    this.survivalDetail = DsaSurvivalDetail.empty,
+    this.quarterlyDetail = DsaQuarterlyDetail.empty,
+    this.netAddDetail = DsaNetAddDetail.empty,
   });
+
+  double get totalComprehensive =>
+      grandTotal +
+      survivalDetail.totalSurvivalBonus +
+      quarterlyDetail.totalQuarterlyBonus +
+      netAddDetail.totalNetAddBonus;
 
   Map<String, dynamic> toLegacyMap() {
     return {
@@ -78,6 +190,10 @@ class CalculationResult {
       'lumpSumBonus': lumpSumBonus,
       'monthlySubtotal': monthlySubtotal,
       'grandTotal': grandTotal,
+      'survivalBonus': survivalDetail.totalSurvivalBonus,
+      'quarterlyBonus': quarterlyDetail.totalQuarterlyBonus,
+      'netAddBonus': netAddDetail.totalNetAddBonus,
+      'totalComprehensive': totalComprehensive,
     };
   }
 }
@@ -192,6 +308,36 @@ class SpvMonthlyPerformanceDetail {
   });
 }
 
+class SpvQuarterlyDetail {
+  final int quarterlyTeamSa;
+  final double m3SurvivalRate;
+  final bool isGatePassed;
+  final double baseBonus;
+  final int incrementalSa;
+  final double incrementalBonus;
+  final double totalQuarterlyBonus;
+
+  const SpvQuarterlyDetail({
+    required this.quarterlyTeamSa,
+    required this.m3SurvivalRate,
+    required this.isGatePassed,
+    required this.baseBonus,
+    required this.incrementalSa,
+    required this.incrementalBonus,
+    required this.totalQuarterlyBonus,
+  });
+
+  static const empty = SpvQuarterlyDetail(
+    quarterlyTeamSa: 0,
+    m3SurvivalRate: 0.0,
+    isGatePassed: false,
+    baseBonus: 0.0,
+    incrementalSa: 0,
+    incrementalBonus: 0.0,
+    totalQuarterlyBonus: 0.0,
+  );
+}
+
 class SpvCalculationResult {
   final String city;
   final double basicFee;
@@ -202,7 +348,8 @@ class SpvCalculationResult {
   final double totalSurvivalIncentive;
   final SpvGraduationDetail graduation;
   final SpvMonthlyPerformanceDetail monthlyPerformance;
-  final double totalIncentive; // Total Poin 1 + 2 + 3 + 4
+  final SpvQuarterlyDetail quarterlyDetail;
+  final double totalIncentive; // Total Poin 1 + 2 + 3 + 4 + 5
   final double grandTotal; // Basic Fee + Total Incentive
 
   const SpvCalculationResult({
@@ -215,6 +362,7 @@ class SpvCalculationResult {
     required this.totalSurvivalIncentive,
     required this.graduation,
     required this.monthlyPerformance,
+    this.quarterlyDetail = SpvQuarterlyDetail.empty,
     required this.totalIncentive,
     required this.grandTotal,
   });

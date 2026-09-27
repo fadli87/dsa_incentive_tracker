@@ -42,6 +42,10 @@ class _SpvCalculatorViewState extends ConsumerState<SpvCalculatorView> {
           TextEditingController(text: _textVal(state.spvProToEliteNormal)),
       'proToEliteAccel':
           TextEditingController(text: _textVal(state.spvProToEliteAccel)),
+      'quarterlyTeamSa':
+          TextEditingController(text: _textVal(state.spvQuarterlyTeamSa)),
+      'quarterlyM3Rate': TextEditingController(
+          text: state.spvQuarterlyM3Rate == 0 ? '' : (state.spvQuarterlyM3Rate * 100).toInt().toString()),
     };
   }
 
@@ -64,6 +68,11 @@ class _SpvCalculatorViewState extends ConsumerState<SpvCalculatorView> {
         _textVal(state.spvProToEliteNormal);
     _controllers['proToEliteAccel']?.text =
         _textVal(state.spvProToEliteAccel);
+    _controllers['quarterlyTeamSa']?.text =
+        _textVal(state.spvQuarterlyTeamSa);
+    _controllers['quarterlyM3Rate']?.text = state.spvQuarterlyM3Rate == 0
+        ? ''
+        : (state.spvQuarterlyM3Rate * 100).toInt().toString();
   }
 
   @override
@@ -125,8 +134,13 @@ class _SpvCalculatorViewState extends ConsumerState<SpvCalculatorView> {
             ),
           ),
           onChanged: (val) {
-            final parsed = int.tryParse(val) ?? 0;
-            ref.read(calculatorProvider.notifier).updateSpvField(fieldKey, parsed);
+            if (fieldKey == 'quarterlyM3Rate') {
+              final parsed = double.tryParse(val) ?? 0.0;
+              ref.read(calculatorProvider.notifier).updateSpvQuarterlyM3Rate(parsed / 100.0);
+            } else {
+              final parsed = int.tryParse(val) ?? 0;
+              ref.read(calculatorProvider.notifier).updateSpvField(fieldKey, parsed);
+            }
           },
         ),
         if (helper.isNotEmpty) ...[
@@ -580,6 +594,65 @@ class _SpvCalculatorViewState extends ConsumerState<SpvCalculatorView> {
           ),
         ),
 
+        const SizedBox(height: 14),
+
+        // 5. CARD: POIN 5 - QUARTERLY BONUS SPV
+        _buildSectionCard(
+          title: '5. QUARTERLY BONUS SPV (POIN 5)',
+          icon: Icons.emoji_events_rounded,
+          iconColor: const Color(0xFFD97706),
+          subtotal: res.quarterlyDetail.totalQuarterlyBonus,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildField(
+                      label: 'Total SA Tim Kuartal',
+                      helper: 'Akumulasi 3 bulan tim',
+                      fieldKey: 'quarterlyTeamSa',
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _buildField(
+                      label: 'M3 Survival Kuartal (%)',
+                      helper: 'Gate Kelayakan: ≥ 80%',
+                      fieldKey: 'quarterlyM3Rate',
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Status Gate Kelayakan (≥80%):',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                  _buildGateBadge(
+                    res.quarterlyDetail.isGatePassed,
+                    '${(res.quarterlyDetail.m3SurvivalRate * 100).toStringAsFixed(0)}%',
+                  ),
+                ],
+              ),
+              if (res.quarterlyDetail.incrementalSa > 0) ...[
+                const SizedBox(height: 6),
+                _buildInfoRow(
+                  'Bonus Incremental (≥500 SA):',
+                  '${res.quarterlyDetail.incrementalSa} SA × Rp 30k = ${_fmt(res.quarterlyDetail.incrementalBonus)}',
+                  isHighlight: true,
+                ),
+              ],
+              const SizedBox(height: 6),
+              Text(
+                '• 50–99 (1.5jt) | 100–149 (1.5jt) | 150–199 (2jt) | 200–249 (3jt) | 250–299 (4.5jt) | 300–349 (6jt) | 350–399 (8jt) | 400–449 (10jt) | 450–499 (12jt) | ≥500 (12jt + 30k/inc SA)',
+                style: TextStyle(fontSize: 10.5, color: Colors.grey.shade600),
+              ),
+            ],
+          ),
+        ),
+
         const SizedBox(height: 16),
 
         // RINGKASAN GRAND TOTAL SPV
@@ -624,6 +697,9 @@ class _SpvCalculatorViewState extends ConsumerState<SpvCalculatorView> {
               _buildSummaryLine(
                   '4. Monthly Performance:',
                   _fmt(res.monthlyPerformance.bonusAmount)),
+              _buildSummaryLine(
+                  '5. Quarterly Bonus SPV:',
+                  _fmt(res.quarterlyDetail.totalQuarterlyBonus)),
               const Divider(thickness: 1.5, height: 22),
               _buildSummaryLine(
                 'TOTAL INSENTIF:',

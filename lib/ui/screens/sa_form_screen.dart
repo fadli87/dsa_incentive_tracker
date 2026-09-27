@@ -8,7 +8,16 @@ import '../../providers/sa_provider.dart';
 import '../../data/models/sa_record.dart';
 
 class SaFormScreen extends ConsumerStatefulWidget {
-  const SaFormScreen({super.key});
+  final SaRecord? initialRecord;
+  final double? initialLatitude;
+  final double? initialLongitude;
+
+  const SaFormScreen({
+    super.key,
+    this.initialRecord,
+    this.initialLatitude,
+    this.initialLongitude,
+  });
 
   @override
   ConsumerState<SaFormScreen> createState() => _SaFormScreenState();
@@ -30,6 +39,28 @@ class _SaFormScreenState extends ConsumerState<SaFormScreen> {
   static const LatLng _cilacapCenter = LatLng(-7.7188, 109.0156);
   LatLng? _selectedLocation;
   bool _isLocating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialRecord != null) {
+      final r = widget.initialRecord!;
+      _idCtrl.text = r.idPelanggan;
+      _namaCtrl.text = r.nama;
+      _noHpUtamaCtrl.text = r.noHpUtama;
+      _noHpAltCtrl.text = r.noHpAlternatif;
+      _alamatCtrl.text = r.alamat;
+      _paket = r.paket;
+      try {
+        _selectedDate = DateTime.parse(r.tanggalPasang);
+      } catch (_) {}
+      if (r.hasLocation) {
+        _selectedLocation = LatLng(r.latitude!, r.longitude!);
+      }
+    } else if (widget.initialLatitude != null && widget.initialLongitude != null) {
+      _selectedLocation = LatLng(widget.initialLatitude!, widget.initialLongitude!);
+    }
+  }
 
   @override
   void dispose() {
@@ -122,9 +153,11 @@ class _SaFormScreenState extends ConsumerState<SaFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isEditing = widget.initialRecord != null;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Input Data Pelanggan Baru'),
+        title: Text(isEditing ? 'Edit Data Pelanggan' : 'Input Data Pelanggan Baru'),
         backgroundColor: const Color(0xFF002B66),
         foregroundColor: Colors.white,
       ),
@@ -440,10 +473,11 @@ class _SaFormScreenState extends ConsumerState<SaFormScreen> {
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              icon: const Icon(Icons.save),
+              icon: Icon(isEditing ? Icons.check_circle_outline : Icons.save),
               onPressed: () async {
                 if (_formKey.currentState!.validate()) {
                   final record = SaRecord(
+                    id: widget.initialRecord?.id,
                     idPelanggan: _idCtrl.text.trim(),
                     nama: _namaCtrl.text.trim(),
                     noHpUtama: _noHpUtamaCtrl.text.trim(),
@@ -454,11 +488,17 @@ class _SaFormScreenState extends ConsumerState<SaFormScreen> {
                     latitude: _selectedLocation?.latitude,
                     longitude: _selectedLocation?.longitude,
                   );
-                  await ref.read(saProvider.notifier).addSaRecord(record);
+                  if (isEditing) {
+                    await ref.read(saProvider.notifier).updateSaRecord(record);
+                  } else {
+                    await ref.read(saProvider.notifier).addSaRecord(record);
+                  }
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Data Pelanggan Berhasil Disimpan (Offline)!'),
+                      SnackBar(
+                        content: Text(isEditing
+                            ? 'Data Pelanggan Berhasil Diperbarui!'
+                            : 'Data Pelanggan Berhasil Disimpan (Offline)!'),
                         backgroundColor: Colors.green,
                       ),
                     );
@@ -466,9 +506,9 @@ class _SaFormScreenState extends ConsumerState<SaFormScreen> {
                   }
                 }
               },
-              label: const Text(
-                'Simpan Data Pelanggan',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+              label: Text(
+                isEditing ? 'Perbarui Data Pelanggan' : 'Simpan Data Pelanggan',
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
               ),
             ),
           ],
