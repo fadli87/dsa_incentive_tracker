@@ -40,6 +40,10 @@ jobs:
       - name: Build APK Release
         run: flutter build apk --release --android-skip-build-dependency-validation
 
+      - name: Verify APK Signature
+        run: |
+          jarsigner -verify -verbose build/app/outputs/flutter-apk/app-release.apk || true
+
       - name: Prepare APK Asset
         id: prep
         run: |

@@ -12,4 +12,5 @@ GeneratedPluginRegistrant.java
 **/*.keystore
 **/*.jks
 !/app/upload-keystore.jks
+!/key.properties
 

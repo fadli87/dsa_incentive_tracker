@@ -29,19 +29,16 @@ android {
         create("release") {
             keyAlias = "upload"
             keyPassword = "xlsmartdsa2026"
-            storeFile = file("upload-keystore.jks")
+            storeFile = file("${project.projectDir}/upload-keystore.jks")
             storePassword = "xlsmartdsa2026"
+            enableV1Signing = true
+            enableV2Signing = true
         }
     }
 
     buildTypes {
         release {
-            val keystoreFile = file("upload-keystore.jks")
-            if (keystoreFile.exists()) {
-                signingConfig = signingConfigs.getByName("release")
-            } else {
-                signingConfig = signingConfigs.getByName("debug")
-            }
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
             isShrinkResources = false
         }
