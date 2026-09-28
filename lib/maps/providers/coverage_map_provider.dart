@@ -130,14 +130,44 @@ class CoverageMapNotifier extends Notifier<CoverageMapState> {
   void _listenToCellSignal() {
     ref.listen(cellSignalProvider, (prev, next) {
       final snapshot = next.value;
-      final enodebId = snapshot?.servingCell?.eNodeBId?.toString();
-      if (enodebId != null && state.towers.isNotEmpty) {
-        final match = state.towers.where((t) => t.enodebId == enodebId).firstOrNull;
-        if (match != null && match != state.matchedServingTower) {
-          state = state.copyWith(matchedServingTower: match);
+      _recalculateServingTower(state.userLocation, snapshot);
+    });
+  }
+
+  void _recalculateServingTower([LatLng? userLoc, dynamic snapshot]) {
+    final currentSnapshot = snapshot ?? ref.read(cellSignalProvider).value;
+    final serving = currentSnapshot?.servingCell;
+    final enodebId = serving?.eNodeBId?.toString().trim();
+    final towers = state.towers;
+
+    if (towers.isEmpty) return;
+
+    BtsTower? match;
+
+    // 1. Prioritas 1: Cocokkan langsung berdasarkan eNodeB ID (misal: "533261")
+    if (enodebId != null && enodebId.isNotEmpty && enodebId != '0' && enodebId != 'N/A') {
+      match = towers.where((t) {
+        final tEnb = t.enodebId.trim();
+        return tEnb == enodebId || tEnb.endsWith(enodebId) || enodebId.endsWith(tEnb);
+      }).firstOrNull;
+    }
+
+    // 2. Prioritas 2: Fallback ke Tower terdekat dari GPS user jika sinyal seluler aktif
+    final effectiveUserLoc = userLoc ?? state.userLocation;
+    if (match == null && effectiveUserLoc != null && serving != null && serving.cellType != 'UNKNOWN') {
+      double minDistance = 8000.0; // Radius maksimal 8 KM
+      for (final t in towers) {
+        final d = const Distance().as(LengthUnit.Meter, effectiveUserLoc, t.location);
+        if (d < minDistance) {
+          minDistance = d;
+          match = t;
         }
       }
-    });
+    }
+
+    if (match != state.matchedServingTower) {
+      state = state.copyWith(matchedServingTower: match);
+    }
   }
 
   Future<void> selectDistrict(DistrictInfo district) async {
@@ -175,6 +205,7 @@ class CoverageMapNotifier extends Notifier<CoverageMapState> {
 
   void setUserLocation(LatLng location) {
     state = state.copyWith(userLocation: location);
+    _recalculateServingTower(location);
   }
 }
 

@@ -9,6 +9,7 @@ import '../../maps/widgets/map_inspector_sheet.dart';
 import '../../maps/widgets/location_search_sheet.dart';
 import '../../providers/sa_provider.dart';
 import '../../ai/widgets/ai_coach_chat_sheet.dart';
+import '../../network/providers/network_monitor_provider.dart';
 
 enum MapTileType {
   googleHybrid('Google Satellite', 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'),
@@ -236,6 +237,37 @@ class _CoverageMapScreenState extends ConsumerState<CoverageMapScreen> {
                       activeTrackColor: const Color(0xFF00897B).withValues(alpha: 0.3),
                       onChanged: (val) => mapNotifier.toggleInstalledSa(val),
                     ),
+                    const Divider(height: 24),
+                    // Legend Warna Target Homepass & Tower
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      child: Text(
+                        'Legenda Warna Homepass & Tower',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                      child: Column(
+                        children: [
+                          _buildLegendRow(const Color(0xFF9C27B0), '9. Existing Homeconnect', 'Pelanggan Aktif Terpasang'),
+                          const SizedBox(height: 6),
+                          _buildLegendRow(const Color(0xFFE53935), 'Priority A / P1 / P2', 'Target Prioritas Sangat Tinggi'),
+                          const SizedBox(height: 6),
+                          _buildLegendRow(const Color(0xFFFB8C00), 'Priority B / P3', 'Target Prioritas Regular'),
+                          const SizedBox(height: 6),
+                          _buildLegendRow(const Color(0xFF43A047), 'Priority C1 / P4', 'Target Regular Visited'),
+                          const SizedBox(height: 6),
+                          _buildLegendRow(const Color(0xFF00ACC1), 'Priority C2', 'Target Alternatif C2'),
+                          const SizedBox(height: 6),
+                          _buildLegendRow(const Color(0xFF1E88E5), 'Priority D', 'Target Regular D'),
+                          const SizedBox(height: 6),
+                          _buildLegendRow(const Color(0xFF78909C), '8. Non-Priority / 100. Null', 'Target Non-Prioritas / Null'),
+                          const SizedBox(height: 6),
+                          _buildLegendRow(const Color(0xFF00E5FF), '📡 Serving BTS Tower', 'Tower melayani perangkat sales'),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -255,6 +287,9 @@ class _CoverageMapScreenState extends ConsumerState<CoverageMapScreen> {
     final mapNotifier = ref.read(coverageMapNotifierProvider.notifier);
     final saListAsync = ref.watch(saProvider);
     final installedSaList = saListAsync.value ?? [];
+
+    final cellSignalAsync = ref.watch(cellSignalProvider);
+    final servingCell = cellSignalAsync.value?.servingCell;
 
     final center = _searchedPin ??
         _userPosition ??
@@ -390,6 +425,41 @@ class _CoverageMapScreenState extends ConsumerState<CoverageMapScreen> {
                   }).toList(),
                 ),
 
+              // Serving BTS Tower Connecting Beam Polyline (Garis Sinyal Laser dari HP Sales ke Tower)
+              if (_userPosition != null && mapState.matchedServingTower != null)
+                PolylineLayer(
+                  polylines: [
+                    Polyline(
+                      points: [_userPosition!, mapState.matchedServingTower!.location],
+                      color: const Color(0xFF00E5FF),
+                      strokeWidth: 3.5,
+                      borderColor: const Color(0xFF002B66).withValues(alpha: 0.7),
+                      borderStrokeWidth: 1.5,
+                    ),
+                  ],
+                ),
+
+              // Serving BTS Tower Radar Pulsing Rings Layer
+              if (mapState.matchedServingTower != null)
+                CircleLayer(
+                  circles: [
+                    CircleMarker(
+                      point: mapState.matchedServingTower!.location,
+                      radius: 38,
+                      color: const Color(0xFF00E5FF).withValues(alpha: 0.18),
+                      borderColor: const Color(0xFF00E5FF).withValues(alpha: 0.8),
+                      borderStrokeWidth: 2.0,
+                    ),
+                    CircleMarker(
+                      point: mapState.matchedServingTower!.location,
+                      radius: 18,
+                      color: const Color(0xFF00E5FF).withValues(alpha: 0.38),
+                      borderColor: Colors.white,
+                      borderStrokeWidth: 1.5,
+                    ),
+                  ],
+                ),
+
               // Homepass Target Bangunan Circle Layer (Ultra Fast Canvas Rendering 60FPS)
               if (mapState.showHomepass && mapState.filteredHomepass.isNotEmpty)
                 CircleLayer(
@@ -404,16 +474,18 @@ class _CoverageMapScreenState extends ConsumerState<CoverageMapScreen> {
                   }).toList(),
                 ),
 
-              // 380 Titik Tower BTS XL Marker Layer (Warna Asli KMZ)
+              // 380 Titik Tower BTS XL Marker Layer (Warna Asli KMZ & Highlight Serving Tower)
               if (mapState.showTowers)
                 MarkerLayer(
                   markers: mapState.filteredTowers.map((tower) {
-                    final isMatched = mapState.matchedServingTower?.towerId == tower.towerId;
+                    final isMatched = mapState.matchedServingTower?.towerId == tower.towerId ||
+                        (mapState.matchedServingTower?.enodebId.isNotEmpty == true &&
+                            mapState.matchedServingTower?.enodebId == tower.enodebId);
 
                     return Marker(
                       point: tower.location,
-                      width: isMatched ? 40 : 30,
-                      height: isMatched ? 40 : 30,
+                      width: isMatched ? 48 : 30,
+                      height: isMatched ? 48 : 30,
                       child: GestureDetector(
                         onTap: () {
                           double? dist;
@@ -432,29 +504,59 @@ class _CoverageMapScreenState extends ConsumerState<CoverageMapScreen> {
                             distanceMeters: dist,
                           );
                         },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: isMatched
-                                ? const Color(0xFF00E5FF)
-                                : tower.markerColor,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Colors.white,
-                              width: isMatched ? 2.2 : 1.5,
-                            ),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Colors.black26,
-                                blurRadius: 4,
-                                offset: Offset(0, 1),
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          alignment: Alignment.center,
+                          children: [
+                            Container(
+                              width: isMatched ? 40 : 30,
+                              height: isMatched ? 40 : 30,
+                              decoration: BoxDecoration(
+                                color: isMatched
+                                    ? const Color(0xFF00E5FF)
+                                    : tower.markerColor,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: isMatched ? 2.5 : 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: isMatched ? const Color(0xAA00E5FF) : Colors.black26,
+                                    blurRadius: isMatched ? 12 : 4,
+                                    spreadRadius: isMatched ? 3 : 0,
+                                    offset: const Offset(0, 1),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                          child: Icon(
-                            Icons.cell_tower_rounded,
-                            color: isMatched ? const Color(0xFF002B66) : Colors.white,
-                            size: isMatched ? 20 : 15,
-                          ),
+                              child: Icon(
+                                Icons.cell_tower_rounded,
+                                color: isMatched ? const Color(0xFF002B66) : Colors.white,
+                                size: isMatched ? 22 : 15,
+                              ),
+                            ),
+                            if (isMatched)
+                              Positioned(
+                                top: -4,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF002B66),
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(color: const Color(0xFF00E5FF), width: 1),
+                                  ),
+                                  child: const Text(
+                                    'SERVING',
+                                    style: TextStyle(
+                                      color: Color(0xFF00E5FF),
+                                      fontSize: 7.5,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                     );
@@ -578,7 +680,7 @@ class _CoverageMapScreenState extends ConsumerState<CoverageMapScreen> {
             ],
           ),
 
-          // 2. Header District Selector, Search Bar & Quick Toggles
+          // 2. Header District Selector, Search Bar & Quick Toggles + Serving BTS Live HUD
           Positioned(
             top: 10,
             left: 10,
@@ -750,6 +852,123 @@ class _CoverageMapScreenState extends ConsumerState<CoverageMapScreen> {
                     ],
                   ),
                 ),
+
+                // Baris 3: Floating Serving Tower Live HUD Bar
+                if (mapState.matchedServingTower != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: GestureDetector(
+                      onTap: () {
+                        _mapController.move(mapState.matchedServingTower!.location, 16.0);
+                        double? dist;
+                        if (_userPosition != null) {
+                          dist = const Distance().as(
+                            LengthUnit.Meter,
+                            _userPosition!,
+                            mapState.matchedServingTower!.location,
+                          );
+                        }
+                        MapInspectorSheet.show(
+                          context,
+                          tower: mapState.matchedServingTower,
+                          point: mapState.matchedServingTower!.location,
+                          districtName: mapState.selectedDistrict?.name,
+                          distanceMeters: dist,
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF002B66), Color(0xFF0D47A1)],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFF00E5FF), width: 1.5),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x5500E5FF),
+                              blurRadius: 8,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(5),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF00E5FF),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.cell_tower_rounded,
+                                color: Color(0xFF002B66),
+                                size: 16,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF00E5FF),
+                                          borderRadius: BorderRadius.circular(3),
+                                        ),
+                                        child: const Text(
+                                          'SERVING BTS',
+                                          style: TextStyle(
+                                            color: Color(0xFF002B66),
+                                            fontSize: 8,
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          mapState.matchedServingTower!.siteName,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'eNodeB: ${mapState.matchedServingTower!.enodebId} · ID: ${mapState.matchedServingTower!.towerId}'
+                                    '${_userPosition != null ? " · Jarak: ${(const Distance().as(LengthUnit.Meter, _userPosition!, mapState.matchedServingTower!.location)).toStringAsFixed(0)}m" : ""}'
+                                    '${servingCell?.rsrp != null ? " · ${servingCell!.rsrp} dBm" : ""}',
+                                    style: const TextStyle(
+                                      color: Color(0xFFE0F7FA),
+                                      fontSize: 10,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(
+                              Icons.center_focus_strong_rounded,
+                              color: Color(0xFF00E5FF),
+                              size: 18,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -834,13 +1053,41 @@ class _CoverageMapScreenState extends ConsumerState<CoverageMapScreen> {
             ),
           ),
 
-          // 4. Floating Actions: Cari ShareLoc, GPS, AI Coach
+          // 4. Floating Actions: Cari ShareLoc, GPS, AI Coach, dan Fokus Tower Melayani
           Positioned(
             bottom: 20,
             right: 12,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                if (mapState.matchedServingTower != null) ...[
+                  FloatingActionButton.small(
+                    heroTag: 'focus_serving_tower_fab',
+                    backgroundColor: const Color(0xFF00E5FF),
+                    foregroundColor: const Color(0xFF002B66),
+                    tooltip: 'Fokus Tower Melayani',
+                    onPressed: () {
+                      _mapController.move(mapState.matchedServingTower!.location, 16.0);
+                      double? dist;
+                      if (_userPosition != null) {
+                        dist = const Distance().as(
+                          LengthUnit.Meter,
+                          _userPosition!,
+                          mapState.matchedServingTower!.location,
+                        );
+                      }
+                      MapInspectorSheet.show(
+                        context,
+                        tower: mapState.matchedServingTower,
+                        point: mapState.matchedServingTower!.location,
+                        districtName: mapState.selectedDistrict?.name,
+                        distanceMeters: dist,
+                      );
+                    },
+                    child: const Icon(Icons.cell_tower_rounded, size: 18),
+                  ),
+                  const SizedBox(height: 8),
+                ],
                 FloatingActionButton.small(
                   heroTag: 'search_sharloc_fab',
                   backgroundColor: const Color(0xFF6366F1),
@@ -878,6 +1125,45 @@ class _CoverageMapScreenState extends ConsumerState<CoverageMapScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildLegendRow(Color color, String title, String subtitle) {
+    return Row(
+      children: [
+        Container(
+          width: 13,
+          height: 13,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 1.5),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 2,
+                offset: Offset(0, 1),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+              ),
+              Text(
+                subtitle,
+                style: const TextStyle(fontSize: 10.5, color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
