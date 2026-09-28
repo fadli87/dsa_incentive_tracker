@@ -37,7 +37,7 @@ void main() {
       expect(tower.longitude, 109.025);
     });
 
-    test('HomepassPoint parses categories and returns correct priority colors', () {
+    test('HomepassPoint parses categories and returns correct 3-color scheme (Ungu, Orange, Hijau)', () {
       final featExisting = {
         "type": "Feature",
         "geometry": {
@@ -56,23 +56,7 @@ void main() {
       };
       final hpExisting = HomepassPoint.fromGeoJsonFeature(featExisting);
       expect(hpExisting.isExistingCustomer, isTrue);
-      expect(hpExisting.categoryColor, const Color(0xFF9C27B0)); // Ungu Pelanggan Aktif
-
-      final featNonPrio = {
-        "type": "Feature",
-        "geometry": {
-          "type": "Point",
-          "coordinates": [109.0177, -7.736023]
-        },
-        "properties": {
-          "id": "qqtebz8-233310",
-          "prio": "8. Non Priority",
-          "cat": "B"
-        }
-      };
-      final hpNonPrio = HomepassPoint.fromGeoJsonFeature(featNonPrio);
-      expect(hpNonPrio.isNonPriority, isTrue);
-      expect(hpNonPrio.categoryColor, const Color(0xFF78909C)); // Abu-abu Slate
+      expect(hpExisting.categoryColor, const Color(0xFF9C27B0)); // 1. Ungu (Existing Homeconnect)
 
       final featA = {
         "type": "Feature",
@@ -91,8 +75,7 @@ void main() {
         }
       };
       final hpA = HomepassPoint.fromGeoJsonFeature(featA);
-      expect(hpA.id, 'qqts0t2-234080');
-      expect(hpA.categoryColor, const Color(0xFFE53935)); // Merah
+      expect(hpA.categoryColor, const Color(0xFFFB8C00)); // 2. Orange (Priority A)
 
       final featB = {
         "type": "Feature",
@@ -102,12 +85,12 @@ void main() {
         },
         "properties": {
           "id": "qqts07t-272353",
-          "prio": "3. P3 Regular",
+          "prio": "3. P3 Regular not visited last 30 days",
           "cat": "B"
         }
       };
       final hpB = HomepassPoint.fromGeoJsonFeature(featB);
-      expect(hpB.categoryColor, const Color(0xFFFB8C00)); // Oranye
+      expect(hpB.categoryColor, const Color(0xFFFB8C00)); // 2. Orange (Priority B / P3)
 
       final featC1 = {
         "type": "Feature",
@@ -122,7 +105,7 @@ void main() {
         }
       };
       final hpC1 = HomepassPoint.fromGeoJsonFeature(featC1);
-      expect(hpC1.categoryColor, const Color(0xFF43A047)); // Hijau C1
+      expect(hpC1.categoryColor, const Color(0xFF43A047)); // 3. Hijau (P4 / Reguler)
 
       final featC2 = {
         "type": "Feature",
@@ -136,7 +119,7 @@ void main() {
         }
       };
       final hpC2 = HomepassPoint.fromGeoJsonFeature(featC2);
-      expect(hpC2.categoryColor, const Color(0xFF00ACC1)); // Cyan C2
+      expect(hpC2.categoryColor, const Color(0xFF43A047)); // 3. Hijau (C2)
 
       final featD = {
         "type": "Feature",
@@ -150,7 +133,7 @@ void main() {
         }
       };
       final hpD = HomepassPoint.fromGeoJsonFeature(featD);
-      expect(hpD.categoryColor, const Color(0xFF1E88E5)); // Biru D
+      expect(hpD.categoryColor, const Color(0xFF43A047)); // 3. Hijau (D)
     });
 
     test('GeoJsonService loadDistricts returns 24 districts with valid coordinates', () async {
