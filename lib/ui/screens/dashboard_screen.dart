@@ -473,7 +473,7 @@ class DashboardScreen extends ConsumerWidget {
                     child: Column(
                       children: [
                         Text(
-                          "DSA XL Satu Handbook • Ver.1.0.8",
+                          "DSA XL Satu Handbook • Ver.1.0.7",
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,

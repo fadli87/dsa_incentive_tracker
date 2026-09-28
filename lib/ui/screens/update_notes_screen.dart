@@ -19,22 +19,13 @@ class UpdateNotesScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildVersionCard(
-              version: 'Ver.1.0.8',
+              version: 'Ver.1.0.7',
               date: 'September 2026',
               isLatest: true,
               changes: [
                 'Native Android Telephony & WiFi Bridge: Implementasi lengkap MethodChannel di MainActivity (Kotlin) untuk pembacaan real-time sinyal seluler LTE/5G NR/WCDMA/GSM, SIM Slot (SubscriptionManager), Traffic Stats, dan info WiFi/DHCP.',
                 'Initial Permission Onboarding: Otomatis meminta izin Lokasi Akurat (ACCESS_FINE_LOCATION) dan Status Telepon (READ_PHONE_STATE) saat aplikasi pertama kali dibuka/diinstal agar semua modul analisa jaringan langsung berfungsi.',
                 'Tombol Interaktif Izin Sinyal: Tombol perizinan cepat "Berikan Izin Sinyal & Lokasi" di kartu pemantauan sinyal & G-NetTrack Analyzer jika izin belum aktif.',
-                'Sinkronisasi Versi Global (Ver.1.0.8): Pembaruan label versi di semua banner header, footer, drawer, dan dialog info aplikasi.',
-              ],
-            ),
-            const SizedBox(height: 16),
-            _buildVersionCard(
-              version: 'Ver.1.0.7',
-              date: 'September 2026',
-              isLatest: false,
-              changes: [
                 'AURA Sales AI Coach: Asisten cerdas dual-engine (Gemini 2.5 Flash + Offline Rule Engine) untuk analisis KPI, strategi penutupan sales, dan rekomendasi target.',
                 'Cellular Telephony & RF Signal Diagnostics: Monitoring sinyal seluler live (RSRP, RSRQ, SINR), kalkulator EARFCN (Band 3 & Band 40), pemisahan eNodeB/Cell ID, Speed Test, dan Drive Test GPS logging.',
                 'GIS Maps 380 Tower BTS XL: Peta interaktif lengkap dengan 380 titik BTS XL, visualisasi warna hex asli KMZ, dan filter status operasional.',
@@ -43,6 +34,7 @@ class UpdateNotesScreen extends StatelessWidget {
                 'Pencarian Koordinat & ShareLoc WhatsApp / Google Maps: Input desimal Lat/Long, DMS, deteksi otomatis link Google Maps (goo.gl), pesan ShareLoc WhatsApp, tombol tempel cepat, auto fly-to kamera, serta shortcut "Input SA".',
                 'Toggle Switch Floating & Quick Layer Control: Kontrol saklar cepat ON/OFF untuk Coverage dan Homepass di floating bar.',
                 'Peningkatan Stabilitas & UI Fixes: Eliminasi RenderFlex overflow dan optimasi build MSVC Windows Desktop.',
+                'Sinkronisasi Versi Global (Ver.1.0.7): Pembaruan label versi di semua banner header, footer, drawer, dan dialog info aplikasi.',
               ],
             ),
             const SizedBox(height: 16),

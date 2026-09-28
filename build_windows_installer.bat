@@ -35,12 +35,12 @@ if %errorlevel% neq 0 (
 
 echo.
 echo [3/3] Menyalin installer ke root project...
-if exist "Output\DSA_XL_Satu_Handbook_Setup_v1.0.8.exe" (
-    copy /y "Output\DSA_XL_Satu_Handbook_Setup_v1.0.8.exe" "DSA_XL_Satu_Handbook_Setup_v1.0.8.exe"
-    copy /y "Output\DSA_XL_Satu_Handbook_Setup_v1.0.8.exe" "DSA_XL_Satu_Handbook_Setup.exe"
+if exist "Output\DSA_XL_Satu_Handbook_Setup_v1.0.7.exe" (
+    copy /y "Output\DSA_XL_Satu_Handbook_Setup_v1.0.7.exe" "DSA_XL_Satu_Handbook_Setup_v1.0.7.exe"
+    copy /y "Output\DSA_XL_Satu_Handbook_Setup_v1.0.7.exe" "DSA_XL_Satu_Handbook_Setup.exe"
     echo.
     echo [SUKSES] Installer Windows telah siap di root project:
-    echo   - DSA_XL_Satu_Handbook_Setup_v1.0.8.exe
+    echo   - DSA_XL_Satu_Handbook_Setup_v1.0.7.exe
     echo   - DSA_XL_Satu_Handbook_Setup.exe
 )
 
