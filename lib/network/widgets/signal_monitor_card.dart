@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../models/cell_signal_info.dart';
 import '../providers/network_monitor_provider.dart';
 
@@ -332,13 +333,39 @@ class _ErrorCard extends StatelessWidget {
         color: const Color(0xFF1A1F3A),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.signal_cellular_off, color: Colors.red),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text('Tidak dapat membaca sinyal.\n$message',
-                style: const TextStyle(color: Colors.white70, fontSize: 12, fontFamily: 'Inter')),
+          Row(
+            children: [
+              const Icon(Icons.signal_cellular_off, color: Colors.amber),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Izin Lokasi & Status Telepon diperlukan untuk membaca sinyal seluler live.\n$message',
+                  style: const TextStyle(color: Colors.white70, fontSize: 12, fontFamily: 'Inter'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF002B66),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              onPressed: () async {
+                await [
+                  Permission.location,
+                  Permission.phone,
+                ].request();
+              },
+              icon: const Icon(Icons.verified_user, size: 16),
+              label: const Text('Berikan Izin Sinyal & Lokasi', style: TextStyle(fontSize: 12)),
+            ),
           ),
         ],
       ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../models/cell_signal_info.dart';
 import '../models/wifi_info.dart';
 import '../providers/network_monitor_provider.dart';
@@ -1176,16 +1177,40 @@ class _CardError extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF101426),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.red.withValues(alpha: 0.4)),
+        border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.signal_cellular_connected_no_internet_4_bar, color: Colors.red),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'Gagal membaca sensor seluler.\n$error',
-              style: const TextStyle(color: Colors.white70, fontSize: 12),
+          Row(
+            children: [
+              const Icon(Icons.signal_cellular_connected_no_internet_4_bar, color: Colors.amber),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Izin Lokasi & Status Telepon diperlukan untuk membaca sensor seluler.\n$error',
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF002B66),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              onPressed: () async {
+                await [
+                  Permission.location,
+                  Permission.phone,
+                ].request();
+              },
+              icon: const Icon(Icons.verified_user, size: 16),
+              label: const Text('Berikan Izin Sinyal & Lokasi', style: TextStyle(fontSize: 12)),
             ),
           ),
         ],

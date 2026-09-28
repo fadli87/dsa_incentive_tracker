@@ -35,13 +35,13 @@ if %errorlevel% neq 0 (
 
 echo.
 echo [3/3] Menyalin installer ke root project...
-if exist "Output\DSA_Incentive_Tracker_Setup_v1.0.5.exe" (
-    copy /y "Output\DSA_Incentive_Tracker_Setup_v1.0.5.exe" "DSA_Incentive_Tracker_Setup_v1.0.5.exe"
-    copy /y "Output\DSA_Incentive_Tracker_Setup_v1.0.5.exe" "DSA_Incentive_Tracker_Setup.exe"
+if exist "Output\DSA_XL_Satu_Handbook_Setup_v1.0.8.exe" (
+    copy /y "Output\DSA_XL_Satu_Handbook_Setup_v1.0.8.exe" "DSA_XL_Satu_Handbook_Setup_v1.0.8.exe"
+    copy /y "Output\DSA_XL_Satu_Handbook_Setup_v1.0.8.exe" "DSA_XL_Satu_Handbook_Setup.exe"
     echo.
     echo [SUKSES] Installer Windows telah siap di root project:
-    echo   - DSA_Incentive_Tracker_Setup_v1.0.5.exe
-    echo   - DSA_Incentive_Tracker_Setup.exe
+    echo   - DSA_XL_Satu_Handbook_Setup_v1.0.8.exe
+    echo   - DSA_XL_Satu_Handbook_Setup.exe
 )
 
 echo.

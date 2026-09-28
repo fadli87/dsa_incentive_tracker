@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../core/constants/app_constants.dart';
+import '../../core/services/permission_service.dart';
 import 'main_navigation.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -38,8 +40,15 @@ class _SplashScreenState extends State<SplashScreen>
 
     _animController.forward();
 
-    // Auto navigate ke MainNavigation setelah 2.6 detik
-    _timer = Timer(const Duration(milliseconds: 2600), _navigateToHome);
+    // Request permissions on app startup & navigate
+    _initAppAndPermissions();
+  }
+
+  Future<void> _initAppAndPermissions() async {
+    await PermissionService.requestInitialPermissions();
+    if (mounted) {
+      _timer = Timer(const Duration(milliseconds: 1000), _navigateToHome);
+    }
   }
 
   void _navigateToHome() {
@@ -221,7 +230,7 @@ class _SplashScreenState extends State<SplashScreen>
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Creative Tech Agency · All Rights Reserved • Ver.1.0.5',
+                        AppConstants.copyrightSubtext,
                         style: TextStyle(
                           fontSize: 11,
                           color: Colors.grey.shade500,
