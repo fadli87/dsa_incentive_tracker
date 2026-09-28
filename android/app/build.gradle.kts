@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.xlsmart.dsa_incentive_tracker"
-    compileSdk = 35
+    compileSdk = 36
     ndkVersion = "28.2.13676358"
 
     compileOptions {
