@@ -93,32 +93,38 @@ class HomepassPoint {
   LatLng get location => LatLng(latitude, longitude);
 
   /// Pewarnaan asli Homepass XL Satu:
-  /// 1. Ungu (#9C27B0)  : Existing Homeconnect (Pelanggan aktif terpasang)
-  /// 2. Orange (#FB8C00): Prospek Prioritas / P3 Not Visited (Target utama sales)
-  /// 3. Hijau (#43A047) : Prospek Reguler / P4 Visited / C / D (Target reguler)
+  /// - UNGU (#9C27B0)  : FTTH
+  /// - HIJAU (#43A047) : FWA INDOOR/OUTDOOR
+  /// - ORANGE (#FB8C00): FWA OUTDOOR
   Color get categoryColor {
+    final netUpper = netType.toUpperCase().trim();
     final pLower = priority.toLowerCase().trim();
     final pTrim = priority.trim();
 
-    // 1. Ungu: Existing Homeconnect
-    if (pTrim.startsWith('9') || pLower.contains('existing') || pLower.contains('homeconnect')) {
-      return const Color(0xFF9C27B0); // Ungu
+    // 1. UNGU: FTTH (atau Pelanggan Existing FTTH Homeconnect)
+    if (netUpper.contains('FTTH') ||
+        pTrim.startsWith('9') ||
+        pLower.contains('existing') ||
+        pLower.contains('homeconnect')) {
+      return const Color(0xFF9C27B0); // Ungu: FTTH
     }
 
-    // 2. Orange: Priority A / B / P1 / P2 / P3 / Not Visited
-    final catUpper = category.toUpperCase().trim();
-    if (catUpper == 'A' ||
-        catUpper == 'B' ||
-        pTrim.startsWith('1') ||
-        pTrim.startsWith('2') ||
-        pTrim.startsWith('3') ||
-        pLower.contains('not visited') ||
-        pLower.contains('p3')) {
-      return const Color(0xFFFB8C00); // Orange
+    // 2. HIJAU: FWA INDOOR / OUTDOOR
+    if (netUpper.contains('INDOOR') ||
+        netUpper.contains('INDOOROUTDOOR') ||
+        netUpper.contains('INDOOR/OUTDOOR')) {
+      return const Color(0xFF43A047); // Hijau: FWA INDOOR/OUTDOOR
     }
 
-    // 3. Hijau: Prospek Reguler (P4 / C1 / C2 / D / Lainnya)
-    return const Color(0xFF43A047); // Hijau
+    // 3. ORANGE: FWA OUTDOOR
+    return const Color(0xFFFB8C00); // Orange: FWA OUTDOOR
+  }
+
+  String get displayTechnologyLabel {
+    final netUpper = netType.toUpperCase().trim();
+    if (netUpper.contains('FTTH')) return 'FTTH';
+    if (netUpper.contains('INDOOR')) return 'FWA Indoor/Outdoor';
+    return 'FWA Outdoor';
   }
 
   bool get isExistingCustomer {
@@ -132,7 +138,8 @@ class HomepassPoint {
   }
 
   String get displayPriorityLabel {
-    if (isExistingCustomer) return 'Existing Homeconnect';
+    if (isExistingCustomer) return 'Existing FTTH';
+    if (displayTechnologyLabel.isNotEmpty) return '$displayTechnologyLabel ($netType)';
     if (isNonPriority) return 'Non-Priority / Null';
     if (priority.isNotEmpty) return priority;
     if (category.isNotEmpty) return 'Kategori $category';

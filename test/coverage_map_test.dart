@@ -37,8 +37,8 @@ void main() {
       expect(tower.longitude, 109.025);
     });
 
-    test('HomepassPoint parses categories and returns correct 3-color scheme (Ungu, Orange, Hijau)', () {
-      final featExisting = {
+    test('HomepassPoint returns correct 3-color scheme: Ungu (FTTH), Hijau (FWA Indoor/Outdoor), Orange (FWA Outdoor)', () {
+      final featFtth = {
         "type": "Feature",
         "geometry": {
           "type": "Point",
@@ -54,86 +54,50 @@ void main() {
           "cat": "C1"
         }
       };
-      final hpExisting = HomepassPoint.fromGeoJsonFeature(featExisting);
-      expect(hpExisting.isExistingCustomer, isTrue);
-      expect(hpExisting.categoryColor, const Color(0xFF9C27B0)); // 1. Ungu (Existing Homeconnect)
+      final hpFtth = HomepassPoint.fromGeoJsonFeature(featFtth);
+      expect(hpFtth.isExistingCustomer, isTrue);
+      expect(hpFtth.displayTechnologyLabel, 'FTTH');
+      expect(hpFtth.categoryColor, const Color(0xFF9C27B0)); // 1. UNGU : FTTH
 
-      final featA = {
+      final featIndoorOutdoor = {
         "type": "Feature",
         "geometry": {
           "type": "Point",
-          "coordinates": [109.0073, -7.7045]
+          "coordinates": [109.016524, -7.712956]
         },
         "properties": {
-          "id": "qqts0t2-234080",
-          "c": "3301-34",
+          "id": "qqts0ez-232395",
+          "c": "3301-39",
           "d": "CILACAP TENGAH",
-          "v": "LOMANIS",
-          "net": "FTTH",
-          "prio": "1. P1 Priority",
-          "cat": "A"
-        }
-      };
-      final hpA = HomepassPoint.fromGeoJsonFeature(featA);
-      expect(hpA.categoryColor, const Color(0xFFFB8C00)); // 2. Orange (Priority A)
-
-      final featB = {
-        "type": "Feature",
-        "geometry": {
-          "type": "Point",
-          "coordinates": [109.0033, -7.7138]
-        },
-        "properties": {
-          "id": "qqts07t-272353",
+          "v": "SIDANEGARA",
+          "net": "FWA-IndoorOutdoor",
           "prio": "3. P3 Regular not visited last 30 days",
-          "cat": "B"
-        }
-      };
-      final hpB = HomepassPoint.fromGeoJsonFeature(featB);
-      expect(hpB.categoryColor, const Color(0xFFFB8C00)); // 2. Orange (Priority B / P3)
-
-      final featC1 = {
-        "type": "Feature",
-        "geometry": {
-          "type": "Point",
-          "coordinates": [109.017675, -7.736301]
-        },
-        "properties": {
-          "id": "qqtebz8-242433",
-          "prio": "4. P4 Regular visited last 30 days",
           "cat": "C1"
         }
       };
-      final hpC1 = HomepassPoint.fromGeoJsonFeature(featC1);
-      expect(hpC1.categoryColor, const Color(0xFF43A047)); // 3. Hijau (P4 / Reguler)
+      final hpIndoorOutdoor = HomepassPoint.fromGeoJsonFeature(featIndoorOutdoor);
+      expect(hpIndoorOutdoor.displayTechnologyLabel, 'FWA Indoor/Outdoor');
+      expect(hpIndoorOutdoor.categoryColor, const Color(0xFF43A047)); // 2. HIJAU : FWA INDOOR/OUTDOOR
 
-      final featC2 = {
+      final featOutdoor = {
         "type": "Feature",
         "geometry": {
           "type": "Point",
-          "coordinates": [109.017648, -7.735984]
+          "coordinates": [108.97586, -7.660858]
         },
         "properties": {
-          "id": "qqtebz8-233311",
-          "cat": "C2"
+          "id": "qqtkrv3-166039",
+          "c": "3301-27",
+          "d": "CILACAP TENGAH",
+          "v": "KUTAWARU",
+          "net": "FWA-Outdoor",
+          "prio": "3. P3 Regular not visited last 30 days",
+          "cat": "C1"
         }
       };
-      final hpC2 = HomepassPoint.fromGeoJsonFeature(featC2);
-      expect(hpC2.categoryColor, const Color(0xFF43A047)); // 3. Hijau (C2)
-
-      final featD = {
-        "type": "Feature",
-        "geometry": {
-          "type": "Point",
-          "coordinates": [109.015991, -7.741136]
-        },
-        "properties": {
-          "id": "qqtebwz-228648",
-          "cat": "D"
-        }
-      };
-      final hpD = HomepassPoint.fromGeoJsonFeature(featD);
-      expect(hpD.categoryColor, const Color(0xFF43A047)); // 3. Hijau (D)
+      final hpOutdoor = HomepassPoint.fromGeoJsonFeature(featOutdoor);
+      expect(hpOutdoor.displayTechnologyLabel, 'FWA Outdoor');
+      expect(hpOutdoor.categoryColor, const Color(0xFFFB8C00)); // 3. ORANGE : FWA OUTDOOR
     });
 
     test('GeoJsonService loadDistricts returns 24 districts with valid coordinates', () async {

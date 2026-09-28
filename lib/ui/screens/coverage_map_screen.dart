@@ -1039,6 +1039,13 @@ class _CoverageMapScreenState extends ConsumerState<CoverageMapScreen> {
                       isDark: isDark,
                       onTap: () => mapNotifier.toggleInstalledSa(!mapState.showInstalledSa),
                     ),
+                    _buildInteractiveChip(
+                      label: 'Legenda',
+                      color: const Color(0xFF9C27B0),
+                      isActive: true,
+                      isDark: isDark,
+                      onTap: () => _showLegendBottomSheet(context),
+                    ),
                   ],
                 ),
               ],
@@ -1116,6 +1123,85 @@ class _CoverageMapScreenState extends ConsumerState<CoverageMapScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showLegendBottomSheet(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          boxShadow: const [
+            BoxShadow(color: Colors.black26, blurRadius: 16, offset: Offset(0, -4)),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white24 : Colors.black12,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                const Icon(Icons.palette_rounded, color: Color(0xFF002B66), size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'Legenda Jaringan & Homepass',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15.5,
+                    color: isDark ? Colors.white : const Color(0xFF002B66),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildLegendRow(
+              const Color(0xFF9C27B0),
+              'UNGU : FTTH',
+              'Jaringan Fiber Optik Rumah (FTTH / Existing Homeconnect)',
+            ),
+            const SizedBox(height: 12),
+            _buildLegendRow(
+              const Color(0xFF43A047),
+              'HIJAU : FWA INDOOR/OUTDOOR',
+              'Titik Bangunan FWA Indoor & Outdoor',
+            ),
+            const SizedBox(height: 12),
+            _buildLegendRow(
+              const Color(0xFFFB8C00),
+              'ORANGE : FWA OUTDOOR',
+              'Titik Bangunan FWA Outdoor',
+            ),
+            const SizedBox(height: 12),
+            _buildLegendRow(
+              const Color(0xFF00E5FF),
+              'CYAN : SERVING BTS TOWER',
+              'Tower BTS XL yang sedang aktif melayani sinyal HP Sales',
+            ),
+            const SizedBox(height: 12),
+            _buildLegendRow(
+              const Color(0xFF0F9D58),
+              'HIJAU TOWER : TOWER BTS XL',
+              '380 Titik Lokasi Tower BTS XL Kabupaten Cilacap',
+            ),
+          ],
+        ),
       ),
     );
   }
