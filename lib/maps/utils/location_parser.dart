@@ -116,7 +116,7 @@ class LocationParser {
           final response = await client.send(request);
           final finalUrl = response.headers['location'] ?? response.request?.url.toString() ?? '';
           if (finalUrl.isNotEmpty) {
-            return parse(finalUrl);
+            return await parse(finalUrl);
           }
         }
       } catch (_) {}
