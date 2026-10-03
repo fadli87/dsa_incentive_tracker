@@ -50,3 +50,11 @@ app.*.map.json
 *.zip
 *.exe
 Output/
+
+# Environment files & Secrets
+.env
+.env.*
+!.env.example
+env.json
+*.env.json
+
