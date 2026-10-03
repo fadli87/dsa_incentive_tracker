@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../auth/widgets/access_gate.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/services/permission_service.dart';
 import 'main_navigation.dart';
@@ -57,7 +58,7 @@ class _SplashScreenState extends State<SplashScreen>
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) =>
-            const MainNavigation(),
+            const AccessGate(child: MainNavigation()),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(opacity: animation, child: child);
         },

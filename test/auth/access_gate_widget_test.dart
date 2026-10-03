@@ -7,7 +7,6 @@ import 'package:dsa_incentive_tracker/auth/screens/login_screen.dart';
 import 'package:dsa_incentive_tracker/auth/screens/access_code_screen.dart';
 import 'package:dsa_incentive_tracker/auth/screens/access_revoked_screen.dart';
 import 'package:dsa_incentive_tracker/auth/screens/offline_verification_required_screen.dart';
-import 'package:dsa_incentive_tracker/auth/services/team_access_service.dart';
 
 class MockAccessGateNotifier extends AccessGateNotifier {
   MockAccessGateNotifier(super.service, [GateState initialState = GateState.loading]) {

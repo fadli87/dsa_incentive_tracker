@@ -13,6 +13,11 @@ class AppSupabase {
   }) async {
     if (_isInitialized) return;
 
+    if (!SupabaseConfig.isConfigured && url == null) {
+      debugPrint('Supabase credentials not configured yet. Running in dev bypass mode.');
+      return;
+    }
+
     final targetUrl = url ?? SupabaseConfig.url;
     final targetAnonKey = anonKey ?? SupabaseConfig.anonKey;
 

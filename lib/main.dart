@@ -2,14 +2,19 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'auth/supabase_client.dart';
 import 'ui/screens/splash_screen.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
   }
+
+  // Inisialisasi Supabase (graceful fallback jika offline / belum dikonfigurasi)
+  await AppSupabase.initialize();
+
   runApp(const ProviderScope(child: MyApp()));
 }
 
