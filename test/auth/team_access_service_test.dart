@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dsa_incentive_tracker/auth/models/access_cache.dart';
 import 'package:dsa_incentive_tracker/auth/models/member_status.dart';
