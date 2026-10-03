@@ -6,7 +6,7 @@ echo ========================================================
 echo.
 
 echo [1/3] Membangun aplikasi Windows Release (Flutter)...
-call flutter build windows --release
+call flutter build windows --release --dart-define-from-file=.env
 if %errorlevel% neq 0 (
     echo.
     echo [ERROR] Gagal melakukan flutter build windows.
