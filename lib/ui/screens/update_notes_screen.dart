@@ -19,9 +19,26 @@ class UpdateNotesScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildVersionCard(
+              version: 'Ver.1.0.8',
+              date: 'Oktober 2026',
+              isLatest: true,
+              changes: [
+                'Fitur Team Login & Access Gate: Autentikasi tim berbasis Supabase dengan kontrol akses terpusat dan aman.',
+                'Aktivasi Kode Akses Tim: Pendaftaran mandiri anggota tim dengan validasi kode akses tim terenkripsi bcrypt (pgcrypto).',
+                'Masa Tenggang Offline (Grace Period 7 Hari): Aplikasi tetap 100% dapat digunakan di lapangan tanpa koneksi internet selama 7 hari berturut-turut.',
+                'Proteksi Sesi Anti-Auto-Signout: Kegagalan koneksi jaringan offline tidak pernah membatalkan sesi login user secara otomatis.',
+                'Manajemen Akun di Profil Pengguna: Menu Akun & Keamanan Tim di Info Pengguna untuk melihat email login, ganti password, dan logout aman.',
+                'Fitur Ganti Password Terproteksi: Pengubahan kata sandi akun sales dengan verifikasi wajib kata sandi lama.',
+                'Deteksi Status Akun Real-Time: Layar responsif untuk status Akses Dicabut (Revoked) dan Peringatan Verifikasi Online saat masa offline habis.',
+                'Isolasi Keamanan Kredensial (.env): Anon Key & Supabase URL tidak lagi disimpan di kode sumber, melainkan di-inject saat proses build kompilasi.',
+                'Sinkronisasi Versi Global (Ver.1.0.8): Pembaruan label versi di seluruh modul, installer Windows, dan package Android.',
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildVersionCard(
               version: 'Ver.1.0.7',
               date: 'September 2026',
-              isLatest: true,
+              isLatest: false,
               changes: [
                 'Native Android Telephony & WiFi Bridge: Implementasi lengkap MethodChannel di MainActivity (Kotlin) untuk pembacaan real-time sinyal seluler LTE/5G NR/WCDMA/GSM, SIM Slot (SubscriptionManager), Traffic Stats, dan info WiFi/DHCP.',
                 'Initial Permission Onboarding: Otomatis meminta izin Lokasi Akurat (ACCESS_FINE_LOCATION) dan Status Telepon (READ_PHONE_STATE) saat aplikasi pertama kali dibuka/diinstal agar semua modul analisa jaringan langsung berfungsi.',

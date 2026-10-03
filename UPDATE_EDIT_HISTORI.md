@@ -1,6 +1,21 @@
-# Dokumentasi Update & Catatan Rilis: DSA XL Satu Handbook (Ver.1.0.7)
+# Dokumentasi Update & Catatan Rilis: DSA XL Satu Handbook (Ver.1.0.8)
 
-## 📌 Ringkasan Pembaruan Utama (September 2026)
+## 📌 Ringkasan Pembaruan Utama (Ver.1.0.8 - Oktober 2026)
+
+Pembaruan ini menghadirkan sistem autentikasi tim terpadu (**Team Access Gate**) berbasis Supabase dengan kontrol akses terpusat, registrasi kode akses tim terenkripsi, masa tenggang offline 7 hari, dan isolasi keamanan environment:
+
+### 1. 🔐 Sistem Team Login & Access Gate (`lib/auth/`)
+- **Supabase Authentication Backend:** Registrasi dan login mandiri anggota tim Direct Sales Agency.
+- **Validasi Kode Akses Tim (Security Definer RPC):** Validasi kode akses bersama dengan enkripsi `bcrypt` (`pgcrypto`) langsung di server Supabase tanpa mengekspos kode ke client.
+- **State Machine Access Gate:** Transisi status real-time (`noSession`, `needsAccessCode`, `approved`, `revoked`, `needsOnlineVerification`).
+- **Masa Tenggang Offline (Grace Period 7 Hari):** Sales yang sudah disetujui dapat beroperasi 100% offline tanpa kuota/internet selama 7 hari berturut-turut.
+- **Proteksi Sesi Anti-Auto-Signout:** Kegagalan jaringan atau timeout koneksi tidak pernah membatalkan sesi lokal user.
+- **Manajemen Akun di Profil:** Informasi email login, menu Ubah Kata Sandi (dengan verifikasi password lama), dan Logout aman.
+- **Keamanan Kredensial Environment:** Anon Key dan Supabase URL tidak lagi disimpan di kode sumber melainkan di-inject saat kompilasi rilis via `.env`.
+
+---
+
+## 📌 Arsip Pembaruan Sebelumnya (Ver.1.0.7 - September 2026)
 
 Pembaruan besar ini membawa kemampuan AI pintar, diagnostik jaringan seluler lapangan, pemetaan GIS berkinerja tinggi, manajemen homepass target, serta sistem pencarian koordinat dan ShareLoc WhatsApp/Google Maps:
 
