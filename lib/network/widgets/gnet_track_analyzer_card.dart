@@ -842,11 +842,11 @@ class _GNetTrackAnalyzerCardState extends ConsumerState<GNetTrackAnalyzerCard> {
 
           // Row 5: RSRP, RSRQ, SNR, CQI, RSSI
           _buildGNetRow([
-            ('RSRP', cell?.rsrp != null ? '${cell!.rsrp}' : '-'),
-            ('RSRQ', cell?.rsrq != null ? '${cell!.rsrq}' : '-'),
-            ('SNR', cell?.sinr != null ? '${cell!.sinr}.0' : '-'),
+            ('RSRP', cell?.primarySignalDbm != null ? '${cell!.primarySignalDbm}' : '-'),
+            ('RSRQ', (cell?.rsrq ?? cell?.ssRsrq) != null ? '${cell?.rsrq ?? cell?.ssRsrq}' : '-'),
+            ('SNR', (cell?.sinr ?? cell?.ssSinr) != null ? '${cell?.sinr ?? cell?.ssSinr}.0' : '-'),
             ('CQI', cell?.cqiDisplay ?? '-'),
-            ('RSSI', cell?.rssi != null ? '${cell!.rssi}' : '-'),
+            ('RSSI', (cell?.rssi ?? cell?.dbm) != null ? '${cell?.rssi ?? cell?.dbm}' : '-'),
           ]),
           const SizedBox(height: 6),
 

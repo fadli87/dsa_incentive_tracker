@@ -182,18 +182,76 @@ class CellData {
     );
   }
 
-  // ---- Display helpers (graceful fallback: "N/A") ----
+  // ---- Validation & Display helpers (graceful fallback: "N/A") ----
   String get networkType   => cellType;
-  String get cellIdDisplay => cellId != null ? cellId.toString() : 'N/A';
-  String get pciDisplay    => pci != null ? pci.toString() : 'N/A';
-  String get tacDisplay    => tac != null ? tac.toString() : (lac != null ? lac.toString() : 'N/A');
-  String get lacDisplay    => lac != null ? lac.toString() : 'N/A';
-  String get arfcnDisplay  => arfcn != null ? arfcn.toString() : 'N/A';
-  String get bandDisplay   => band ?? (arfcn != null ? 'ARFCN $arfcn' : 'N/A');
+  bool get isValidCellId {
+    if (cellId == null || cellId! <= 0) return false;
+    // Filter out Android UNAVAILABLE / INVALID sentinel values
+    if (cellId == 2147483647 ||
+        cellId == 0x7FFFFFFF ||
+        cellId == 0xFFFFFFF ||
+        cellId == 65535 ||
+        cellId == 68719476735) {
+      return false;
+    }
+    return true;
+  }
 
-  /// Di 4G LTE, 28-bit Cell Identity (ECI) terdiri dari eNodeB ID (20 bit) dan CID/Sector (8 bit).
-  int? get eNodeBId => (cellId != null && cellId! > 0) ? (cellId! >> 8) : null;
-  int? get cid => (cellId != null && cellId! > 0) ? (cellId! & 0xFF) : null;
+  String get cellIdDisplay => isValidCellId ? cellId.toString() : 'N/A';
+  String get pciDisplay    => pci != null && pci! >= 0 && pci! != 2147483647 ? pci.toString() : 'N/A';
+  String get tacDisplay    => tac != null && tac! > 0 && tac! != 65535 && tac! != 2147483647
+      ? tac.toString()
+      : (lac != null && lac! > 0 && lac! != 65535 ? lac.toString() : 'N/A');
+  String get lacDisplay    => lac != null && lac! > 0 && lac! != 65535 ? lac.toString() : 'N/A';
+  String get arfcnDisplay  => arfcn != null && arfcn! > 0 ? arfcn.toString() : 'N/A';
+  String get bandDisplay   => band ?? (arfcn != null && arfcn! > 0 ? 'ARFCN $arfcn' : 'N/A');
+
+  /// Base station Node ID per Network Type:
+  /// - 4G LTE : 20-bit eNodeB ID (cellId >> 8)
+  /// - 5G NR  : 24-bit gNodeB ID (cellId >> 12)
+  /// - 3G     : 12-bit RNC / NodeB ID (cellId >> 16)
+  /// - 2G GSM : 16-bit CI (cellId)
+  int? get nodeId {
+    if (!isValidCellId) return null;
+    final type = cellType.toUpperCase();
+    if (type == 'NR') {
+      return cellId! >> 12; // 24-bit gNodeB ID standard
+    }
+    if (type == 'WCDMA') {
+      return cellId! >> 16; // 12-bit RNC
+    }
+    if (type == 'GSM') {
+      return cellId; // 16-bit CI
+    }
+    // Default 4G LTE
+    return cellId! >> 8; // 20-bit eNodeB ID
+  }
+
+  /// Sector / Local Cell ID per Network Type:
+  /// - 4G LTE : 8-bit CID (cellId & 0xFF, 0..255)
+  /// - 5G NR  : 12-bit Sector (cellId & 0xFFF)
+  /// - 3G     : 16-bit CI (cellId & 0xFFFF)
+  /// - 2G GSM : PCI / LAC / 0
+  int? get sectorId {
+    if (!isValidCellId) return null;
+    final type = cellType.toUpperCase();
+    if (type == 'NR') {
+      return cellId! & 0xFFF;
+    }
+    if (type == 'WCDMA') {
+      return cellId! & 0xFFFF;
+    }
+    if (type == 'GSM') {
+      return pci ?? 0;
+    }
+    return cellId! & 0xFF;
+  }
+
+  /// Backward-compatible alias untuk eNodeB ID (atau gNodeB / NodeB ID)
+  int? get eNodeBId => nodeId;
+  int? get gNodeBId => cellType.toUpperCase() == 'NR' ? nodeId : null;
+  int? get cid => sectorId;
+
   String get eNodeBIdDisplay => eNodeBId != null ? eNodeBId.toString() : 'N/A';
   String get cidDisplay => cid != null ? cid.toString() : 'N/A';
   String get eNodeBCidDisplay => (eNodeBId != null && cid != null) ? '$eNodeBId-$cid' : cellIdDisplay;
@@ -202,7 +260,7 @@ class CellData {
   /// Prioritas 1: Timing Advance (TA) dari hardware modem jika tersedia (78.12m LTE, 554m GSM).
   /// Prioritas 2: 3GPP Path Loss RF Propagation Model berbasis RSRP & Frekuensi Carrier jika TA null/idle.
   int? get distanceMeters {
-    if (timingAdvance != null && timingAdvance! >= 0) {
+    if (timingAdvance != null && timingAdvance! >= 0 && timingAdvance! < 1282) {
       final multiplier = cellType == 'GSM' ? 554.0 : 78.12;
       return (timingAdvance! * multiplier).round();
     }
@@ -268,7 +326,7 @@ class CellData {
   }
 
   String get rsrpDisplay {
-    final val = rsrp ?? ssRsrp ?? csiRsrp;
+    final val = rsrp ?? ssRsrp ?? csiRsrp ?? primarySignalDbm;
     return val != null ? '$val dBm' : 'N/A';
   }
 

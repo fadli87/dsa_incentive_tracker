@@ -137,25 +137,82 @@ class CoverageMapNotifier extends Notifier<CoverageMapState> {
   void _recalculateServingTower([LatLng? userLoc, dynamic snapshot]) {
     final currentSnapshot = snapshot ?? ref.read(cellSignalProvider).value;
     final serving = currentSnapshot?.servingCell;
-    final enodebId = serving?.eNodeBId?.toString().trim();
     final towers = state.towers;
 
     if (towers.isEmpty) return;
 
-    BtsTower? match;
-
-    // 1. Prioritas 1: Cocokkan langsung berdasarkan eNodeB ID (misal: "533261")
-    if (enodebId != null && enodebId.isNotEmpty && enodebId != '0' && enodebId != 'N/A') {
-      match = towers.where((t) {
-        final tEnb = t.enodebId.trim();
-        return tEnb == enodebId || tEnb.endsWith(enodebId) || enodebId.endsWith(tEnb);
-      }).firstOrNull;
+    if (serving == null || serving.cellType == 'UNKNOWN') {
+      if (state.matchedServingTower != null) {
+        state = state.copyWith(matchedServingTower: null);
+      }
+      return;
     }
 
-    // 2. Prioritas 2: Fallback ke Tower terdekat dari GPS user jika sinyal seluler aktif
     final effectiveUserLoc = userLoc ?? state.userLocation;
-    if (match == null && effectiveUserLoc != null && serving != null && serving.cellType != 'UNKNOWN') {
-      double minDistance = 8000.0; // Radius maksimal 8 KM
+    final targetEnodebInt = serving.nodeId;
+    final enodebId = targetEnodebInt?.toString().trim();
+
+    BtsTower? match;
+
+    // 1. Prioritas 1: Pencocokan eksak berbasis Node ID (eNodeB ID / gNodeB ID)
+    if (targetEnodebInt != null && targetEnodebInt > 0 && enodebId != null && enodebId.isNotEmpty) {
+      final candidates = towers.where((t) {
+        final tEnbStr = t.enodebId.trim();
+        final tEnbInt = int.tryParse(tEnbStr);
+        if (tEnbInt != null && tEnbInt == targetEnodebInt) {
+          return true;
+        }
+        if (tEnbStr.isNotEmpty && tEnbStr == enodebId) {
+          return true;
+        }
+        if (t.towerId.trim().toUpperCase() == enodebId.toUpperCase()) {
+          return true;
+        }
+        return false;
+      }).toList();
+
+      if (candidates.isNotEmpty) {
+        if (candidates.length == 1) {
+          match = candidates.first;
+        } else if (effectiveUserLoc != null) {
+          // Jika ada lebih dari 1 tower dengan eNodeB yang sama (multi-sektor / co-location),
+          // pilih tower yang terdekat dengan posisi fisik user saat ini
+          candidates.sort((a, b) {
+            final dA = const Distance().as(LengthUnit.Meter, effectiveUserLoc, a.location);
+            final dB = const Distance().as(LengthUnit.Meter, effectiveUserLoc, b.location);
+            return dA.compareTo(dB);
+          });
+          match = candidates.first;
+        } else {
+          match = candidates.first;
+        }
+      }
+    }
+
+    // 2. Verifikasi Plausibilitas Jarak (Distance Sanity Check)
+    // Jika match ditemukan via eNodeB ID namun jarak ke user > 35 KM (di luar jangkauan radio seluler),
+    // cari tower terdekat dari lokasi user
+    if (match != null && effectiveUserLoc != null) {
+      final dMeters = const Distance().as(LengthUnit.Meter, effectiveUserLoc, match.location);
+      if (dMeters > 35000.0) {
+        double minDistance = 10000.0; // Radius 10 KM
+        BtsTower? closerTower;
+        for (final t in towers) {
+          final d = const Distance().as(LengthUnit.Meter, effectiveUserLoc, t.location);
+          if (d < minDistance) {
+            minDistance = d;
+            closerTower = t;
+          }
+        }
+        if (closerTower != null) {
+          match = closerTower;
+        }
+      }
+    }
+
+    // 3. Prioritas 2: Fallback ke Tower terdekat dari GPS user jika eNodeB ID tidak terdaftar
+    if (match == null && effectiveUserLoc != null && serving.cellType != 'UNKNOWN') {
+      double minDistance = 10000.0; // Radius maksimal 10 KM
       for (final t in towers) {
         final d = const Distance().as(LengthUnit.Meter, effectiveUserLoc, t.location);
         if (d < minDistance) {

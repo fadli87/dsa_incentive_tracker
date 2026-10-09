@@ -470,9 +470,7 @@ class _CoverageMapScreenState extends ConsumerState<CoverageMapScreen> {
               if (mapState.showTowers)
                 MarkerLayer(
                   markers: mapState.filteredTowers.map((tower) {
-                    final isMatched = mapState.matchedServingTower?.towerId == tower.towerId ||
-                        (mapState.matchedServingTower?.enodebId.isNotEmpty == true &&
-                            mapState.matchedServingTower?.enodebId == tower.enodebId);
+                    final isMatched = mapState.matchedServingTower?.towerId == tower.towerId;
 
                     return Marker(
                       point: tower.location,
@@ -941,7 +939,7 @@ class _CoverageMapScreenState extends ConsumerState<CoverageMapScreen> {
                                   Text(
                                     'eNodeB: ${mapState.matchedServingTower!.enodebId} · ID: ${mapState.matchedServingTower!.towerId}'
                                     '${_userPosition != null ? " · Jarak: ${(const Distance().as(LengthUnit.Meter, _userPosition!, mapState.matchedServingTower!.location)).toStringAsFixed(0)}m" : ""}'
-                                    '${servingCell?.rsrp != null ? " · ${servingCell!.rsrp} dBm" : ""}',
+                                    '${(servingCell?.rsrpDisplay != null && servingCell!.rsrpDisplay != 'N/A') ? " · ${servingCell!.rsrpDisplay}" : ""}',
                                     style: const TextStyle(
                                       color: Color(0xFFE0F7FA),
                                       fontSize: 10,

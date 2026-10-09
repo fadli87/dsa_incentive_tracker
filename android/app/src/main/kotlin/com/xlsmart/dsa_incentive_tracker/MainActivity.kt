@@ -188,9 +188,9 @@ class MainActivity : FlutterActivity() {
             is CellInfoLte -> {
                 map["cellType"] = "LTE"
                 val id = cellInfo.cellIdentity
-                map["cellId"] = id.ci.takeIf { it in 0..268435455 }
+                map["cellId"] = id.ci.takeIf { it in 1..268435454 }
                 map["pci"] = id.pci.takeIf { it in 0..503 }
-                map["tac"] = id.tac.takeIf { it in 0..65535 }
+                map["tac"] = id.tac.takeIf { it in 1..65534 }
                 map["arfcn"] = id.earfcn.takeIf { it in 1..262142 }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                     map["bandwidth"] = id.bandwidth.takeIf { it > 0 }?.let { it / 1000 }
@@ -199,8 +199,8 @@ class MainActivity : FlutterActivity() {
                     map["mcc"] = id.mccString
                     map["mnc"] = id.mncString
                 } else {
-                    map["mcc"] = id.mcc.takeIf { it != Int.MAX_VALUE }?.toString()
-                    map["mnc"] = id.mnc.takeIf { it != Int.MAX_VALUE }?.toString()
+                    map["mcc"] = id.mcc.takeIf { it != Int.MAX_VALUE && it > 0 }?.toString()
+                    map["mnc"] = id.mnc.takeIf { it != Int.MAX_VALUE && it >= 0 }?.toString()
                 }
 
                 val ss = cellInfo.cellSignalStrength
@@ -217,9 +217,9 @@ class MainActivity : FlutterActivity() {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     val id = cellInfo.cellIdentity as? CellIdentityNr
                     if (id != null) {
-                        map["cellId"] = id.nci.takeIf { it in 0L..68719476735L }?.toInt()
+                        map["cellId"] = id.nci.takeIf { it in 1L..68719476734L }
                         map["pci"] = id.pci.takeIf { it in 0..1007 }
-                        map["tac"] = id.tac.takeIf { it in 0..16777215 }
+                        map["tac"] = id.tac.takeIf { it in 1..16777214 }
                         map["arfcn"] = id.nrarfcn.takeIf { it > 0 }
                         map["mcc"] = id.mccString
                         map["mnc"] = id.mncString
@@ -240,16 +240,16 @@ class MainActivity : FlutterActivity() {
             is CellInfoWcdma -> {
                 map["cellType"] = "WCDMA"
                 val id = cellInfo.cellIdentity
-                map["cellId"] = id.cid.takeIf { it in 0..268435455 }
+                map["cellId"] = id.cid.takeIf { it in 1..268435454 }
                 map["pci"] = id.psc.takeIf { it in 0..511 }
-                map["lac"] = id.lac.takeIf { it in 0..65535 }
+                map["lac"] = id.lac.takeIf { it in 1..65534 }
                 map["arfcn"] = id.uarfcn.takeIf { it > 0 }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     map["mcc"] = id.mccString
                     map["mnc"] = id.mncString
                 } else {
-                    map["mcc"] = id.mcc.takeIf { it != Int.MAX_VALUE }?.toString()
-                    map["mnc"] = id.mnc.takeIf { it != Int.MAX_VALUE }?.toString()
+                    map["mcc"] = id.mcc.takeIf { it != Int.MAX_VALUE && it > 0 }?.toString()
+                    map["mnc"] = id.mnc.takeIf { it != Int.MAX_VALUE && it >= 0 }?.toString()
                 }
                 val ss = cellInfo.cellSignalStrength
                 map["dbm"] = ss.dbm.takeIf { it in -140..-40 }
@@ -258,15 +258,15 @@ class MainActivity : FlutterActivity() {
             is CellInfoGsm -> {
                 map["cellType"] = "GSM"
                 val id = cellInfo.cellIdentity
-                map["cellId"] = id.cid.takeIf { it in 0..65535 }
-                map["lac"] = id.lac.takeIf { it in 0..65535 }
+                map["cellId"] = id.cid.takeIf { it in 1..65534 }
+                map["lac"] = id.lac.takeIf { it in 1..65534 }
                 map["arfcn"] = id.arfcn.takeIf { it > 0 }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     map["mcc"] = id.mccString
                     map["mnc"] = id.mncString
                 } else {
-                    map["mcc"] = id.mcc.takeIf { it != Int.MAX_VALUE }?.toString()
-                    map["mnc"] = id.mnc.takeIf { it != Int.MAX_VALUE }?.toString()
+                    map["mcc"] = id.mcc.takeIf { it != Int.MAX_VALUE && it > 0 }?.toString()
+                    map["mnc"] = id.mnc.takeIf { it != Int.MAX_VALUE && it >= 0 }?.toString()
                 }
                 val ss = cellInfo.cellSignalStrength
                 map["dbm"] = ss.dbm.takeIf { it in -140..-40 }
