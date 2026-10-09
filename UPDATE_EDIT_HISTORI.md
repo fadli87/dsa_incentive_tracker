@@ -1,6 +1,27 @@
-# Dokumentasi Update & Catatan Rilis: DSA XL Satu Handbook (Ver.1.0.8)
+# Dokumentasi Update & Catatan Rilis: DSA XL Satu Handbook (Ver.1.0.9)
 
-## 📌 Ringkasan Pembaruan Utama (Ver.1.0.8 - Oktober 2026)
+## 📌 Ringkasan Pembaruan Utama (Ver.1.0.9 - Oktober 2026)
+
+Pembaruan ini berfokus pada penyempurnaan akurasi mesin kalkulasi insentif sesuai panduan resmi XL Satu (September 2026), pembaruan toolchain build Android, penambahan modul katalog paket produk interaktif, dan konsolidasi penuh dengan sistem autentikasi tim Supabase:
+
+### 1. 🧮 Refaktor Akurasi Engine Kalkulasi Insentif (`CalculatorEngine`)
+- **Progresif SA Dihitung Utuh:** Penjumlahan kumulatif insentif progresif per bracket aktivasi dihitung secara utuh (1–6 @80k, 7–9 @150k, 10–13 @175k, 14–29 @200k, 30–39 @225k, 40–49 @250k, ≥50 @275k).
+- **Multiplier Rate Bertingkat:** Penetapan pengali tertinggi berdasarkan bracket aktivasi (7–9: 1.5x, 10–13: 2.0x, 14–29: 4.0x, 30–39: 4.25x, 40–49: 4.5x, ≥50: 4.65x).
+- **Formula Multiplier Bonus:** Multiplier Bonus dihitung eksklusif dari perkalian pengali dengan Product Mix Base (`pmBase * multRate`), sehingga progresif SA tetap diterima utuh.
+- **Tabel Produktivitas Interaktif:** Update UI tabel tier produktivitas untuk menampilkan subtotal progresif yang diterima dan status tier aktif.
+- **Verifikasi 45 Unit & Widget Test:** 100% lulus pengujian unit test dan widget test di seluruh modul kalkulator, GIS maps, AI coach, dan Access Gate.
+
+### 2. 📦 Modul Package Catalog Interaktif (`lib/core/catalog/package_catalog.dart`)
+- **Katalog Lengkap Paket XL Satu:** Menyajikan rincian benefit kuota/kecepatan, harga normal, harga promo, dan klasifikasi tier insentif untuk seluruh paket (Value, Smart, Family, Super User, Ultimate, dan FWA).
+
+### 3. 🛠️ Pembaruan Modern Build Toolchain Android
+- **Gradle Wrapper 8.14:** Pembaruan dari versi 8.11.1 ke 8.14.
+- **Android Gradle Plugin (AGP) 8.11.1:** Pembaruan dari versi 8.9.1 ke 8.11.1.
+- **Kotlin Gradle Plugin 2.2.20:** Pembaruan dari versi 2.1.0 ke 2.2.20 untuk menghilangkan seluruh warning deprecation Flutter SDK.
+
+---
+
+## 📌 Arsip Pembaruan Sebelumnya (Ver.1.0.8 - Oktober 2026)
 
 Pembaruan ini menghadirkan sistem autentikasi tim terpadu (**Team Access Gate**) berbasis Supabase dengan kontrol akses terpusat, registrasi kode akses tim terenkripsi, masa tenggang offline 7 hari, dan isolasi keamanan environment:
 

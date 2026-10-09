@@ -19,9 +19,22 @@ class UpdateNotesScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildVersionCard(
-              version: 'Ver.1.0.8',
+              version: 'Ver.1.0.9',
               date: 'Oktober 2026',
               isLatest: true,
+              changes: [
+                'Penyempurnaan Engine Perhitungan Insentif AE Pro & AE Elite: Perhitungan akumulasi Progresif SA dihitung utuh per tier dan Multiplier Bonus dikalikan langsung dengan PM Base.',
+                'Katalog Paket Produk Interaktif: Penambahan tab / modul Package Catalog lengkap dengan detail benefit, pricing, dan kategori skema insentif.',
+                'Pembaruan Build Toolchain Android: Upgrade Gradle ke 8.14, Android Gradle Plugin (AGP) ke 8.11.1, dan Kotlin Gradle Plugin ke 2.2.20 untuk menghilangkan seluruh peringatan deprecation Flutter.',
+                'Konsolidasi & Sinkronisasi Kode: Penggabungan fitur Team Login Supabase (Access Gate, Grace Period Offline 7 Hari) dengan perbaikan engine kalkulator terverifikasi 100% lulus 45 unit test.',
+                'Sinkronisasi Versi Global (Ver.1.0.9): Pembaruan versi di seluruh installer Windows, bundle APK Android, dan konfigurasi metadata.',
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildVersionCard(
+              version: 'Ver.1.0.8',
+              date: 'Oktober 2026',
+              isLatest: false,
               changes: [
                 'Fitur Team Login & Access Gate: Autentikasi tim berbasis Supabase dengan kontrol akses terpusat dan aman.',
                 'Aktivasi Kode Akses Tim: Pendaftaran mandiri anggota tim dengan validasi kode akses tim terenkripsi bcrypt (pgcrypto).',
