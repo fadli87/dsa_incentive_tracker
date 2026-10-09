@@ -527,24 +527,10 @@ class CalculatorEngine {
       final double prog6 = b6 * 250000.0;
       final double prog7 = b7 * 275000.0;
 
-      // Multiplier dihitung per tier terhadap subtotal progresif masing-masing tier
-      final double multBonus1 = 0.0;
-      final double multBonus2 = prog2 * 1.50;
-      final double multBonus3 = prog3 * 2.00;
-      final double multBonus4 = prog4 * 4.00;
-      final double multBonus5 = prog5 * 4.25;
-      final double multBonus6 = prog6 * 4.50;
-      final double multBonus7 = prog7 * 4.65;
+      // Hitung total progInc dari penjumlahan semua tier secara utuh
+      progInc = prog1 + prog2 + prog3 + prog4 + prog5 + prog6 + prog7;
 
-      multBonus = multBonus1 +
-          multBonus2 +
-          multBonus3 +
-          multBonus4 +
-          multBonus5 +
-          multBonus6 +
-          multBonus7;
-
-      // multRate merepresentasikan tier pengali tertinggi yang dicapai
+      // Tentukan multRate (pengali tertinggi) menggunakan kondisi if-else berdasarkan totalSa
       if (totalSa >= 50) {
         multRate = 4.65;
       } else if (totalSa >= 40) {
@@ -561,15 +547,8 @@ class CalculatorEngine {
         multRate = 0.0;
       }
 
-      // REVISI ATURAN:
-      // Nilai insentif Progresif SA akan HILANG jika perhitungan multiplier sudah ada (total SA >= 7 / multBonus > 0).
-      // Sedangkan jika aktivasi < 7 SA (multiplier belum ada / 0x), Progresif SA tetap diterima (1-6 @ 80k).
-      if (multBonus > 0) {
-        progInc = 0.0;
-      } else {
-        progInc = prog1;
-      }
-
+      // Hitung multBonus dengan mengalikan multRate HANYA dengan pmBase
+      multBonus = pmBase * multRate;
       lumpSumBonus = 0.0;
 
       tierRows = [
@@ -579,7 +558,6 @@ class CalculatorEngine {
           multiplier: 0,
           unitsInTier: b1,
           subtotalProgressive: prog1,
-          multiplierBonus: multBonus1,
           isCurrentTier: totalSa > 0 && totalSa <= 6,
         ),
         TierRow(
@@ -588,7 +566,6 @@ class CalculatorEngine {
           multiplier: 1.5,
           unitsInTier: b2,
           subtotalProgressive: prog2,
-          multiplierBonus: multBonus2,
           isCurrentTier: totalSa >= 7 && totalSa <= 9,
         ),
         TierRow(
@@ -597,7 +574,6 @@ class CalculatorEngine {
           multiplier: 2.0,
           unitsInTier: b3,
           subtotalProgressive: prog3,
-          multiplierBonus: multBonus3,
           isCurrentTier: totalSa >= 10 && totalSa <= 13,
         ),
         TierRow(
@@ -606,7 +582,6 @@ class CalculatorEngine {
           multiplier: 4.0,
           unitsInTier: b4,
           subtotalProgressive: prog4,
-          multiplierBonus: multBonus4,
           isCurrentTier: totalSa >= 14 && totalSa <= 29,
         ),
         TierRow(
@@ -615,7 +590,6 @@ class CalculatorEngine {
           multiplier: 4.25,
           unitsInTier: b5,
           subtotalProgressive: prog5,
-          multiplierBonus: multBonus5,
           isCurrentTier: totalSa >= 30 && totalSa <= 39,
         ),
         TierRow(
@@ -624,7 +598,6 @@ class CalculatorEngine {
           multiplier: 4.5,
           unitsInTier: b6,
           subtotalProgressive: prog6,
-          multiplierBonus: multBonus6,
           isCurrentTier: totalSa >= 40 && totalSa <= 49,
         ),
         TierRow(
@@ -633,7 +606,6 @@ class CalculatorEngine {
           multiplier: 4.65,
           unitsInTier: b7,
           subtotalProgressive: prog7,
-          multiplierBonus: multBonus7,
           isCurrentTier: totalSa >= 50,
         ),
       ];
