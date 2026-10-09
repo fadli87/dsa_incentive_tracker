@@ -91,40 +91,65 @@ jobs:
         run: flutter build windows --release --dart-define="SUPABASE_URL=$env:SUPABASE_URL" --dart-define="SUPABASE_ANON_KEY=$env:SUPABASE_ANON_KEY"
 
       - name: Setup Inno Setup
-        run: choco install innosetup --no-progress
         shell: powershell
+        run: choco install innosetup --yes --no-progress
+
+      - name: Prepare Build Output for Inno Setup
+        shell: powershell
+        run: |
+          if (-not (Test-Path "build\windows\x64\runner\Release") -and (Test-Path "build\windows\runner\Release")) {
+            New-Item -ItemType Directory -Force -Path "build\windows\x64\runner"
+            Copy-Item -Recurse "build\windows\runner\Release" "build\windows\x64\runner\Release"
+          }
 
       - name: Compile Inno Setup Installer
-        run: |
-          $iscc = (Get-Command iscc -ErrorAction SilentlyContinue)?.Source
-          if (-not $iscc) {
-            $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-            if (-not (Test-Path $iscc)) {
-              $iscc = "C:\Program Files\Inno Setup 7\ISCC.exe"
-            }
-          }
-          & $iscc windows_installer.iss
         shell: powershell
+        run: |
+          $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+          $isccCandidates = @(
+            (Get-Command iscc -ErrorAction SilentlyContinue)?.Source,
+            "C:\ProgramData\chocolatey\bin\iscc.exe",
+            "C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
+            "C:\Program Files\Inno Setup 6\ISCC.exe",
+            "C:\Program Files\Inno Setup 7\ISCC.exe",
+            "C:\tools\InnoSetup\ISCC.exe"
+          ) | Where-Object { $_ -and (Test-Path $_) }
+
+          if ($isccCandidates.Count -eq 0) {
+            throw "ISCC.exe not found in any standard path!"
+          }
+          $iscc = $isccCandidates[0]
+          Write-Host "Compiling Inno Setup with: $iscc"
+          & $iscc windows_installer.iss
+          if ($LASTEXITCODE -ne 0) {
+            throw "Inno Setup compilation failed with exit code $LASTEXITCODE"
+          }
 
       - name: Prepare Windows Assets
         id: prep_win
-        shell: bash
+        shell: powershell
         run: |
-          TAG="${{ github.ref_name }}"
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            TAG="${{ github.event.inputs.tag_name }}"
-          fi
+          $tag = "${{ github.ref_name }}"
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            $tag = "${{ github.event.inputs.tag_name }}"
+          }
           
-          # Compress portable release folder
-          cd build/windows/x64/runner/Release
-          7z a -tzip "../../../../../DSA_XL_Satu_Handbook_${TAG}_windows_portable.zip" *
-          cd ../../../../../
-          
-          # Copy setup output
-          INSTALLER_FILE=$(ls Output/*.exe | head -n 1)
-          if [ -f "$INSTALLER_FILE" ]; then
-            cp "$INSTALLER_FILE" "DSA_XL_Satu_Handbook_${TAG}_windows_installer.exe"
-          fi
+          # Locate Release directory
+          $releaseDir = "build\windows\x64\runner\Release"
+          if (-not (Test-Path $releaseDir)) {
+            $releaseDir = "build\windows\runner\Release"
+          }
+          Write-Host "Packaging portable zip from: $releaseDir"
+          Compress-Archive -Path "$releaseDir\*" -DestinationPath "DSA_XL_Satu_Handbook_${tag}_windows_portable.zip" -Force
+
+          # Copy setup installer output
+          $installer = Get-ChildItem -Path "Output\*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($installer) {
+            Copy-Item $installer.FullName "DSA_XL_Satu_Handbook_${tag}_windows_installer.exe" -Force
+            Write-Host "Prepared installer: DSA_XL_Satu_Handbook_${tag}_windows_installer.exe"
+          } else {
+            Write-Warning "No installer EXE found in Output directory!"
+          }
 
       - name: Upload Windows Artifacts
         uses: actions/upload-artifact@v4
@@ -133,6 +158,7 @@ jobs:
           path: |
             DSA_XL_Satu_Handbook_*_windows_installer.exe
             DSA_XL_Satu_Handbook_*_windows_portable.zip
+          if-no-files-found: warn
 
   create-release:
     name: Publish GitHub Release
