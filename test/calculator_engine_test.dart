@@ -103,7 +103,7 @@ void main() {
       expect(res.tierRows[0].subtotalProgressive, 320000.0);
     });
 
-    test('Perhitungan 20 SA AE Elite: Progresif SA HILANG karena perhitungan Multiplier sudah ada', () {
+    test('Perhitungan 20 SA AE Elite: Progresif SA dihitung utuh & Multiplier = PM Base * 4.0x', () {
       // 5 x f100, 5 x f125, 5 x f200, 5 x fwa = 20 SA
       final res = CalculatorEngine.calculateDetailed(
         position: PositionType.elite,
@@ -121,26 +121,22 @@ void main() {
       expect(res.pmBase, 2375000.0);
       expect(res.multRate, 4.0);
 
-      // Multiplier per tier:
-      // Tier 2: 450k * 1.5 = 675k
-      // Tier 3: 700k * 2.0 = 1.400k
-      // Tier 4: (7 * 200k) * 4.0 = 1.400k * 4.0 = 5.600k
-      // Total multBonus = 675k + 1.400k + 5.600k = 7.675.000
-      expect(res.multBonus, 7675000.0);
+      // progInc utuh dari tier 1 s/d 4 (480k + 450k + 700k + 1.400k = 3.030.000)
+      expect(res.progInc, 3030000.0);
 
-      // REVISI: Insentif progresif SA HILANG karena perhitungan multiplier sudah ada!
-      expect(res.progInc, 0.0);
+      // Multiplier = pmBase * multRate (2.375.000 * 4.0 = 9.500.000)
+      expect(res.multBonus, 9500000.0);
       expect(res.lumpSumBonus, 0.0);
 
-      // Grand Total = Basic Fee (2.773.184) + pmBase (2.375.000) + multBonus (7.675.000)
-      expect(res.grandTotal, 2773184.0 + 2375000.0 + 7675000.0);
-      expect(res.grandTotal, 12823184.0);
+      // Grand Total = Basic Fee (2.773.184) + pmBase (2.375.000) + progInc (3.030.000) + multBonus (9.500.000)
+      expect(res.grandTotal, 2773184.0 + 2375000.0 + 3030000.0 + 9500000.0);
+      expect(res.grandTotal, 17678184.0);
       expect(res.tierRows.length, 7);
       expect(res.tierRows[3].isCurrentTier, isTrue);
     });
 
-    test('Perhitungan 35 SA AE Elite (Sesuai Screenshot User): Progresif SA Rp 6.180.000 HILANG', () {
-      // Misal 35 SA dengan pmBase 2.325.000 dan special PXGY 675.000
+    test('Perhitungan 35 SA AE Elite: Progresif SA Rp 6.180.000 tetap didapat + Multiplier 4.25x * PM Base', () {
+      // 35 SA dengan 35 x f100 -> pmBase = 3.500.000
       // 35 SA terbagi ke: 1-6 (6), 7-9 (3), 10-13 (4), 14-29 (16), 30-39 (6)
       final res = CalculatorEngine.calculateDetailed(
         position: PositionType.elite,
@@ -155,32 +151,26 @@ void main() {
       );
 
       expect(res.totalSa, 35);
+      expect(res.pmBase, 3500000.0);
       expect(res.multRate, 4.25);
 
-      // Multiplier per tier persis sesuai screenshot user:
-      // Tier 2 (7-9): 3 * 150k = 450k -> 450k * 1.5 = 675.000
-      // Tier 3 (10-13): 4 * 175k = 700k -> 700k * 2.0 = 1.400.000
-      // Tier 4 (14-29): 16 * 200k = 3.200k -> 3.200k * 4.0 = 12.800.000
-      // Tier 5 (30-39): 6 * 225k = 1.350k -> 1.350k * 4.25 = 5.737.500
-      // Total Booster Multiplier = 675k + 1.400k + 12.800k + 5.737.500 = 20.612.500
-      expect(res.multBonus, 20612500.0);
+      // Nilai Progresif SA dihitung utuh (480k + 450k + 700k + 3.200k + 1.350k = 6.180.000)
+      expect(res.progInc, 6180000.0);
 
-      // Nilai Progresif SA (yang tadinya 6.180.000) HILANG (menjadi 0.0) karena multiplier sudah ada!
-      expect(res.progInc, 0.0);
+      // Multiplier = pmBase * multRate = 3.500.000 * 4.25 = 14.875.000
+      expect(res.multBonus, 14875000.0);
 
-      // Subtotal progresif di tiap baris tier tetap tersimpan untuk transparansi hitungan multiplier
+      // Subtotal progresif di tiap baris tier
       expect(res.tierRows[0].subtotalProgressive, 480000.0);
       expect(res.tierRows[1].subtotalProgressive, 450000.0);
       expect(res.tierRows[2].subtotalProgressive, 700000.0);
       expect(res.tierRows[3].subtotalProgressive, 3200000.0);
       expect(res.tierRows[4].subtotalProgressive, 1350000.0);
-
-      // Dan bonus multiplier per tier persis sesuai gambar:
-      expect(res.tierRows[1].multiplierBonus, 675000.0);
-      expect(res.tierRows[2].multiplierBonus, 1400000.0);
-      expect(res.tierRows[3].multiplierBonus, 12800000.0);
-      expect(res.tierRows[4].multiplierBonus, 5737500.0);
       expect(res.tierRows[4].isCurrentTier, isTrue); // tier 30-39 akt aktif
+
+      // Grand Total = Basic Fee (2.773.184) + pmBase (3.500.000) + progInc (6.180.000) + multBonus (14.875.000)
+      expect(res.grandTotal, 2773184.0 + 3500000.0 + 6180000.0 + 14875000.0);
+      expect(res.grandTotal, 27328184.0);
     });
   });
 

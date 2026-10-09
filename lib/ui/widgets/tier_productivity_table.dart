@@ -203,19 +203,18 @@ class TierProductivityTable extends StatelessWidget {
                   children: [
                     Text(
                       'Subtotal Progresif (${result.totalSa} SA)',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 12,
-                        color: Colors.grey.shade700,
+                        color: Colors.black87,
                       ),
                     ),
                     Text(
-                      'Rp 0 (Hilang / Multiplier Aktif)',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 11.5,
-                        fontStyle: FontStyle.italic,
-                        color: Colors.orange.shade800,
+                      _fmt(result.progInc),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12.5,
+                        color: Colors.black87,
                       ),
                     ),
                   ],
@@ -227,7 +226,7 @@ class TierProductivityTable extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Total Booster Multiplier (Per Tier)',
+                      'Booster Multiplier (${result.multRate}x × PM Base)',
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 12,
@@ -259,7 +258,7 @@ class TierProductivityTable extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      _fmt(result.multBonus),
+                      _fmt(result.progInc + result.multBonus),
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
