@@ -3,6 +3,7 @@ import 'package:latlong2/latlong.dart';
 import '../models/map_models.dart';
 import '../services/geojson_service.dart';
 import '../../network/providers/network_monitor_provider.dart';
+import 'serving_tower_matcher.dart';
 
 class CoverageMapState {
   final List<DistrictInfo> districts;
@@ -17,6 +18,8 @@ class CoverageMapState {
   final String searchQuery;
   final bool isLoading;
   final BtsTower? matchedServingTower;
+  final ServingMatchSource servingMatchSource;
+  final bool distanceAnomaly;
   final LatLng? userLocation;
 
   const CoverageMapState({
@@ -32,6 +35,8 @@ class CoverageMapState {
     this.searchQuery = '',
     this.isLoading = false,
     this.matchedServingTower,
+    this.servingMatchSource = ServingMatchSource.none,
+    this.distanceAnomaly = false,
     this.userLocation,
   });
 
@@ -48,6 +53,9 @@ class CoverageMapState {
     String? searchQuery,
     bool? isLoading,
     BtsTower? matchedServingTower,
+    bool clearServingTower = false,
+    ServingMatchSource? servingMatchSource,
+    bool? distanceAnomaly,
     LatLng? userLocation,
   }) =>
       CoverageMapState(
@@ -62,7 +70,15 @@ class CoverageMapState {
         showInstalledSa: showInstalledSa ?? this.showInstalledSa,
         searchQuery: searchQuery ?? this.searchQuery,
         isLoading: isLoading ?? this.isLoading,
-        matchedServingTower: matchedServingTower ?? this.matchedServingTower,
+        matchedServingTower: clearServingTower
+            ? null
+            : (matchedServingTower ?? this.matchedServingTower),
+        servingMatchSource: clearServingTower
+            ? ServingMatchSource.none
+            : (servingMatchSource ?? this.servingMatchSource),
+        distanceAnomaly: clearServingTower
+            ? false
+            : (distanceAnomaly ?? this.distanceAnomaly),
         userLocation: userLocation ?? this.userLocation,
       );
 
@@ -137,93 +153,29 @@ class CoverageMapNotifier extends Notifier<CoverageMapState> {
   void _recalculateServingTower([LatLng? userLoc, dynamic snapshot]) {
     final currentSnapshot = snapshot ?? ref.read(cellSignalProvider).value;
     final serving = currentSnapshot?.servingCell;
-    final towers = state.towers;
+    final effectiveUserLoc = userLoc ?? state.userLocation;
 
-    if (towers.isEmpty) return;
-
-    if (serving == null || serving.cellType == 'UNKNOWN') {
-      if (state.matchedServingTower != null) {
-        state = state.copyWith(matchedServingTower: null);
+    if (serving == null || serving.cellType == 'UNKNOWN' || state.towers.isEmpty) {
+      if (state.matchedServingTower != null || state.servingMatchSource != ServingMatchSource.none) {
+        state = state.copyWith(clearServingTower: true);
       }
       return;
     }
 
-    final effectiveUserLoc = userLoc ?? state.userLocation;
-    final targetEnodebInt = serving.nodeId;
-    final enodebId = targetEnodebInt?.toString().trim();
+    final matchResult = ServingTowerMatcher.match(
+      towers: state.towers,
+      servingCell: serving,
+      userLocation: effectiveUserLoc,
+    );
 
-    BtsTower? match;
-
-    // 1. Prioritas 1: Pencocokan eksak berbasis Node ID (eNodeB ID / gNodeB ID)
-    if (targetEnodebInt != null && targetEnodebInt > 0 && enodebId != null && enodebId.isNotEmpty) {
-      final candidates = towers.where((t) {
-        final tEnbStr = t.enodebId.trim();
-        final tEnbInt = int.tryParse(tEnbStr);
-        if (tEnbInt != null && tEnbInt == targetEnodebInt) {
-          return true;
-        }
-        if (tEnbStr.isNotEmpty && tEnbStr == enodebId) {
-          return true;
-        }
-        if (t.towerId.trim().toUpperCase() == enodebId.toUpperCase()) {
-          return true;
-        }
-        return false;
-      }).toList();
-
-      if (candidates.isNotEmpty) {
-        if (candidates.length == 1) {
-          match = candidates.first;
-        } else if (effectiveUserLoc != null) {
-          // Jika ada lebih dari 1 tower dengan eNodeB yang sama (multi-sektor / co-location),
-          // pilih tower yang terdekat dengan posisi fisik user saat ini
-          candidates.sort((a, b) {
-            final dA = const Distance().as(LengthUnit.Meter, effectiveUserLoc, a.location);
-            final dB = const Distance().as(LengthUnit.Meter, effectiveUserLoc, b.location);
-            return dA.compareTo(dB);
-          });
-          match = candidates.first;
-        } else {
-          match = candidates.first;
-        }
-      }
-    }
-
-    // 2. Verifikasi Plausibilitas Jarak (Distance Sanity Check)
-    // Jika match ditemukan via eNodeB ID namun jarak ke user > 35 KM (di luar jangkauan radio seluler),
-    // cari tower terdekat dari lokasi user
-    if (match != null && effectiveUserLoc != null) {
-      final dMeters = const Distance().as(LengthUnit.Meter, effectiveUserLoc, match.location);
-      if (dMeters > 35000.0) {
-        double minDistance = 10000.0; // Radius 10 KM
-        BtsTower? closerTower;
-        for (final t in towers) {
-          final d = const Distance().as(LengthUnit.Meter, effectiveUserLoc, t.location);
-          if (d < minDistance) {
-            minDistance = d;
-            closerTower = t;
-          }
-        }
-        if (closerTower != null) {
-          match = closerTower;
-        }
-      }
-    }
-
-    // 3. Prioritas 2: Fallback ke Tower terdekat dari GPS user jika eNodeB ID tidak terdaftar
-    if (match == null && effectiveUserLoc != null && serving.cellType != 'UNKNOWN') {
-      double minDistance = 10000.0; // Radius maksimal 10 KM
-      for (final t in towers) {
-        final d = const Distance().as(LengthUnit.Meter, effectiveUserLoc, t.location);
-        if (d < minDistance) {
-          minDistance = d;
-          match = t;
-        }
-      }
-    }
-
-    if (match != state.matchedServingTower) {
-      state = state.copyWith(matchedServingTower: match);
+    if (matchResult.tower == null) {
+      state = state.copyWith(clearServingTower: true);
+    } else {
+      state = state.copyWith(
+        matchedServingTower: matchResult.tower,
+        servingMatchSource: matchResult.source,
+        distanceAnomaly: matchResult.distanceAnomaly,
+      );
     }
   }
 
