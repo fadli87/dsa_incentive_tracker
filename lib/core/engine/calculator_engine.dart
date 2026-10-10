@@ -380,11 +380,11 @@ class CalculatorEngine {
     final int incrementalSa = diff > 0 ? (diff > 10 ? 10 : diff) : 0;
     double ratePerSa = 0.0;
 
-    if (baselineActiveSubs >= 200) {
+    if (currentActiveSubs >= 200) {
       ratePerSa = 150000.0;
-    } else if (baselineActiveSubs >= 100) {
+    } else if (currentActiveSubs >= 100) {
       ratePerSa = 100000.0;
-    } else if (baselineActiveSubs >= 80) {
+    } else if (currentActiveSubs >= 80) {
       ratePerSa = 50000.0;
     }
 
