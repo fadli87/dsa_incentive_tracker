@@ -139,6 +139,7 @@ class CalculationResult {
   final double multBonus;
   final double progInc;
   final double specialInc;
+  final bool leadsFromDtd;
   final double lumpSumBonus;
   final List<TierRow> tierRows;
   final double monthlySubtotal;
@@ -159,6 +160,7 @@ class CalculationResult {
     required this.multBonus,
     required this.progInc,
     required this.specialInc,
+    this.leadsFromDtd = true,
     this.lumpSumBonus = 0.0,
     required this.tierRows,
     required this.monthlySubtotal,
@@ -185,6 +187,7 @@ class CalculationResult {
       'multBonus': multBonus,
       'progInc': progInc,
       'specialInc': specialInc,
+      'leadsFromDtd': leadsFromDtd,
       'lumpSumBonus': lumpSumBonus,
       'monthlySubtotal': monthlySubtotal,
       'grandTotal': grandTotal,

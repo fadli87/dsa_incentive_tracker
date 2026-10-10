@@ -415,6 +415,7 @@ class CalculatorEngine {
     required int fwa,
     required int p35,
     required int p6,
+    bool leadsFromDtd = true,
     int m3Base = 0,
     int m3Surv = 0,
     int m5Base = 0,
@@ -434,7 +435,9 @@ class CalculatorEngine {
         (p35 * 125000.0) +
         (p6 * 150000.0);
 
-    final double specialInc = (p35 * 125000.0) + (p6 * 150000.0);
+    final double specialInc = leadsFromDtd
+        ? ((p35 * 125000.0) + (p6 * 150000.0))
+        : 0.0;
 
     double progInc = 0.0;
     double multRate = 0.0;
@@ -653,6 +656,7 @@ class CalculatorEngine {
       multBonus: multBonus,
       progInc: progInc,
       specialInc: specialInc,
+      leadsFromDtd: leadsFromDtd,
       lumpSumBonus: lumpSumBonus,
       tierRows: tierRows,
       monthlySubtotal: monthlySubtotal,
@@ -675,6 +679,7 @@ class CalculatorEngine {
     required int fwa,
     required int p35,
     required int p6,
+    bool leadsFromDtd = true,
   }) {
     final result = calculateDetailed(
       position: position,
@@ -687,6 +692,7 @@ class CalculatorEngine {
       fwa: fwa,
       p35: p35,
       p6: p6,
+      leadsFromDtd: leadsFromDtd,
     );
 
     return {
@@ -699,6 +705,7 @@ class CalculatorEngine {
       'multBonus': result.multBonus,
       'progInc': result.progInc,
       'specialInc': result.specialInc,
+      'leadsFromDtd': result.leadsFromDtd,
       'lumpSumBonus': result.lumpSumBonus,
       'monthlySubtotal': result.monthlySubtotal,
       'grandTotal': result.grandTotal,

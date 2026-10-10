@@ -378,9 +378,49 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
                   _buildInputRow(
                       'FWA ≥ 219', '+Rp 50.000/aktivasi', 'fwa', notifier),
                   _buildInputRow('PXGY 3–5 Bln', 'PM 125k + Spec 125k', 'p35',
-                      notifier),
+                       notifier),
                   _buildInputRow('PXGY ≥ 6 Bln', 'PM 150k + Spec 150k', 'p6',
                       notifier),
+                  const SizedBox(height: 8),
+                  Material(
+                    color: state.leadsFromDtd
+                        ? const Color(0xFFE8F5E9)
+                        : const Color(0xFFFFF3E0),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      side: BorderSide(
+                        color: state.leadsFromDtd
+                            ? const Color(0xFFA5D6A7)
+                            : const Color(0xFFFFCC80),
+                      ),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: SwitchListTile(
+                      value: state.leadsFromDtd,
+                      onChanged: (val) => notifier.setLeadsFromDtd(val),
+                      title: const Text(
+                        'Leads berasal dari DTD',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF002B66),
+                        ),
+                      ),
+                      subtitle: Text(
+                        state.leadsFromDtd
+                            ? 'Special Incentive PXGY Aktif (Rp 125k / 150k)'
+                            : 'Leads Non-DTD: Special Incentive Rp 0 (PM Base tetap)',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: state.leadsFromDtd
+                              ? const Color(0xFF2E7D32)
+                              : const Color(0xFFE65100),
+                        ),
+                      ),
+                      dense: true,
+                      activeThumbColor: const Color(0xFF002B66),
+                    ),
+                  ),
                 ],
               ),
             ),

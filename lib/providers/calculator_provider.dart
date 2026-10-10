@@ -8,6 +8,7 @@ class CalculatorState {
 
   // DSA Inputs
   final int f0, f50, f100, f125, f200, fwa, p35, p6;
+  final bool leadsFromDtd;
   final int dsaM3Baseline;
   final int dsaM3Surviving;
   final int dsaM5Baseline;
@@ -49,6 +50,7 @@ class CalculatorState {
     this.fwa = 0,
     this.p35 = 0,
     this.p6 = 0,
+    this.leadsFromDtd = true,
     this.dsaM3Baseline = 0,
     this.dsaM3Surviving = 0,
     this.dsaM5Baseline = 0,
@@ -89,6 +91,7 @@ class CalculatorState {
     int? fwa,
     int? p35,
     int? p6,
+    bool? leadsFromDtd,
     int? dsaM3Baseline,
     int? dsaM3Surviving,
     int? dsaM5Baseline,
@@ -126,6 +129,7 @@ class CalculatorState {
     final newFwa = fwa ?? this.fwa;
     final newP35 = p35 ?? this.p35;
     final newP6 = p6 ?? this.p6;
+    final newLeadsFromDtd = leadsFromDtd ?? this.leadsFromDtd;
     final newDsaM3Base = dsaM3Baseline ?? this.dsaM3Baseline;
     final newDsaM3Surv = dsaM3Surviving ?? this.dsaM3Surviving;
     final newDsaM5Base = dsaM5Baseline ?? this.dsaM5Baseline;
@@ -146,6 +150,7 @@ class CalculatorState {
       fwa: newFwa,
       p35: newP35,
       p6: newP6,
+      leadsFromDtd: newLeadsFromDtd,
       m3Base: newDsaM3Base,
       m3Surv: newDsaM3Surv,
       m5Base: newDsaM5Base,
@@ -208,6 +213,7 @@ class CalculatorState {
       fwa: newFwa,
       p35: newP35,
       p6: newP6,
+      leadsFromDtd: newLeadsFromDtd,
       dsaM3Baseline: newDsaM3Base,
       dsaM3Surviving: newDsaM3Surv,
       dsaM5Baseline: newDsaM5Base,
@@ -471,6 +477,10 @@ class CalculatorNotifier extends Notifier<CalculatorState> {
     );
   }
 
+  void setLeadsFromDtd(bool value) {
+    state = state.copyWith(leadsFromDtd: value);
+  }
+
   void reset() {
     state = state.copyWith(
       f0: 0,
@@ -481,6 +491,7 @@ class CalculatorNotifier extends Notifier<CalculatorState> {
       fwa: 0,
       p35: 0,
       p6: 0,
+      leadsFromDtd: true,
       dsaM3Baseline: 0,
       dsaM3Surviving: 0,
       dsaM5Baseline: 0,
