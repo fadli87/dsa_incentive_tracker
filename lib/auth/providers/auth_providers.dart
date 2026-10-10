@@ -49,17 +49,21 @@ class AccessGateNotifier extends StateNotifier<GateState> {
       return;
     }
 
+    final isAlreadyApproved = state == GateState.approved;
+    final isTokenRefresh = authState.event == AuthChangeEvent.tokenRefreshed;
     final userId = authState.session!.user.id;
-    await _checkAccess(userId);
+    await _checkAccess(userId, silent: isAlreadyApproved || isTokenRefresh);
   }
 
   /// Periksa status akses dari Supabase (atau fallback ke cache)
-  Future<void> checkAccess(String userId) async {
-    await _checkAccess(userId);
+  Future<void> checkAccess(String userId, {bool silent = false}) async {
+    await _checkAccess(userId, silent: silent);
   }
 
-  Future<void> _checkAccess(String userId) async {
-    state = GateState.checkingAccess;
+  Future<void> _checkAccess(String userId, {bool silent = false}) async {
+    if (!silent) {
+      state = GateState.checkingAccess;
+    }
 
     final cache = await _accessService.resolveAccess(userId);
 

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/auth_providers.dart';
@@ -27,8 +28,8 @@ class _AccessGateState extends ConsumerState<AccessGate> {
 
   void _initAuthListener() {
     if (!AppSupabase.isInitialized) {
-      // Supabase belum dikonfigurasi (dev mode), ubah ke approved jika masih default loading
-      if (ref.read(accessGateProvider) == GateState.loading) {
+      // Supabase belum dikonfigurasi (dev mode / mock test), ubah ke approved jika kDebugMode
+      if (kDebugMode && ref.read(accessGateProvider) == GateState.loading) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted && ref.read(accessGateProvider) == GateState.loading) {
             ref.read(accessGateProvider.notifier).setState(GateState.approved);
