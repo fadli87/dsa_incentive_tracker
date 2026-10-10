@@ -103,14 +103,10 @@ class ResultCard extends StatelessWidget {
                   title: 'Progresif SA',
                   subtitle: isOjt
                       ? 'Tier OJT kumulatif $totalSa aktivasi'
-                      : multRate > 0
-                          ? 'Hilang karena perhitungan Multiplier aktif (${multRate}x)'
-                          : 'Tier Pro/Elite kumulatif $totalSa aktivasi',
+                      : 'Tier Pro/Elite kumulatif $totalSa aktivasi',
                   value: _fmt(progInc),
                   highlightValue: progInc > 0,
-                  badge: isOjt || multRate == 0
-                      ? '$totalSa aktivasi'
-                      : 'Diganti Booster',
+                  badge: '$totalSa aktivasi',
                 ),
                 const Divider(height: 16),
 

@@ -156,35 +156,19 @@ class TierProductivityTable extends StatelessWidget {
                     ),
                     Expanded(
                       flex: 4,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            tier.unitsInTier > 0
-                                ? '${tier.unitsInTier} × ${_fmt(tier.ratePerAkt)} = ${_fmt(tier.subtotalProgressive)}'
-                                : '—',
-                            textAlign: TextAlign.right,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight:
-                                  isActive ? FontWeight.bold : FontWeight.normal,
-                              color: isActive
-                                  ? const Color(0xFF002B66)
-                                  : Colors.black87,
-                            ),
-                          ),
-                          if (tier.multiplierBonus > 0)
-                            Text(
-                              '+ Mult (${tier.multiplier}x): ${_fmt(tier.multiplierBonus)}',
-                              textAlign: TextAlign.right,
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green.shade800,
-                              ),
-                            ),
-                        ],
+                      child: Text(
+                        tier.unitsInTier > 0
+                            ? '${tier.unitsInTier} × ${_fmt(tier.ratePerAkt)} = ${_fmt(tier.subtotalProgressive)}'
+                            : '—',
+                        textAlign: TextAlign.right,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight:
+                              isActive ? FontWeight.bold : FontWeight.normal,
+                          color: isActive
+                              ? const Color(0xFF002B66)
+                              : Colors.black87,
+                        ),
                       ),
                     ),
                   ],

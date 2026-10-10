@@ -939,7 +939,7 @@ class _CoverageMapScreenState extends ConsumerState<CoverageMapScreen> {
                                   Text(
                                     'eNodeB: ${mapState.matchedServingTower!.enodebId} · ID: ${mapState.matchedServingTower!.towerId}'
                                     '${_userPosition != null ? " · Jarak: ${(const Distance().as(LengthUnit.Meter, _userPosition!, mapState.matchedServingTower!.location)).toStringAsFixed(0)}m" : ""}'
-                                    '${(servingCell?.rsrpDisplay != null && servingCell!.rsrpDisplay != 'N/A') ? " · ${servingCell!.rsrpDisplay}" : ""}',
+                                    '${(servingCell != null && servingCell.rsrpDisplay != 'N/A') ? " · ${servingCell.rsrpDisplay}" : ""}',
                                     style: const TextStyle(
                                       color: Color(0xFFE0F7FA),
                                       fontSize: 10,

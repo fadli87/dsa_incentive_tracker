@@ -36,11 +36,12 @@ class CatalogPackage {
   String toString() => title;
 }
 
-// ============================================================
-// Satu-satunya sumber kebenaran data paket.
-// Data ini diekstrak dari product_catalog_screen.dart dan disimpan di sini.
-// ============================================================
-final List<CatalogPackage> PackageCatalog = [
+class PackageCatalog {
+  PackageCatalog._();
+  static const List<CatalogPackage> all = packageCatalog;
+}
+
+const List<CatalogPackage> packageCatalog = [
   // --- TAB 1: INTERNET ONLY ---
   // Tab 1: Internet Only (index 1)
   CatalogPackage(

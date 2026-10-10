@@ -19,9 +19,24 @@ class UpdateNotesScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildVersionCard(
-              version: 'Ver.1.0.9',
+              version: 'Ver.1.0.10',
               date: 'Oktober 2026',
               isLatest: true,
+              changes: [
+                'Perbaikan Rumus Insentif Pro/Elite: Insentif Progresif SA dihitung utuh kumulatif per tier dan Multiplier Bonus dikalikan langsung dengan Product Mix Base (tanpa Special Incentive). Keduanya dibayarkan utuh.',
+                'Penyempurnaan Net Add DSA: Penentuan tarif per SA mengikuti Ending Active Subs bulan berjalan (currentActiveSubs) dengan batas incremental maksimal 10 SA.',
+                'Presisi Survival Gate: Implementasi gate integer presisi penuh untuk evaluasi M3 (90%), M5 (80%), dan Quarterly tanpa toleransi float longgar.',
+                'Special Incentive PXGY DTD: Filter eksklusif Special Incentive hanya untuk akuisisi leads DTD.',
+                'Presisi Serving Tower GIS Maps: Arsitektur ServingTowerMatcher murni, pembatasan matching eksak eNodeB khusus LTE (≤ 15 km), dan penandaan label perkiraan terdekat.',
+                'Stabilitas Access Gate: Bypass otorisasi murni pada mode debug serta eliminasi rebuild layar saat token refresh di latar belakang.',
+                'Sinkronisasi Versi Global (Ver.1.0.10): Pembaruan label dan metadata di seluruh platform Android dan Windows.',
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildVersionCard(
+              version: 'Ver.1.0.9',
+              date: 'Oktober 2026',
+              isLatest: false,
               changes: [
                 'Penyempurnaan Engine Perhitungan Insentif AE Pro & AE Elite: Perhitungan akumulasi Progresif SA dihitung utuh kumulatif per tier dan Multiplier Bonus dikalikan langsung dengan Product Mix Base (PM Base × Multiplier).',
                 'Sinkronisasi & Validasi Data Serving BTS AURA Network: Perbaikan penanganan integer overflow 36-bit NCI 5G NR pada bridge native Android (MainActivity.kt), resolusi Node ID & Sector ID multi-RAT (LTE, NR, WCDMA, GSM), serta algoritma pencocokan presisi tower BTS XL terdekat.',

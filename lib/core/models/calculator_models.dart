@@ -19,7 +19,6 @@ class TierRow {
   final double multiplier;
   final int unitsInTier;
   final double subtotalProgressive;
-  final double multiplierBonus;
   final bool isCurrentTier;
 
   const TierRow({
@@ -28,7 +27,6 @@ class TierRow {
     required this.multiplier,
     required this.unitsInTier,
     required this.subtotalProgressive,
-    this.multiplierBonus = 0.0,
     this.isCurrentTier = false,
   });
 }
