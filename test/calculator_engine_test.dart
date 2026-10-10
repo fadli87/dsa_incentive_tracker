@@ -448,5 +448,156 @@ void main() {
       expect(netAdd200.ratePerSa, 150000.0);
       expect(netAdd200.totalNetAddBonus, 600000.0);
     });
+
+    test('Special Incentive PXGY: Hanya aktif jika leadsFromDtd == true', () {
+      // 2 x p35 + 1 x p6 = 3 SA PXGY
+      // pmBase = 2*125k + 1*150k = 400.000
+      // specialInc (DTD) = 2*125k + 1*150k = 400.000
+      final resDtd = CalculatorEngine.calculateDetailed(
+        position: PositionType.elite,
+        f0: 0,
+        f50: 0,
+        f100: 0,
+        f125: 0,
+        f200: 0,
+        fwa: 0,
+        p35: 2,
+        p6: 1,
+        leadsFromDtd: true,
+      );
+      expect(resDtd.pmBase, 400000.0);
+      expect(resDtd.specialInc, 400000.0);
+      expect(resDtd.leadsFromDtd, isTrue);
+
+      // Non-DTD leads: pmBase TETAP 400.000, tapi specialInc = 0.0
+      final resNonDtd = CalculatorEngine.calculateDetailed(
+        position: PositionType.elite,
+        f0: 0,
+        f50: 0,
+        f100: 0,
+        f125: 0,
+        f200: 0,
+        fwa: 0,
+        p35: 2,
+        p6: 1,
+        leadsFromDtd: false,
+      );
+      expect(resNonDtd.pmBase, 400000.0);
+      expect(resNonDtd.specialInc, 0.0);
+      expect(resNonDtd.leadsFromDtd, isFalse);
+    });
+
+    test('Skenario OJT 3 SA (Slide 4)', () {
+      // 3 SA f100 -> prog: 2*80k + 1*100k = 260.000, pmBase: 300.000, lumpSum: 325.000
+      final res = CalculatorEngine.calculateDetailed(
+        position: PositionType.ojt,
+        f0: 0,
+        f50: 0,
+        f100: 3,
+        f125: 0,
+        f200: 0,
+        fwa: 0,
+        p35: 0,
+        p6: 0,
+      );
+      expect(res.totalSa, 3);
+      expect(res.progInc, 260000.0);
+      expect(res.pmBase, 300000.0);
+      expect(res.multBonus, 0.0);
+      expect(res.lumpSumBonus, 325000.0);
+      expect(res.grandTotal, 1900000.0 + 260000.0 + 300000.0 + 325000.0);
+    });
+
+    test('Skenario Pro/Elite 5, 7, 10, 14, 20, 50 SA (Slide 6 & 8)', () {
+      // 5 SA (f100=5): prog 5*80k = 400k, pmBase 500k, mult 0 -> 900k
+      final res5 = CalculatorEngine.calculateDetailed(
+        position: PositionType.pro,
+        f0: 0,
+        f50: 0,
+        f100: 5,
+        f125: 0,
+        f200: 0,
+        fwa: 0,
+        p35: 0,
+        p6: 0,
+      );
+      expect(res5.totalSa, 5);
+      expect(res5.progInc, 400000.0);
+      expect(res5.pmBase, 500000.0);
+      expect(res5.multRate, 0.0);
+      expect(res5.multBonus, 0.0);
+
+      // 7 SA (f100=7): prog 6*80k + 1*150k = 630k, pmBase 700k, mult 1.5x * 700k = 1.050k
+      final res7 = CalculatorEngine.calculateDetailed(
+        position: PositionType.pro,
+        f0: 0,
+        f50: 0,
+        f100: 7,
+        f125: 0,
+        f200: 0,
+        fwa: 0,
+        p35: 0,
+        p6: 0,
+      );
+      expect(res7.totalSa, 7);
+      expect(res7.progInc, 630000.0);
+      expect(res7.pmBase, 700000.0);
+      expect(res7.multRate, 1.50);
+      expect(res7.multBonus, 1050000.0);
+
+      // 10 SA (f100=10): prog 6*80k + 3*150k + 1*175k = 1.105k, pmBase 1.000k, mult 2.0x * 1.000k = 2.000k
+      final res10 = CalculatorEngine.calculateDetailed(
+        position: PositionType.pro,
+        f0: 0,
+        f50: 0,
+        f100: 10,
+        f125: 0,
+        f200: 0,
+        fwa: 0,
+        p35: 0,
+        p6: 0,
+      );
+      expect(res10.totalSa, 10);
+      expect(res10.progInc, 1105000.0);
+      expect(res10.pmBase, 1000000.0);
+      expect(res10.multRate, 2.00);
+      expect(res10.multBonus, 2000000.0);
+
+      // 14 SA (f100=14): prog 6*80k + 3*150k + 4*175k + 1*200k = 1.830k, pmBase 1.400k, mult 4.0x * 1.400k = 5.600k
+      final res14 = CalculatorEngine.calculateDetailed(
+        position: PositionType.pro,
+        f0: 0,
+        f50: 0,
+        f100: 14,
+        f125: 0,
+        f200: 0,
+        fwa: 0,
+        p35: 0,
+        p6: 0,
+      );
+      expect(res14.totalSa, 14);
+      expect(res14.progInc, 1830000.0);
+      expect(res14.pmBase, 1400000.0);
+      expect(res14.multRate, 4.00);
+      expect(res14.multBonus, 5600000.0);
+
+      // 50 SA (f100=50): prog utuh sampai tier 6 + 1 di tier 7 = 480k+450k+700k+3.200k+2.250k+2.500k+275k = 9.855k, pmBase 5.000k, mult 4.65x * 5.000k = 23.250k
+      final res50 = CalculatorEngine.calculateDetailed(
+        position: PositionType.elite,
+        f0: 0,
+        f50: 0,
+        f100: 50,
+        f125: 0,
+        f200: 0,
+        fwa: 0,
+        p35: 0,
+        p6: 0,
+      );
+      expect(res50.totalSa, 50);
+      expect(res50.progInc, 9855000.0);
+      expect(res50.pmBase, 5000000.0);
+      expect(res50.multRate, 4.65);
+      expect(res50.multBonus, 23250000.0);
+    });
   });
 }
