@@ -3,6 +3,10 @@ import '../models/calculator_models.dart';
 class CalculatorEngine {
   static const String defaultCity = 'KAB. CILACAP';
 
+  /// Helper untuk memastikan gate survival terpenuhi tanpa masalah presisi floating-point
+  static bool meetsGate(int surv, int base, int percent) =>
+      base > 0 && surv * 100 >= base * percent;
+
   static double getBasicFee(PositionType position) {
     switch (position) {
       case PositionType.ojt:
@@ -151,7 +155,7 @@ class CalculatorEngine {
 
     // 4. Survival Rate M3 & M5
     final double m3Rate = m3Baseline > 0 ? (m3Surviving / m3Baseline) : 0.0;
-    final bool m3Passed = m3Rate >= 0.8999;
+    final bool m3Passed = meetsGate(m3Surviving, m3Baseline, 90);
     final double m3AmountSubs = m3Passed ? (m3Surviving * 25000.0) : 0.0;
     final double m3LumpSum = m3Passed ? 2000000.0 : 0.0;
     final double m3Total = m3AmountSubs + m3LumpSum;
@@ -169,7 +173,7 @@ class CalculatorEngine {
     );
 
     final double m5Rate = m5Baseline > 0 ? (m5Surviving / m5Baseline) : 0.0;
-    final bool m5Passed = m5Rate >= 0.7999;
+    final bool m5Passed = meetsGate(m5Surviving, m5Baseline, 80);
     final double m5AmountSubs = m5Passed ? (m5Surviving * 25000.0) : 0.0;
     final double m5LumpSum = m5Passed ? 2000000.0 : 0.0;
     final double m5Total = m5AmountSubs + m5LumpSum;
@@ -258,7 +262,7 @@ class CalculatorEngine {
     required int quarterlyTeamSa,
     required double m3SurvivalRate,
   }) {
-    final bool isGatePassed = m3SurvivalRate >= 0.7999;
+    final bool isGatePassed = m3SurvivalRate + 1e-9 >= 0.80;
     double baseBonus = 0.0;
     int incrementalSa = 0;
     double incrementalBonus = 0.0;
@@ -306,11 +310,11 @@ class CalculatorEngine {
     required int m5Surv,
   }) {
     final double m3Rate = m3Base > 0 ? (m3Surv / m3Base) : 0.0;
-    final bool m3GatePassed = m3Rate >= 0.8999;
+    final bool m3GatePassed = meetsGate(m3Surv, m3Base, 90);
     final double m3Total = m3GatePassed ? (m3Surv * 100000.0) : 0.0;
 
     final double m5Rate = m5Base > 0 ? (m5Surv / m5Base) : 0.0;
-    final bool m5GatePassed = m5Rate >= 0.7999;
+    final bool m5GatePassed = meetsGate(m5Surv, m5Base, 80);
     final double m5Total = m5GatePassed ? (m5Surv * 80000.0) : 0.0;
 
     return DsaSurvivalDetail(
@@ -338,7 +342,7 @@ class CalculatorEngine {
       return DsaQuarterlyDetail.empty;
     }
 
-    final bool isGatePassed = m3SurvivalRate >= 0.8999;
+    final bool isGatePassed = m3SurvivalRate + 1e-9 >= 0.90;
     double baseBonus = 0.0;
     int incrementalSa = 0;
     double incrementalBonus = 0.0;
