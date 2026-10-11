@@ -925,7 +925,7 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Creative Tech Agency · All Rights Reserved • Ver.1.0.10',
+                  AppConstants.copyrightSubtext,
                   style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
                 ),
               ],
@@ -1001,7 +1001,7 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
             ),
             const SizedBox(height: 2),
             Text(
-              'Creative Tech Agency · All Rights Reserved • Ver.1.0.10',
+              AppConstants.copyrightSubtext,
               style: TextStyle(fontSize: 10.5, color: Colors.grey.shade500),
             ),
           ],

@@ -19,17 +19,15 @@ class UpdateNotesScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildVersionCard(
-              version: 'Ver.1.0.10',
+              version: 'Ver.1.1.0',
               date: 'Oktober 2026',
               isLatest: true,
               changes: [
-                'Perbaikan Rumus Insentif Pro/Elite: Insentif Progresif SA dihitung utuh kumulatif per tier dan Multiplier Bonus dikalikan langsung dengan Product Mix Base (tanpa Special Incentive). Keduanya dibayarkan utuh.',
-                'Penyempurnaan Net Add DSA: Penentuan tarif per SA mengikuti Ending Active Subs bulan berjalan (currentActiveSubs) dengan batas incremental maksimal 10 SA.',
-                'Presisi Survival Gate: Implementasi gate integer presisi penuh untuk evaluasi M3 (90%), M5 (80%), dan Quarterly tanpa toleransi float longgar.',
-                'Special Incentive PXGY DTD: Filter eksklusif Special Incentive hanya untuk akuisisi leads DTD.',
-                'Presisi Serving Tower GIS Maps: Arsitektur ServingTowerMatcher murni, pembatasan matching eksak eNodeB khusus LTE (≤ 15 km), dan penandaan label perkiraan terdekat.',
-                'Stabilitas Access Gate: Bypass otorisasi murni pada mode debug serta eliminasi rebuild layar saat token refresh di latar belakang.',
-                'Sinkronisasi Versi Global (Ver.1.0.10): Pembaruan label dan metadata di seluruh platform Android dan Windows.',
+                'Coach v2 (Offline & Deterministik): Implementasi arsitektur Coach cerdas 100% offline tanpa network/API key, routing intent berbasis pembobotan token & fuzzy matching, pembersihan teks normalisasi slang lapangan.',
+                'Katalog Paket Single Source of Truth: Katalog 20 paket terpusat (PackageCatalog) dengan pemetaan dinamis kode bucket insentif (IncentiveBucket).',
+                'Fitur Lapangan Pintar: Target Coach Engine (simulasi lompatan multiplier, Best Product Mix, Daily Pace), Location Decision Engine (evaluasi GPS homepass & sinyal RF), dan skrip penjualan data-driven dari JSON.',
+                'Audit Log Offline & Proteksi Privasi: Penyimpanan riwayat log coach di SQLite lokal dengan sensor otomatis deret angka >= 8 digit.',
+                'Standardisasi Versi Rollover (Ver.1.1.0): Penerapan aturan digit maksimal 9 per segmen patch (1.0.9 -> 1.1.0).',
               ],
             ),
             const SizedBox(height: 16),

@@ -10,6 +10,7 @@ import 'history_screen.dart';
 import 'guide_screen.dart';
 import 'network_tools_screen.dart';
 import 'coverage_map_screen.dart';
+import '../../core/constants/app_constants.dart';
 import '../../ai/widgets/ai_coach_chat_sheet.dart';
 
 class DashboardScreen extends ConsumerWidget {
@@ -473,7 +474,7 @@ class DashboardScreen extends ConsumerWidget {
                     child: Column(
                       children: [
                         Text(
-                          "DSA XL Satu Handbook • Ver.1.0.10",
+                          "${AppConstants.appName} • ${AppConstants.appVersionDisplay}",
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,

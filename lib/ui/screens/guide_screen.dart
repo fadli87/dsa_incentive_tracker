@@ -895,7 +895,7 @@ class GuideScreen extends StatelessWidget {
         ),
         const SizedBox(height: 2),
         Text(
-          'XL SATU CILACAP · TSC PIPIN · Ver.1.0.10',
+          '${AppConstants.branchOfficial} · ${AppConstants.appVersionDisplay}',
           style: TextStyle(fontSize: 10.5, color: Colors.grey.shade500),
         ),
         const SizedBox(height: 20),

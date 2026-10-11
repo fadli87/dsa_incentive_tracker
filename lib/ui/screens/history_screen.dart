@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../core/constants/app_constants.dart';
 import '../../data/models/incentive_record.dart';
 import '../../providers/history_provider.dart';
 import 'edit_history_screen.dart';
@@ -188,7 +189,7 @@ class HistoryScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Creative Tech Agency · All Rights Reserved • Ver.1.0.10',
+                        AppConstants.copyrightSubtext,
                         style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
                       ),
                     ],
