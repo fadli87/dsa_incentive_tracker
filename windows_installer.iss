@@ -2,7 +2,7 @@
 ; XL SATU CILACAP · TSC PIPIN
 
 #define MyAppName "DSA XL Satu Handbook"
-#define MyAppVersion "1.1.0"
+#define MyAppVersion "1.1.1"
 #define MyAppPublisher "D'Azhars Studio"
 #define MyAppExeName "dsa_incentive_tracker.exe"
 

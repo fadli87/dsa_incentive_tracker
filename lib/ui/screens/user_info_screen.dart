@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../../auth/screens/change_password_screen.dart';
+import '../../auth/screens/super_admin_panel_screen.dart';
 import '../../auth/supabase_client.dart';
 import '../../providers/user_info_provider.dart';
 
@@ -43,6 +44,7 @@ class _UserInfoScreenState extends ConsumerState<UserInfoScreen> {
   @override
   Widget build(BuildContext context) {
     final userAsync = ref.watch(userInfoProvider);
+    final isSuperadmin = ref.watch(isSuperadminProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7FB),
@@ -403,6 +405,84 @@ class _UserInfoScreenState extends ConsumerState<UserInfoScreen> {
                     }
                   },
                 ),
+
+                if (isSuperadmin) ...[
+                  const SizedBox(height: 24),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF001A40), Color(0xFF003366)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: Colors.amberAccent.withValues(alpha: 0.7),
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.amber.withValues(alpha: 0.15),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: const [
+                            Icon(Icons.admin_panel_settings_rounded,
+                                color: Colors.amberAccent, size: 22),
+                            SizedBox(width: 10),
+                            Text(
+                              'PANEL KONTROL SUPERADMIN',
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.6,
+                                color: Colors.amberAccent,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Anda memiliki akses Superadmin untuk mengelola pendaftaran sales, approve/revoke anggota tim, dan merotasi kode akses tim.',
+                          style: TextStyle(
+                              fontSize: 11.5, color: Colors.white70, height: 1.35),
+                        ),
+                        const SizedBox(height: 14),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.amberAccent,
+                            foregroundColor: const Color(0xFF001A40),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          icon: const Icon(Icons.tune_rounded, size: 18),
+                          label: const Text(
+                            'Buka Panel Superadmin',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const SuperAdminPanelScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
 
                 if (AppSupabase.isInitialized &&
                     AppSupabase.client.auth.currentSession != null) ...[

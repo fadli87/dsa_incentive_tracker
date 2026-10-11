@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/access_cache.dart';
 import '../models/member_status.dart';
+import '../models/team_member_item.dart';
 import '../supabase_client.dart';
 
 abstract class SecureStorageService {
@@ -60,13 +61,14 @@ class TeamAccessService {
     try {
       final response = await _client
           .from('team_members')
-          .select('status, approved_at')
+          .select('status, role, approved_at')
           .eq('user_id', userId)
           .maybeSingle()
           .timeout(serverTimeout);
 
       if (response != null && response['status'] != null) {
         final serverStatus = MemberStatus.fromString(response['status'] as String?);
+        final serverRole = TeamRole.fromString(response['role'] as String?);
         
         final DateTime validUntil;
         if (serverStatus == MemberStatus.approved) {
@@ -77,6 +79,7 @@ class TeamAccessService {
 
         final freshCache = AccessCache(
           status: serverStatus,
+          role: serverRole,
           checkedAt: now,
           validUntil: validUntil,
         );
@@ -105,6 +108,7 @@ class TeamAccessService {
       if (cached.status == MemberStatus.approved && cached.isExpired) {
         return AccessCache(
           status: MemberStatus.unknown,
+          role: cached.role,
           checkedAt: cached.checkedAt,
           validUntil: cached.validUntil,
         );
@@ -116,9 +120,67 @@ class TeamAccessService {
     // Jika tidak ada cache sama sekali
     return AccessCache(
       status: MemberStatus.unknown,
+      role: TeamRole.member,
       checkedAt: now,
       validUntil: now,
     );
+  }
+
+  /// Mengambil seluruh daftar anggota tim (khusus Superadmin)
+  Future<List<TeamMemberItem>> fetchAllTeamMembers() async {
+    try {
+      final response = await _client
+          .from('team_members')
+          .select()
+          .order('created_at', ascending: false)
+          .timeout(serverTimeout);
+
+      final list = (response as List<dynamic>)
+          .map((item) => TeamMemberItem.fromJson(item as Map<String, dynamic>))
+          .toList();
+      return list;
+    } catch (e) {
+      debugPrint('TeamAccessService: fetchAllTeamMembers error: $e');
+      rethrow;
+    }
+  }
+
+  /// Mengubah status akses anggota tim (khusus Superadmin via RPC security definer)
+  Future<String> updateMemberStatus({
+    required String targetUserId,
+    required MemberStatus newStatus,
+  }) async {
+    try {
+      final result = await _client.rpc(
+        'admin_update_member_status',
+        params: {
+          'target_user_id': targetUserId,
+          'new_status': newStatus.toDbString(),
+        },
+      ).timeout(serverTimeout);
+
+      return result.toString();
+    } catch (e) {
+      debugPrint('TeamAccessService: updateMemberStatus error: $e');
+      return 'error';
+    }
+  }
+
+  /// Memperbarui kode akses tim (khusus Superadmin via RPC security definer)
+  Future<String> updateTeamAccessCode(String newCode) async {
+    try {
+      final result = await _client.rpc(
+        'admin_update_access_code',
+        params: {
+          'new_code': newCode.trim(),
+        },
+      ).timeout(serverTimeout);
+
+      return result.toString();
+    } catch (e) {
+      debugPrint('TeamAccessService: updateTeamAccessCode error: $e');
+      return 'error';
+    }
   }
 
   /// Memvalidasi kode akses tim via RPC security definer

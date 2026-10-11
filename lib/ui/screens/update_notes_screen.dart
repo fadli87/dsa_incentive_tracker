@@ -19,9 +19,22 @@ class UpdateNotesScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildVersionCard(
-              version: 'Ver.1.1.0',
+              version: 'Ver.1.1.1',
               date: 'Oktober 2026',
               isLatest: true,
+              changes: [
+                'Panel Kontrol Superadmin di Aplikasi: Layar khusus Superadmin untuk memantau seluruh anggota tim terdaftar, melihat statistik status akses (Pending, Aktif, Dicabut), dan kontrol persetujuan sales 1-tap.',
+                'Aktivasi & Rotasi Kode Akses Tim: Pembaruan kode akses tim pendaftaran sales baru langsung dari aplikasi tanpa perlu membuka database Supabase.',
+                'Keamanan & RLS Superadmin: Integrasi fungsi security definer is_superadmin() bebas rekursi dan RPC terproteksi (admin_update_member_status & admin_update_access_code).',
+                'Otomatisasi Akun Pertama: Pendaftaran pertama di database secara otomatis dipromosikan menjadi Superadmin dan langsung disetujui (Approved).',
+                'Sinkronisasi Versi Global (v1.1.1): Pembaruan versi di seluruh installer Windows, bundle APK Android, dan konfigurasi metadata.',
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildVersionCard(
+              version: 'Ver.1.1.0',
+              date: 'Oktober 2026',
+              isLatest: false,
               changes: [
                 'Coach v2 (Offline & Deterministik): Implementasi arsitektur Coach cerdas 100% offline tanpa network/API key, routing intent berbasis pembobotan token & fuzzy matching, pembersihan teks normalisasi slang lapangan.',
                 'Katalog Paket Single Source of Truth: Katalog 20 paket terpusat (PackageCatalog) dengan pemetaan dinamis kode bucket insentif (IncentiveBucket).',

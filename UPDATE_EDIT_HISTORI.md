@@ -1,6 +1,26 @@
-# Dokumentasi Update & Catatan Rilis: DSA XL Satu Handbook (Ver.1.0.9)
+# Dokumentasi Update & Catatan Rilis: DSA XL Satu Handbook (Ver.1.1.1)
 
-## 📌 Ringkasan Pembaruan Utama (Ver.1.0.9 - Oktober 2026)
+## 📌 Ringkasan Pembaruan Utama (Ver.1.1.1 - Oktober 2026)
+
+Pembaruan ini menambahkan sistem kontrol Superadmin terpadu dan manajemen keamanan akses tim secara langsung dari dalam aplikasi:
+
+### 1. 🛡️ Panel Kontrol Superadmin di Aplikasi (`SuperAdminPanelScreen`)
+- **Daftar & Manajemen Sales:** Memantau seluruh anggota tim yang mendaftar secara real-time, lengkap dengan nama, email, dan tanggal registrasi.
+- **Statistik Cepat Anggota:** Ringkasan jumlah anggota Total, Menunggu Aktivasi (*Pending*), Aktif (*Approved*), dan Akses Dicabut (*Revoked*).
+- **Aksi Persetujuan 1-Tap:** Superadmin dapat langsung menyetujui (*Approve*) sales baru, mencabut akses (*Revoke*) sales yang non-aktif, atau memulihkan akses sales yang sempat diblokir.
+
+### 2. 🔑 Rotasi Kode Akses Tim Langsung dari Aplikasi
+- **Pembaruan Kode Akses:** Superadmin dapat mengganti kode akses tim baru secara instan dari layar panel tanpa perlu mengakses SQL Editor atau Supabase Dashboard.
+- **Validasi Terproteksi:** Dilengkapi dialog konfirmasi dan hashing bcrypt server-side melalui RPC `security definer`.
+
+### 3. 🔒 Keamanan Database & Otomatisasi Superadmin Pertama (`schema.sql`)
+- **Fungsi `is_superadmin()` Non-Rekursif:** Pemeriksaan hak akses bebas dari risiko infinite recursion pada Row Level Security (RLS).
+- **Otomatisasi Akun Pertama:** Pengguna pertama yang mendaftar di database Supabase secara otomatis dipromosikan sebagai Superadmin dan langsung disetujui (*Approved*).
+- **RPC Khusus:** `admin_update_member_status` dan `admin_update_access_code` dengan hak eksekusi terproteksi.
+
+---
+
+## 📌 Arsip Pembaruan Sebelumnya (Ver.1.1.0 - Oktober 2026)
 
 Pembaruan ini berfokus pada penyempurnaan akurasi mesin kalkulasi insentif sesuai panduan resmi XL Satu (September 2026), perbaikan sinkronisasi dan validasi serving BTS & matriks G-NetTrack AURA Network, pembaruan toolchain build Android, penambahan modul katalog paket produk interaktif, dan konsolidasi penuh dengan sistem autentikasi tim Supabase:
 

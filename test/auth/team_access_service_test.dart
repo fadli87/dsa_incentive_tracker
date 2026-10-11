@@ -35,6 +35,17 @@ void main() {
       expect(MemberStatus.fromString(null), MemberStatus.unknown);
     });
 
+    test('TeamRole correctly parses and verifies superadmin privileges', () {
+      expect(TeamRole.fromString('superadmin'), TeamRole.superadmin);
+      expect(TeamRole.fromString('SUPERADMIN'), TeamRole.superadmin);
+      expect(TeamRole.fromString('admin'), TeamRole.admin);
+      expect(TeamRole.fromString('member'), TeamRole.member);
+      expect(TeamRole.fromString('unknown'), TeamRole.member);
+      expect(TeamRole.superadmin.isSuperadmin, isTrue);
+      expect(TeamRole.admin.isSuperadmin, isTrue);
+      expect(TeamRole.member.isSuperadmin, isFalse);
+    });
+
     test('AccessCache serializes and deserializes correctly', () {
       final now = DateTime.now();
       final validUntil = now.add(const Duration(days: 7));

@@ -31,3 +31,26 @@ enum MemberStatus {
     }
   }
 }
+
+/// Role pengguna di sistem tim
+enum TeamRole {
+  member,
+  admin,
+  superadmin;
+
+  static TeamRole fromString(String? value) {
+    switch (value?.toLowerCase().trim()) {
+      case 'superadmin':
+        return TeamRole.superadmin;
+      case 'admin':
+        return TeamRole.admin;
+      default:
+        return TeamRole.member;
+    }
+  }
+
+  String toDbString() => name;
+
+  bool get isSuperadmin => this == TeamRole.superadmin || this == TeamRole.admin;
+}
+
