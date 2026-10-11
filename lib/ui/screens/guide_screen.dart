@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/constants/app_constants.dart';
 
 class GuideScreen extends StatelessWidget {
   const GuideScreen({super.key});
@@ -15,8 +16,8 @@ class GuideScreen extends StatelessWidget {
           elevation: 0,
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Text(
+            children: [
+              const Text(
                 'PANDUAN & SKEMA INSENTIF',
                 style: TextStyle(
                   fontSize: 16,
@@ -25,8 +26,8 @@ class GuideScreen extends StatelessWidget {
                 ),
               ),
               Text(
-                'XL SATU CILACAP · TSC PIPIN · Effective September 2026',
-                style: TextStyle(fontSize: 10.5, color: Colors.white70),
+                'XL SATU CILACAP · TSC PIPIN · Effective ${AppConstants.effectiveDate}',
+                style: const TextStyle(fontSize: 10.5, color: Colors.white70),
               ),
             ],
           ),

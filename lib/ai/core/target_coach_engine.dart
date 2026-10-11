@@ -257,7 +257,7 @@ class TargetCoachEngine {
       sb.writeln('   Komponen: ${_currencyFormatter.format(rate)} (Basic Rate Exc. PPN) + Dampak Tiering\n');
     }
 
-    sb.writeln('⚠️ *Catatan: Urutan ini murni berdasarkan nilai insentif finansial resmi skema September 2026. Di lapangan, kombinasikan dengan kemudahan penetrasi segmen dan ketersediaan jaringan.*');
+    sb.writeln('⚠️ *Catatan: Urutan ini murni berdasarkan nilai insentif finansial resmi skema Oktober 2026. Di lapangan, kombinasikan dengan kemudahan penetrasi segmen dan ketersediaan jaringan.*');
     return sb.toString().trim();
   }
 

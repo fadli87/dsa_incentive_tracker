@@ -5,6 +5,7 @@ import '../../providers/calculator_provider.dart';
 import '../../providers/history_provider.dart';
 import '../../providers/user_info_provider.dart';
 import '../../data/models/incentive_record.dart';
+import '../../core/constants/app_constants.dart';
 import '../../core/models/calculator_models.dart';
 import '../widgets/position_selector_tabs.dart';
 import '../widgets/tier_productivity_table.dart';
@@ -964,9 +965,9 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
               ),
             ),
             const SizedBox(height: 4),
-            const Text(
-              'Effective September 2026',
-              style: TextStyle(
+            Text(
+              'Effective ${AppConstants.effectiveDate}',
+              style: const TextStyle(
                 fontSize: 11,
                 color: Color(0xFFF15A24),
                 fontWeight: FontWeight.w600,

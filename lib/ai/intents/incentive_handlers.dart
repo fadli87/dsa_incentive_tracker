@@ -141,7 +141,7 @@ class IncentiveHandlers {
     );
 
     final sb = StringBuffer();
-    sb.writeln('📋 **Struktur Skema Insentif Resmi September 2026**\n');
+    sb.writeln('📋 **Struktur Skema Insentif Resmi Oktober 2026**\n');
     sb.writeln('Komponen insentif terdiri dari 5 elemen:');
     sb.writeln('1. **Basic Fee**: Sesuai level DSA (OJT, Pro, Elite, SPV).');
     sb.writeln('2. **Product Mix Base (PM)**: Komisi per paket yang terjual (Exc. PPN):');
