@@ -1,4 +1,5 @@
 import 'package:intl/intl.dart';
+import '../../core/constants/app_constants.dart';
 import '../../core/engine/calculator_engine.dart';
 import '../../core/engine/incentive_bucket.dart';
 import '../../core/models/calculator_models.dart';
@@ -141,7 +142,7 @@ class IncentiveHandlers {
     );
 
     final sb = StringBuffer();
-    sb.writeln('📋 **Struktur Skema Insentif Resmi Oktober 2026**\n');
+    sb.writeln('📋 **Struktur Skema Insentif Resmi ${AppConstants.effectiveDate}**\n');
     sb.writeln('Komponen insentif terdiri dari 5 elemen:');
     sb.writeln('1. **Basic Fee**: Sesuai level DSA (OJT, Pro, Elite, SPV).');
     sb.writeln('2. **Product Mix Base (PM)**: Komisi per paket yang terjual (Exc. PPN):');
