@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import '../../core/catalog/package_catalog.dart';
 
 class ProductCatalogScreen extends StatefulWidget {
   const ProductCatalogScreen({super.key});
@@ -207,125 +208,11 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen>
   // TAB 1: INTERNET ONLY
   // -------------------------------------------------------------
   Widget _buildInternetOnlyTab() {
-    final packages = [
-      {
-        'title': 'Tactical FTTH 20 Mbps',
-        'speed': '20 Mbps',
-        'type': 'FTTH',
-        'tag': 'Ekonomis',
-        'tagColor': Colors.teal,
-        'speedUpgrade': null,
-        'price': 185000,
-        'installation': 'Biaya Instalasi Rp 100.000',
-        'isFreeInstall': false,
-        'features': [
-          'Kecepatan 20 Mbps Unlimited',
-          'Cocok untuk 1-3 perangkat ringan',
-          'Khusus area tercover Fiber FTTH',
-        ],
-      },
-      {
-        'title': 'FWA Hero 100 Mbps',
-        'speed': '100 Mbps',
-        'type': 'FWA Outdoor',
-        'tag': 'FWA Unggulan',
-        'tagColor': Colors.purple,
-        'speedUpgrade': null,
-        'price': 219000,
-        'installation': 'GRATIS Biaya Instalasi (Rp 0)',
-        'isFreeInstall': true,
-        'features': [
-          'Kecepatan 100 Mbps (Unlimited with FUP 1.024 GB)',
-          'Teknologi Wireless 5G+ Dedicated Outdoor CPE & Router',
-          'Pilihan terbaik untuk area yang belum tercover kabel Fiber',
-          'Instalasi dilakukan teknisi resmi ke rumah',
-        ],
-      },
-      {
-        'title': 'FTTH Hero 250 Mbps',
-        'speed': '250 Mbps',
-        'type': 'FTTH',
-        'tag': 'Paling Laris 🔥',
-        'tagColor': const Color(0xFFF15A24),
-        'speedUpgrade': 'Basic 100 Mbps ➔ Upgrade ke 250 Mbps (12 Bulan)',
-        'price': 229000,
-        'installation': 'GRATIS Biaya Instalasi (Rp 0)',
-        'isFreeInstall': true,
-        'features': [
-          'Kecepatan Super 250 Mbps True Unlimited',
-          'Benefit Speed Upgrade 12 Bulan (dapat diperpanjang)',
-          'Hanya selisih Rp 10rb dari FWA untuk 2.5x lebih cepat!',
-          'Cocok untuk streaming 4K, gaming keluarga & WFH',
-        ],
-      },
-      {
-        'title': 'FTTH Hero 300 Mbps',
-        'speed': '300 Mbps',
-        'type': 'FTTH',
-        'tag': 'Populer',
-        'tagColor': const Color(0xFF002B66),
-        'speedUpgrade': 'Basic 200 Mbps ➔ Upgrade ke 300 Mbps (12 Bulan)',
-        'price': 239000,
-        'installation': 'GRATIS Biaya Instalasi (Rp 0)',
-        'isFreeInstall': true,
-        'features': [
-          'Kecepatan 300 Mbps Unlimited',
-          'Hanya tambah Rp 10rb dari 250 Mbps dapat ekstra 50 Mbps!',
-          'Stabil dengan latensi rendah untuk multi-user',
-        ],
-      },
-      {
-        'title': 'FTTH Hero 400 Mbps',
-        'speed': '400 Mbps',
-        'type': 'FTTH',
-        'tag': 'Kecepatan Tinggi',
-        'tagColor': Colors.indigo,
-        'speedUpgrade': 'Basic 300 Mbps ➔ Upgrade ke 400 Mbps (12 Bulan)',
-        'price': 299000,
-        'installation': 'GRATIS Biaya Instalasi (Rp 0)',
-        'isFreeInstall': true,
-        'features': [
-          'Kecepatan 400 Mbps Unlimited',
-          'Harga baru lebih hemat (sebelumnya Rp 300K+)',
-          'Optimal untuk smart home, content creator & kantor mini',
-        ],
-      },
-      {
-        'title': 'FTTH Ultra High Speed 500 Mbps',
-        'speed': '500 Mbps',
-        'type': 'FTTH',
-        'tag': 'Ultra Speed',
-        'tagColor': Colors.blueGrey,
-        'speedUpgrade': null,
-        'price': 399000,
-        'installation': 'GRATIS Biaya Instalasi (Rp 0)',
-        'isFreeInstall': true,
-        'features': [
-          'Kecepatan 500 Mbps murni tanpa upgrade (sebelumnya 500K)',
-          'Download & upload file besar super cepat tanpa buffer',
-        ],
-      },
-      {
-        'title': 'FTTH Ultra High Speed 1 Gbps',
-        'speed': '1 Gbps (1000 Mbps)',
-        'type': 'FTTH',
-        'tag': 'Flagship Maximum',
-        'tagColor': Colors.amber.shade900,
-        'speedUpgrade': null,
-        'price': 899000,
-        'installation': 'GRATIS Biaya Instalasi (Rp 0)',
-        'isFreeInstall': true,
-        'features': [
-          'Kecepatan Maksimal 1 Gbps (1.000 Mbps)',
-          'Tersedia di area XL Home Ownbuild & Linknet FTTH',
-          'Pengalaman internet kelas enterprise di rumah',
-        ],
-      },
-    ];
+    final packages = PackageCatalog.byTab(1);
 
     final filtered = packages.where((p) {
       if (_searchQuery.isEmpty) return true;
-      final text = '${p['title']} ${p['speed']} ${p['type']}'.toLowerCase();
+      final text = '${p.title} ${p.speedLabel} ${p.type}'.toLowerCase();
       return text.contains(_searchQuery);
     }).toList();
 
@@ -349,104 +236,12 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen>
   // TAB 2: FMC KUOTA HP (BUNDLING)
   // -------------------------------------------------------------
   Widget _buildFmcTab() {
-    final packages = [
-      {
-        'title': 'FMC STARTER 20 Mbps + 8 GB',
-        'speed': '20 Mbps',
-        'type': 'FMC Bundling',
-        'tag': 'Pemula',
-        'tagColor': Colors.teal,
-        'speedUpgrade': null,
-        'price': 209000,
-        'installation': 'Biaya Instalasi Rp 100.000',
-        'isFreeInstall': false,
-        'features': [
-          'Internet Rumah Speed up to 20 Mbps',
-          'Bonus Kuota HP Sekeluarga: 8 GB untuk 2 Anggota',
-          'Hanya tambah Rp 24.000 dari internet only',
-          'Gratis 2 Kartu SIM XL Prabayar dari teknisi',
-        ],
-      },
-      {
-        'title': 'FMC SMART 50 Mbps + 10 GB',
-        'speed': '50 Mbps ➔ 75 Mbps',
-        'type': 'FMC Bundling',
-        'tag': 'Rekomendasi Keluarga',
-        'tagColor': const Color(0xFFF15A24),
-        'speedUpgrade': 'Bonus Speed Booster 6 bulan menjadi 75 Mbps!',
-        'price': 249000,
-        'installation': 'GRATIS Biaya Instalasi (Rp 0)',
-        'isFreeInstall': true,
-        'features': [
-          'Internet Rumah 50 Mbps (Boost ke 75 Mbps selama 6 bulan)',
-          'Bonus Kuota HP Sekeluarga: 10 GB untuk 2 Anggota',
-          'Hanya tambah Rp 20.000 dari paket reguler',
-          'Gratis 2 Kartu SIM XL Prabayar dari teknisi',
-        ],
-      },
-      {
-        'title': 'FMC FAMILY 100 Mbps + 25 GB',
-        'speed': '100 Mbps ➔ 150 Mbps',
-        'type': 'FMC Bundling',
-        'tag': 'Paling Favorit',
-        'tagColor': const Color(0xFF002B66),
-        'speedUpgrade': 'Bonus Speed Booster 6 bulan menjadi 150 Mbps!',
-        'price': 319000,
-        'installation': 'GRATIS Biaya Instalasi (Rp 0)',
-        'isFreeInstall': true,
-        'features': [
-          'Internet Rumah 100 Mbps (Boost ke 150 Mbps selama 6 bulan)',
-          'Bonus Kuota HP Sekeluarga: 25 GB untuk 2 Anggota',
-          'Hanya tambah Rp 40.000 untuk 25 GB kuota HP',
-          'Gratis 2 Kartu SIM XL Prabayar dari teknisi',
-        ],
-      },
-      {
-        'title': 'FMC SUPERUSER 150 Mbps + 50 GB',
-        'speed': '150 Mbps ➔ 200 Mbps',
-        'type': 'FMC Bundling',
-        'tag': 'Heavy Users',
-        'tagColor': Colors.indigo,
-        'speedUpgrade': 'Bonus Speed Booster 6 bulan menjadi 200 Mbps!',
-        'price': 369000,
-        'installation': 'GRATIS Biaya Instalasi (Rp 0)',
-        'isFreeInstall': true,
-        'features': [
-          'Internet Rumah 150 Mbps (Boost ke 200 Mbps selama 6 bulan)',
-          'Bonus Kuota HP Sekeluarga: 50 GB untuk 3 Anggota',
-          'Hanya tambah Rp 70.000 untuk 50 GB kuota HP',
-          'Gratis 2 Kartu SIM XL Prabayar dari teknisi',
-        ],
-      },
-    ];
-
-    final promosPay10Get12 = [
-      {
-        'name': 'PROMO PAY 10 GET 12 - BASIC SMART',
-        'speed': '50 Mbps (Booster 75 Mbps 6 bln) + 10 GB HP',
-        'totalPrice': 2490000,
-        'normalPrice': 2988000,
-        'equivalent': 'Setara Rp 207.500 / bulan (Hemat Rp 498.000)',
-      },
-      {
-        'name': 'PROMO PAY 10 GET 12 - BASIC FAMILY',
-        'speed': '100 Mbps (Booster 150 Mbps 6 bln) + 25 GB HP',
-        'totalPrice': 3190000,
-        'normalPrice': 3828000,
-        'equivalent': 'Setara Rp 265.833 / bulan (Hemat Rp 638.000)',
-      },
-      {
-        'name': 'PROMO PAY 10 GET 12 - BASIC SUPERUSER',
-        'speed': '150 Mbps (Booster 200 Mbps 6 bln) + 50 GB HP',
-        'totalPrice': 3690000,
-        'normalPrice': 4428000,
-        'equivalent': 'Setara Rp 307.500 / bulan (Hemat Rp 738.000)',
-      },
-    ];
+    final packages = PackageCatalog.byTab(2);
+    final promosPay10Get12 = PackageCatalog.promosPay10Get12;
 
     final filtered = packages.where((p) {
       if (_searchQuery.isEmpty) return true;
-      final text = '${p['title']} ${p['speed']} ${p['type']}'.toLowerCase();
+      final text = '${p.title} ${p.speedLabel} ${p.type}'.toLowerCase();
       return text.contains(_searchQuery);
     }).toList();
 
@@ -504,12 +299,12 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            promo['name'] as String,
+                            promo.name,
                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            promo['speed'] as String,
+                            promo.speed,
                             style: TextStyle(fontSize: 11.5, color: Colors.grey.shade700),
                           ),
                           const SizedBox(height: 4),
@@ -520,7 +315,7 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen>
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    currencyFmt.format(promo['totalPrice']),
+                                    currencyFmt.format(promo.totalPrice),
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 15,
@@ -528,7 +323,7 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen>
                                     ),
                                   ),
                                   Text(
-                                    'Normal: ${currencyFmt.format(promo['normalPrice'])}',
+                                    'Normal: ${currencyFmt.format(promo.normalPrice)}',
                                     style: TextStyle(
                                       fontSize: 10.5,
                                       color: Colors.grey.shade500,
@@ -538,7 +333,7 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen>
                                 ],
                               ),
                               Text(
-                                promo['equivalent'] as String,
+                                promo.equivalent,
                                 style: const TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
@@ -562,68 +357,7 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen>
   // TAB 3: ADVANCE PAYMENT (PAY X GET Y)
   // -------------------------------------------------------------
   Widget _buildAdvancePayTab() {
-    final packages = [
-      {
-        'title': 'ADVANCE PAYMENT 50 Mbps (4 BULAN)',
-        'speed': '50 Mbps',
-        'type': 'Bayar 3 Dapat 4 Bulan',
-        'tag': 'Hemat 40% ⚡',
-        'tagColor': Colors.green.shade800,
-        'speedUpgrade': 'Bonus 3 Bulan Akses Vidio & Catchplay+',
-        'price': 162500, // Amortized
-        'totalAdvance': 650000,
-        'normalAdvance': 1085000,
-        'recurring': 'Tagihan normal bln ke-5: Rp 199.000/bln',
-        'installation': 'GRATIS Biaya Instalasi (PBI)',
-        'isFreeInstall': true,
-        'features': [
-          'Bayar di muka 4 bulan hanya Rp 650.000 (Hemat 40%)',
-          'Setara hanya Rp 162.500 / bulan',
-          'Termasuk Free 3 Bulan Vidio Lite & Catchplay+',
-          'Skema Pay Before Installation (PBI)',
-        ],
-      },
-      {
-        'title': 'ADVANCE PAYMENT 100 Mbps (4 BULAN)',
-        'speed': '100 Mbps',
-        'type': 'Bayar 3 Dapat 4 Bulan',
-        'tag': 'Hemat 32% 🚀',
-        'tagColor': const Color(0xFFF15A24),
-        'speedUpgrade': 'Bonus 3 Bulan Akses Vidio & Catchplay+',
-        'price': 197500, // Amortized
-        'totalAdvance': 790000,
-        'normalAdvance': 1161000,
-        'recurring': 'Tagihan normal bln ke-5: Rp 219.000/bln',
-        'installation': 'GRATIS Biaya Instalasi (PBI)',
-        'isFreeInstall': true,
-        'features': [
-          'Bayar di muka 4 bulan hanya Rp 790.000 (Hemat 32%)',
-          'Setara hanya Rp 197.500 / bulan untuk 100 Mbps!',
-          'Termasuk Free 3 Bulan Vidio Lite & Catchplay+',
-          'Skema Pay Before Installation (PBI)',
-        ],
-      },
-      {
-        'title': 'ADVANCE PAYMENT 100 Mbps (3 BULAN)',
-        'speed': '100 Mbps',
-        'type': 'Bayar 3 Bulan',
-        'tag': 'Hemat 31%',
-        'tagColor': const Color(0xFF002B66),
-        'speedUpgrade': 'Bonus 3 Bulan Akses Vidio & Catchplay+',
-        'price': 216667, // Amortized
-        'totalAdvance': 650000,
-        'normalAdvance': 942000,
-        'recurring': 'Tagihan normal bln ke-4: Rp 219.000/bln',
-        'installation': 'GRATIS Biaya Instalasi (PBI)',
-        'isFreeInstall': true,
-        'features': [
-          'Bayar di muka 3 bulan hanya Rp 650.000 (Hemat 31%)',
-          'Setara hanya Rp 216.667 / bulan untuk 100 Mbps',
-          'Termasuk Free 3 Bulan Vidio Lite & Catchplay+',
-          'Skema Pay Before Installation (PBI)',
-        ],
-      },
-    ];
+    final packages = PackageCatalog.byTab(3);
 
     return ListView(
       padding: const EdgeInsets.all(12),
@@ -641,117 +375,8 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen>
   // TAB 4: COMBO INTERNET + TV (FIRSTMEDIA FOOTPRINT)
   // -------------------------------------------------------------
   Widget _buildComboTvTab() {
-    final packages = [
-      {
-        'title': 'COMBO JOY VALUE 100 Mbps',
-        'speed': '100 Mbps',
-        'type': 'Combo Internet + TV',
-        'tag': 'Starter TV',
-        'tagColor': Colors.teal,
-        'price': 350000,
-        'features': [
-          'Internet Super Cepat 100 Mbps',
-          '107 TV Channel Pilihan Keluarga',
-          'Bonus Kuota HP Sekeluarga: 25 GB untuk 2 Member',
-          'Gratis 2 SIM Card XL Prabayar dari teknisi',
-          'Biaya Instalasi Rp 0,-',
-        ],
-      },
-      {
-        'title': 'COMBO JOY PRO 150 Mbps',
-        'speed': '150 Mbps',
-        'type': 'Combo Internet + TV',
-        'tag': 'Best Value',
-        'tagColor': const Color(0xFFF15A24),
-        'price': 425000,
-        'features': [
-          'Internet Super Cepat 150 Mbps',
-          '107 TV Channel Pilihan Keluarga',
-          'Bonus Kuota HP Sekeluarga: 50 GB untuk 3 Member',
-          'Gratis 2 SIM Card XL Prabayar dari teknisi',
-          'Biaya Instalasi Rp 0,-',
-        ],
-      },
-      {
-        'title': 'COMBO JOY PREMIUM 200 Mbps',
-        'speed': '200 Mbps',
-        'type': 'Combo Internet + TV',
-        'tag': 'Channel Lengkap',
-        'tagColor': const Color(0xFF002B66),
-        'price': 675000,
-        'features': [
-          'Internet Super Cepat 200 Mbps',
-          '167 TV Channel Lengkap & Premium',
-          'Bonus Kuota HP Sekeluarga: 50 GB untuk 3 Member',
-          'Gratis 2 SIM Card XL Prabayar dari teknisi',
-          'Biaya Instalasi Rp 0,-',
-        ],
-      },
-      {
-        'title': 'COMBO STAR VALUE 300 Mbps',
-        'speed': '300 Mbps',
-        'type': 'Combo Internet + TV + OTT',
-        'tag': 'Viu + Catchplay+',
-        'tagColor': Colors.deepPurple,
-        'price': 985000,
-        'features': [
-          'Internet Ekstra Cepat 300 Mbps',
-          '187 TV Channel',
-          'Langganan Catchplay+ & Viu Termasuk',
-          'Bonus Kuota HP Sekeluarga: 100 GB untuk 4 Member',
-          'Biaya Instalasi Rp 0,-',
-        ],
-      },
-      {
-        'title': 'COMBO STAR PRO 500 Mbps',
-        'speed': '500 Mbps',
-        'type': 'Combo Internet + TV + OTT',
-        'tag': 'High Tier',
-        'tagColor': Colors.blueGrey,
-        'price': 1850000,
-        'features': [
-          'Internet Ultra Cepat 500 Mbps',
-          '189 TV Channel',
-          'Langganan Catchplay+ & Viu Termasuk',
-          'Bonus Kuota HP Sekeluarga: 100 GB untuk 4 Member',
-          'Biaya Instalasi Rp 0,-',
-        ],
-      },
-      {
-        'title': 'COMBO STAR PREMIUM 1 Gbps',
-        'speed': '1 Gbps',
-        'type': 'Combo Internet + TV + OTT',
-        'tag': 'Ultimate Flagship',
-        'tagColor': Colors.amber.shade900,
-        'price': 4500000,
-        'features': [
-          'Internet Maksimal 1 Gbps (1000 Mbps)',
-          '196 TV Channel Super Lengkap',
-          'Catchplay+ & Viu & Lionsgate Play Termasuk',
-          'Bonus Kuota HP Sekeluarga: 100 GB untuk 4 Member',
-          'Biaya Instalasi Rp 0,-',
-        ],
-      },
-    ];
-
-    final promos = [
-      {
-        'name': 'PROMO SILVER (Bayar 6 Dapat 8 Bulan)',
-        'items': [
-          'Joy Value (100 Mbps): Rp 2.100.000 (Setara Rp 262.500 / bln)',
-          'Joy Pro (150 Mbps): Rp 2.550.000 (Setara Rp 318.750 / bln)',
-          'Joy Premium (200 Mbps): Rp 4.050.000 (Setara Rp 506.250 / bln)',
-        ],
-      },
-      {
-        'name': 'PROMO GOLD (Bayar 9 Dapat 12 Bulan)',
-        'items': [
-          'Joy Value (100 Mbps): Rp 3.150.000 (Setara Rp 262.500 / bln)',
-          'Joy Pro (150 Mbps): Rp 3.850.000 (Setara Rp 320.833 / bln)',
-          'Joy Premium (200 Mbps): Rp 6.000.000 (Setara Rp 500.000 / bln)',
-        ],
-      },
-    ];
+    final packages = PackageCatalog.byTab(4);
+    final promos = PackageCatalog.promosCombo;
 
     return ListView(
       padding: const EdgeInsets.all(12),
@@ -780,13 +405,13 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen>
                       const Icon(Icons.loyalty, color: Color(0xFFF15A24), size: 18),
                       const SizedBox(width: 6),
                       Text(
-                        pr['name'] as String,
+                        pr.name,
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF002B66)),
                       ),
                     ],
                   ),
                   const Divider(height: 16),
-                  ...(pr['items'] as List<String>).map((it) => Padding(
+                  ...pr.items.map((it) => Padding(
                         padding: const EdgeInsets.symmetric(vertical: 2),
                         child: Row(
                           children: [
@@ -900,19 +525,19 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen>
     );
   }
 
-  Widget _buildPackageCard(Map<String, dynamic> p) {
-    final priceStr = _formatPrice(p['price'] as int);
-    final isFree = p['isFreeInstall'] as bool;
+  Widget _buildPackageCard(CatalogPackage p) {
+    final priceStr = _formatPrice(p.price);
+    final isFree = p.isFreeInstall;
 
     final shareText = '''
 *PENAWARAN PAKET XL SATU*
 ---------------------------------
-📦 Paket: ${p['title']}
-🚀 Kecepatan: ${p['speed']}
-💰 Biaya: ${_formatPrice(p['price'] as int)}
-🎁 Instalasi: ${p['installation']}
-${p['speedUpgrade'] != null ? '⚡ Benefit: ${p['speedUpgrade']}\n' : ''}⭐ Keunggulan:
-${(p['features'] as List<String>).map((f) => '  • $f').join('\n')}
+📦 Paket: ${p.title}
+🚀 Kecepatan: ${p.speedLabel}
+💰 Biaya: ${_formatPrice(p.price)}
+🎁 Instalasi: ${p.installation}
+${p.speedUpgrade != null ? '⚡ Benefit: ${p.speedUpgrade}\n' : ''}⭐ Keunggulan:
+${p.features.map((f) => '  • $f').join('\n')}
 ---------------------------------
 Tertarik pasang? Hubungi saya untuk cek jangkauan jaringan rumah Anda!
 (XL SATU CILACAP · TSC PIPIN)
@@ -932,7 +557,7 @@ Tertarik pasang? Hubungi saya untuk cek jangkauan jaringan rumah Anda!
               children: [
                 Expanded(
                   child: Text(
-                    p['title'] as String,
+                    p.title,
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
@@ -943,16 +568,16 @@ Tertarik pasang? Hubungi saya untuk cek jangkauan jaringan rumah Anda!
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: (p['tagColor'] as Color).withValues(alpha: 0.15),
+                    color: p.tagColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: p['tagColor'] as Color),
+                    border: Border.all(color: p.tagColor),
                   ),
                   child: Text(
-                    p['tag'] as String,
+                    p.tag,
                     style: TextStyle(
                       fontSize: 10.5,
                       fontWeight: FontWeight.bold,
-                      color: p['tagColor'] as Color,
+                      color: p.tagColor,
                     ),
                   ),
                 ),
@@ -961,7 +586,7 @@ Tertarik pasang? Hubungi saya untuk cek jangkauan jaringan rumah Anda!
             const SizedBox(height: 6),
 
             // Speed Upgrade Badge if available
-            if (p['speedUpgrade'] != null)
+            if (p.speedUpgrade != null)
               Container(
                 margin: const EdgeInsets.only(bottom: 8),
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -976,7 +601,7 @@ Tertarik pasang? Hubungi saya untuk cek jangkauan jaringan rumah Anda!
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
-                        p['speedUpgrade'] as String,
+                        p.speedUpgrade!,
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
@@ -1013,7 +638,7 @@ Tertarik pasang? Hubungi saya untuk cek jangkauan jaringan rumah Anda!
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  p['installation'] as String,
+                  p.installation,
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: isFree ? FontWeight.bold : FontWeight.normal,
@@ -1026,7 +651,7 @@ Tertarik pasang? Hubungi saya untuk cek jangkauan jaringan rumah Anda!
             const Divider(height: 18),
 
             // Features list
-            ...(p['features'] as List<String>).map((f) => Padding(
+            ...p.features.map((f) => Padding(
                   padding: const EdgeInsets.only(bottom: 4),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1054,7 +679,7 @@ Tertarik pasang? Hubungi saya untuk cek jangkauan jaringan rumah Anda!
                 ),
                 icon: const Icon(Icons.share, size: 14),
                 label: const Text('Salin Rincian Penawaran', style: TextStyle(fontSize: 11.5)),
-                onPressed: () => _copyToClipboard(context, shareText, p['title'] as String),
+                onPressed: () => _copyToClipboard(context, shareText, p.title),
               ),
             ),
           ],
@@ -1063,14 +688,18 @@ Tertarik pasang? Hubungi saya untuk cek jangkauan jaringan rumah Anda!
     );
   }
 
-  Widget _buildAdvanceCard(Map<String, dynamic> p) {
+  Widget _buildAdvanceCard(CatalogPackage p) {
+    final totalAdv = p.totalAdvance ?? p.price;
+    final normalAdv = p.normalAdvance ?? (p.price * 1.5).round();
+    final recurringStr = p.recurring ?? '';
+
     final shareText = '''
 *PROMO BAYAR DI MUKA XL SATU (PXGY)*
 ---------------------------------
-📦 Paket: ${p['title']}
-🚀 Kecepatan: ${p['speed']}
-💵 Total Bayar: ${currencyFmt.format(p['totalAdvance'])} (Hemat!)
-💰 Setara: ${currencyFmt.format(p['price'])} / bulan
+📦 Paket: ${p.title}
+🚀 Kecepatan: ${p.speedLabel}
+💵 Total Bayar: ${currencyFmt.format(totalAdv)} (Hemat!)
+💰 Setara: ${currencyFmt.format(p.price)} / bulan
 🎁 Instalasi: GRATIS
 📺 Bonus OTT: Free 3 Bulan Vidio & Catchplay+
 ---------------------------------
@@ -1091,20 +720,20 @@ Minat pasang sekarang? Hubungi saya (Sales Resmi XL SATU CILACAP).
               children: [
                 Expanded(
                   child: Text(
-                    p['title'] as String,
+                    p.title,
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5, color: Color(0xFF002B66)),
                   ),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: (p['tagColor'] as Color).withValues(alpha: 0.15),
+                    color: p.tagColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: p['tagColor'] as Color),
+                    border: Border.all(color: p.tagColor),
                   ),
                   child: Text(
-                    p['tag'] as String,
-                    style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: p['tagColor'] as Color),
+                    p.tag,
+                    style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: p.tagColor),
                   ),
                 ),
               ],
@@ -1126,7 +755,7 @@ Minat pasang sekarang? Hubungi saya (Sales Resmi XL SATU CILACAP).
                     children: [
                       const Text('Total Pembayaran di Muka:', style: TextStyle(fontSize: 10.5, color: Colors.black54)),
                       Text(
-                        currencyFmt.format(p['totalAdvance']),
+                        currencyFmt.format(totalAdv),
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -1134,7 +763,7 @@ Minat pasang sekarang? Hubungi saya (Sales Resmi XL SATU CILACAP).
                         ),
                       ),
                       Text(
-                        'Normal: ${currencyFmt.format(p['normalAdvance'])}',
+                        'Normal: ${currencyFmt.format(normalAdv)}',
                         style: TextStyle(fontSize: 10.5, color: Colors.grey.shade600, decoration: TextDecoration.lineThrough),
                       ),
                     ],
@@ -1149,7 +778,7 @@ Minat pasang sekarang? Hubungi saya (Sales Resmi XL SATU CILACAP).
                       children: [
                         const Text('Setara Biaya/Bulan', style: TextStyle(fontSize: 9.5, color: Colors.grey)),
                         Text(
-                          currencyFmt.format(p['price']),
+                          currencyFmt.format(p.price),
                           style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFFF15A24)),
                         ),
                       ],
@@ -1158,11 +787,13 @@ Minat pasang sekarang? Hubungi saya (Sales Resmi XL SATU CILACAP).
                 ],
               ),
             ),
-            const SizedBox(height: 6),
-            Text(p['recurring'] as String, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+            if (recurringStr.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(recurringStr, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+            ],
             const Divider(height: 16),
 
-            ...(p['features'] as List<String>).map((f) => Padding(
+            ...p.features.map((f) => Padding(
                   padding: const EdgeInsets.only(bottom: 4),
                   child: Row(
                     children: [
@@ -1186,7 +817,7 @@ Minat pasang sekarang? Hubungi saya (Sales Resmi XL SATU CILACAP).
                 ),
                 icon: const Icon(Icons.share, size: 14),
                 label: const Text('Salin Rincian Penawaran', style: TextStyle(fontSize: 11.5)),
-                onPressed: () => _copyToClipboard(context, shareText, p['title'] as String),
+                onPressed: () => _copyToClipboard(context, shareText, p.title),
               ),
             ),
           ],
@@ -1195,18 +826,18 @@ Minat pasang sekarang? Hubungi saya (Sales Resmi XL SATU CILACAP).
     );
   }
 
-  Widget _buildComboCard(Map<String, dynamic> p) {
-    final priceStr = _formatPrice(p['price'] as int);
+  Widget _buildComboCard(CatalogPackage p) {
+    final priceStr = _formatPrice(p.price);
 
     final shareText = '''
 *PAKET COMBO XL SATU (INTERNET + TV)*
 ---------------------------------
-📦 Paket: ${p['title']}
-🚀 Kecepatan: ${p['speed']}
-💰 Biaya: ${_formatPrice(p['price'] as int)}
+📦 Paket: ${p.title}
+🚀 Kecepatan: ${p.speedLabel}
+💰 Biaya: ${_formatPrice(p.price)}
 🎁 Biaya Pasang: GRATIS (Rp 0)
 ⭐ Keunggulan:
-${(p['features'] as List<String>).map((f) => '  • $f').join('\n')}
+${p.features.map((f) => '  • $f').join('\n')}
 ---------------------------------
 Tertarik pasang? Hubungi saya (Sales Resmi XL SATU CILACAP).
 ''';
@@ -1225,20 +856,20 @@ Tertarik pasang? Hubungi saya (Sales Resmi XL SATU CILACAP).
               children: [
                 Expanded(
                   child: Text(
-                    p['title'] as String,
+                    p.title,
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5, color: Color(0xFF002B66)),
                   ),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: (p['tagColor'] as Color).withValues(alpha: 0.15),
+                    color: p.tagColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: p['tagColor'] as Color),
+                    border: Border.all(color: p.tagColor),
                   ),
                   child: Text(
-                    p['tag'] as String,
-                    style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: p['tagColor'] as Color),
+                    p.tag,
+                    style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: p.tagColor),
                   ),
                 ),
               ],
@@ -1249,7 +880,7 @@ Tertarik pasang? Hubungi saya (Sales Resmi XL SATU CILACAP).
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFFF15A24)),
             ),
             const Divider(height: 16),
-            ...(p['features'] as List<String>).map((f) => Padding(
+            ...p.features.map((f) => Padding(
                   padding: const EdgeInsets.only(bottom: 4),
                   child: Row(
                     children: [
@@ -1272,7 +903,7 @@ Tertarik pasang? Hubungi saya (Sales Resmi XL SATU CILACAP).
                 ),
                 icon: const Icon(Icons.share, size: 14),
                 label: const Text('Salin Rincian Penawaran', style: TextStyle(fontSize: 11.5)),
-                onPressed: () => _copyToClipboard(context, shareText, p['title'] as String),
+                onPressed: () => _copyToClipboard(context, shareText, p.title),
               ),
             ),
           ],

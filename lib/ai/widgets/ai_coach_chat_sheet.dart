@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/ai_coach_provider.dart';
 import '../models/ai_message.dart';
+import '../models/quick_action.dart';
+import '../providers/ai_coach_provider.dart';
 import '../../network/providers/network_monitor_provider.dart';
+import '../../ui/screens/calculator_screen.dart';
+import '../../ui/screens/coverage_map_screen.dart';
+import '../../ui/screens/network_tools_screen.dart';
+import '../../ui/screens/product_catalog_screen.dart';
 
 class AiCoachChatSheet extends ConsumerStatefulWidget {
   const AiCoachChatSheet({super.key});
@@ -41,6 +46,38 @@ class _AiCoachChatSheetState extends ConsumerState<AiCoachChatSheet> {
     final currentRf = ref.read(cellSignalProvider).value;
     ref.read(aiCoachNotifierProvider.notifier).sendMessage(text, currentRfSignal: currentRf);
     _controller.clear();
+    _scrollToBottom();
+  }
+
+  void _handleAction(QuickAction action) {
+    if (action.isNavAction && action.destination != null) {
+      final Widget targetScreen;
+      switch (action.destination!) {
+        case CoachDestination.catalog:
+          targetScreen = const ProductCatalogScreen();
+          break;
+        case CoachDestination.calculator:
+          targetScreen = const CalculatorScreen();
+          break;
+        case CoachDestination.coverageMap:
+          targetScreen = const CoverageMapScreen();
+          break;
+        case CoachDestination.speedTest:
+        case CoachDestination.signalTab:
+          targetScreen = const NetworkToolsScreen();
+          break;
+      }
+
+      Navigator.pop(context); // Close bottom sheet
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => targetScreen),
+      );
+      return;
+    }
+
+    final currentRf = ref.read(cellSignalProvider).value;
+    ref.read(aiCoachNotifierProvider.notifier).runAction(action, currentRfSignal: currentRf);
     _scrollToBottom();
   }
 
@@ -97,7 +134,7 @@ class _AiCoachChatSheetState extends ConsumerState<AiCoachChatSheet> {
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                       Text(
-                        'Ultra-Lightweight • Instant RF & Sales Advice',
+                        'Offline Deterministik • Zero API Keys • Instan',
                         style: TextStyle(
                           fontSize: 11,
                           color: isDark ? Colors.white60 : Colors.black54,
@@ -140,7 +177,7 @@ class _AiCoachChatSheetState extends ConsumerState<AiCoachChatSheet> {
                       margin: const EdgeInsets.symmetric(vertical: 4),
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       constraints: BoxConstraints(
-                        maxWidth: MediaQuery.of(context).size.width * 0.8,
+                        maxWidth: MediaQuery.of(context).size.width * 0.85,
                       ),
                       decoration: BoxDecoration(
                         color: isUser
@@ -166,24 +203,37 @@ class _AiCoachChatSheetState extends ConsumerState<AiCoachChatSheet> {
                         ),
                       ),
                     ),
-                    if (!isUser && msg.quickReplies != null && msg.quickReplies!.isNotEmpty)
+                    if (!isUser && msg.actions != null && msg.actions!.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 6, bottom: 4),
                         child: Wrap(
                           spacing: 6,
                           runSpacing: 6,
-                          children: msg.quickReplies!.map((reply) {
+                          children: msg.actions!.map((action) {
+                            final isNav = action.isNavAction;
                             return ActionChip(
-                              avatar: const Icon(Icons.bolt, size: 14, color: Color(0xFF6366F1)),
+                              avatar: Icon(
+                                isNav ? Icons.open_in_new_rounded : Icons.bolt,
+                                size: 14,
+                                color: isNav ? const Color(0xFFF15A24) : const Color(0xFF6366F1),
+                              ),
                               label: Text(
-                                reply,
-                                style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600),
+                                action.label,
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: isNav ? (isDark ? Colors.orange.shade300 : const Color(0xFFC2410C)) : null,
+                                ),
                               ),
-                              backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFEEF2FF),
+                              backgroundColor: isDark
+                                  ? (isNav ? Colors.orange.shade900.withValues(alpha: 0.2) : const Color(0xFF1E293B))
+                                  : (isNav ? const Color(0xFFFFF7ED) : const Color(0xFFEEF2FF)),
                               side: BorderSide(
-                                color: const Color(0xFF6366F1).withValues(alpha: 0.3),
+                                color: isNav
+                                    ? const Color(0xFFF15A24).withValues(alpha: 0.4)
+                                    : const Color(0xFF6366F1).withValues(alpha: 0.3),
                               ),
-                              onPressed: () => _sendMessage(reply),
+                              onPressed: () => _handleAction(action),
                             );
                           }).toList(),
                         ),
@@ -213,7 +263,7 @@ class _AiCoachChatSheetState extends ConsumerState<AiCoachChatSheet> {
                     textInputAction: TextInputAction.send,
                     onSubmitted: (val) => _sendMessage(val),
                     decoration: InputDecoration(
-                      hintText: 'Tanya AI Coach (misal: "script FWA", "cek sinyal")...',
+                      hintText: 'Tanya AI Coach (misal: "hitung 15 SA", "script FWA")...',
                       hintStyle: TextStyle(
                         fontSize: 13,
                         color: isDark ? Colors.white38 : Colors.black38,

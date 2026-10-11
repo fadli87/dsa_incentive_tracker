@@ -12,9 +12,9 @@ void main() {
 
     test('SalesAiCoach provides incentive guidance', () {
       final reply = SalesAiCoach.reply('Bagaimana skema insentif September 2026?');
-      expect(reply.text, contains('DSA'));
-      expect(reply.text, contains('Tier 1'));
-      expect(reply.text, contains('SPV'));
+      expect(reply.text, contains('Skema Insentif'));
+      expect(reply.text, contains('Basic Fee'));
+      expect(reply.text, contains('Product Mix'));
     });
 
     test('SalesAiCoach provides sales closing scripts for houses and kos', () {
