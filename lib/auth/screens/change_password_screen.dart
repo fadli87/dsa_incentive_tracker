@@ -63,6 +63,10 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
 
     try {
       final email = AppSupabase.client.auth.currentUser?.email ?? '';
+      if (email.isEmpty) {
+        setState(() => _errorMessage = 'Sesi tidak valid. Silakan login ulang.');
+        return;
+      }
       final service = ref.read(teamAccessServiceProvider);
       await service.changePassword(
         email: email,
