@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,22 +21,48 @@ class AccessGate extends ConsumerStatefulWidget {
 }
 
 class _AccessGateState extends ConsumerState<AccessGate> {
+  Timer? _watchdogTimer;
+
   @override
   void initState() {
     super.initState();
     _initAuthListener();
+    _startWatchdog();
+  }
+
+  void _startWatchdog() {
+    _watchdogTimer = Timer(const Duration(seconds: 7), () {
+      if (!mounted) return;
+      final current = ref.read(accessGateProvider);
+      if (current == GateState.loading || current == GateState.checkingAccess) {
+        final session = AppSupabase.isInitialized ? AppSupabase.client.auth.currentSession : null;
+        if (session != null) {
+          ref.read(accessGateProvider.notifier).setState(GateState.needsOnlineVerification);
+        } else {
+          ref.read(accessGateProvider.notifier).setState(GateState.noSession);
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _watchdogTimer?.cancel();
+    super.dispose();
   }
 
   void _initAuthListener() {
     if (!AppSupabase.isInitialized) {
-      // Supabase belum dikonfigurasi (dev mode / mock test), ubah ke approved jika kDebugMode
-      if (kDebugMode && ref.read(accessGateProvider) == GateState.loading) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted && ref.read(accessGateProvider) == GateState.loading) {
+      // Supabase belum dikonfigurasi / offline saat startup
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && ref.read(accessGateProvider) == GateState.loading) {
+          if (kDebugMode) {
             ref.read(accessGateProvider.notifier).setState(GateState.approved);
+          } else {
+            ref.read(accessGateProvider.notifier).setState(GateState.noSession);
           }
-        });
-      }
+        }
+      });
       return;
     }
 
@@ -73,7 +100,11 @@ class _AccessGateState extends ConsumerState<AccessGate> {
     switch (state) {
       case GateState.loading:
       case GateState.checkingAccess:
-        return const _LoadingGate();
+        return _LoadingGate(
+          onForceLogin: () {
+            ref.read(accessGateProvider.notifier).setState(GateState.noSession);
+          },
+        );
 
       case GateState.noSession:
         return const LoginScreen();
@@ -94,30 +125,83 @@ class _AccessGateState extends ConsumerState<AccessGate> {
 }
 
 /// Layar loading saat gate sedang memeriksa status akses
-class _LoadingGate extends StatelessWidget {
-  const _LoadingGate();
+class _LoadingGate extends StatefulWidget {
+  final VoidCallback? onForceLogin;
+  const _LoadingGate({this.onForceLogin});
+
+  @override
+  State<_LoadingGate> createState() => _LoadingGateState();
+}
+
+class _LoadingGateState extends State<_LoadingGate> {
+  bool _showTroubleshoot = false;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer(const Duration(seconds: 4), () {
+      if (mounted) {
+        setState(() => _showTroubleshoot = true);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Color(0xFF002B66),
+    return Scaffold(
+      backgroundColor: const Color(0xFF002B66),
       body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(
-              color: Colors.white,
-              strokeWidth: 3,
-            ),
-            SizedBox(height: 20),
-            Text(
-              'Memverifikasi akses...',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 3,
               ),
-            ),
-          ],
+              const SizedBox(height: 20),
+              const Text(
+                'Memverifikasi akses...',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
+                ),
+              ),
+              if (_showTroubleshoot) ...[
+                const SizedBox(height: 24),
+                Text(
+                  'Koneksi ke server lambat atau offline.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.65),
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: widget.onForceLogin,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: const BorderSide(color: Colors.white54),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  ),
+                  icon: const Icon(Icons.login, size: 16),
+                  label: const Text(
+                    'Buka Halaman Login / Masuk',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );

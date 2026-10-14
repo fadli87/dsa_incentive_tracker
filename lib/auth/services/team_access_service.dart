@@ -15,16 +15,45 @@ abstract class SecureStorageService {
 
 class DefaultSecureStorage implements SecureStorageService {
   final FlutterSecureStorage _storage;
-  const DefaultSecureStorage([this._storage = const FlutterSecureStorage()]);
+  const DefaultSecureStorage([
+    this._storage = const FlutterSecureStorage(
+      aOptions: AndroidOptions(resetOnError: true),
+    ),
+  ]);
 
   @override
-  Future<void> write(String key, String value) => _storage.write(key: key, value: value);
+  Future<void> write(String key, String value) async {
+    try {
+      await _storage
+          .write(key: key, value: value)
+          .timeout(const Duration(seconds: 3));
+    } catch (e) {
+      debugPrint('DefaultSecureStorage: write timeout/error: $e');
+    }
+  }
 
   @override
-  Future<String?> read(String key) => _storage.read(key: key);
+  Future<String?> read(String key) async {
+    try {
+      return await _storage
+          .read(key: key)
+          .timeout(const Duration(seconds: 3), onTimeout: () => null);
+    } catch (e) {
+      debugPrint('DefaultSecureStorage: read timeout/error: $e');
+      return null;
+    }
+  }
 
   @override
-  Future<void> delete(String key) => _storage.delete(key: key);
+  Future<void> delete(String key) async {
+    try {
+      await _storage
+          .delete(key: key)
+          .timeout(const Duration(seconds: 3));
+    } catch (e) {
+      debugPrint('DefaultSecureStorage: delete timeout/error: $e');
+    }
+  }
 }
 
 /// Service inti untuk pengecekan akses tim, verifikasi RPC, dan penyimpanan cache lokal terenkripsi
@@ -89,6 +118,28 @@ class TeamAccessService {
       }
     } catch (e) {
       debugPrint('TeamAccessService: Server check failed or timed out: $e. Falling back to local cache.');
+      // Graceful fallback jika kolom 'role' belum ditambahkan di database Supabase oleh user
+      if (e.toString().contains('role')) {
+        try {
+          final fallbackResponse = await _client
+              .from('team_members')
+              .select('status, approved_at')
+              .eq('user_id', userId)
+              .maybeSingle()
+              .timeout(serverTimeout);
+          if (fallbackResponse != null && fallbackResponse['status'] != null) {
+            final serverStatus = MemberStatus.fromString(fallbackResponse['status'] as String?);
+            final freshCache = AccessCache(
+              status: serverStatus,
+              role: TeamRole.member,
+              checkedAt: now,
+              validUntil: serverStatus == MemberStatus.approved ? now.add(graceDuration) : now,
+            );
+            await _saveCache(userId, freshCache);
+            return freshCache;
+          }
+        } catch (_) {}
+      }
     }
 
     // Fallback ke cache lokal terenkripsi saat offline/timeout
