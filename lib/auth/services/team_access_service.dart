@@ -7,6 +7,7 @@ import '../models/member_status.dart';
 import '../models/team_member_item.dart';
 import '../supabase_client.dart';
 import '../../data/local/database_helper.dart';
+import '../../data/services/visit_sync_service.dart';
 
 abstract class SecureStorageService {
   Future<void> write(String key, String value);
@@ -48,9 +49,7 @@ class DefaultSecureStorage implements SecureStorageService {
   @override
   Future<void> delete(String key) async {
     try {
-      await _storage
-          .delete(key: key)
-          .timeout(const Duration(seconds: 3));
+      await _storage.delete(key: key).timeout(const Duration(seconds: 3));
     } catch (e) {
       debugPrint('DefaultSecureStorage: delete timeout/error: $e');
     }
@@ -69,8 +68,8 @@ class TeamAccessService {
   TeamAccessService({
     SupabaseClient? supabaseClient,
     SecureStorageService? secureStorage,
-  })  : _injectedClient = supabaseClient,
-        _secureStorage = secureStorage ?? const DefaultSecureStorage();
+  }) : _injectedClient = supabaseClient,
+       _secureStorage = secureStorage ?? const DefaultSecureStorage();
 
   SupabaseClient get _client => _injectedClient ?? AppSupabase.client;
 
@@ -97,9 +96,11 @@ class TeamAccessService {
           .timeout(serverTimeout);
 
       if (response != null && response['status'] != null) {
-        final serverStatus = MemberStatus.fromString(response['status'] as String?);
+        final serverStatus = MemberStatus.fromString(
+          response['status'] as String?,
+        );
         final serverRole = TeamRole.fromString(response['role'] as String?);
-        
+
         final DateTime validUntil;
         if (serverStatus == MemberStatus.approved) {
           validUntil = now.add(graceDuration);
@@ -118,7 +119,9 @@ class TeamAccessService {
         return freshCache;
       }
     } catch (e) {
-      debugPrint('TeamAccessService: Server check failed or timed out: $e. Falling back to local cache.');
+      debugPrint(
+        'TeamAccessService: Server check failed or timed out: $e. Falling back to local cache.',
+      );
       // Graceful fallback jika kolom 'role' belum ditambahkan di database Supabase oleh user
       if (e.toString().contains('role')) {
         try {
@@ -129,12 +132,16 @@ class TeamAccessService {
               .maybeSingle()
               .timeout(serverTimeout);
           if (fallbackResponse != null && fallbackResponse['status'] != null) {
-            final serverStatus = MemberStatus.fromString(fallbackResponse['status'] as String?);
+            final serverStatus = MemberStatus.fromString(
+              fallbackResponse['status'] as String?,
+            );
             final freshCache = AccessCache(
               status: serverStatus,
               role: TeamRole.member,
               checkedAt: now,
-              validUntil: serverStatus == MemberStatus.approved ? now.add(graceDuration) : now,
+              validUntil: serverStatus == MemberStatus.approved
+                  ? now.add(graceDuration)
+                  : now,
             );
             await _saveCache(userId, freshCache);
             return freshCache;
@@ -150,7 +157,7 @@ class TeamAccessService {
       if (cached.status == MemberStatus.revoked) {
         return cached;
       }
-      
+
       // Jika status approved dan masih dalam masa tenggang
       if (cached.status == MemberStatus.approved && !cached.isExpired) {
         return cached;
@@ -203,13 +210,15 @@ class TeamAccessService {
     required MemberStatus newStatus,
   }) async {
     try {
-      final result = await _client.rpc(
-        'admin_update_member_status',
-        params: {
-          'target_user_id': targetUserId,
-          'new_status': newStatus.toDbString(),
-        },
-      ).timeout(serverTimeout);
+      final result = await _client
+          .rpc(
+            'admin_update_member_status',
+            params: {
+              'target_user_id': targetUserId,
+              'new_status': newStatus.toDbString(),
+            },
+          )
+          .timeout(serverTimeout);
 
       return result.toString();
     } catch (e) {
@@ -224,13 +233,15 @@ class TeamAccessService {
     required TeamRole newRole,
   }) async {
     try {
-      final result = await _client.rpc(
-        'admin_update_member_role',
-        params: {
-          'target_user_id': targetUserId,
-          'new_role': newRole.toDbString(),
-        },
-      ).timeout(serverTimeout);
+      final result = await _client
+          .rpc(
+            'admin_update_member_role',
+            params: {
+              'target_user_id': targetUserId,
+              'new_role': newRole.toDbString(),
+            },
+          )
+          .timeout(serverTimeout);
 
       return result.toString();
     } catch (e) {
@@ -242,12 +253,9 @@ class TeamAccessService {
   /// Memperbarui kode akses tim (khusus Superadmin via RPC security definer)
   Future<String> updateTeamAccessCode(String newCode) async {
     try {
-      final result = await _client.rpc(
-        'admin_update_access_code',
-        params: {
-          'new_code': newCode.trim(),
-        },
-      ).timeout(serverTimeout);
+      final result = await _client
+          .rpc('admin_update_access_code', params: {'new_code': newCode.trim()})
+          .timeout(serverTimeout);
 
       return result.toString();
     } catch (e) {
@@ -260,10 +268,9 @@ class TeamAccessService {
   /// Mengembalikan: 'approved' | 'invalid_code' | 'already_revoked' | 'config_missing' | 'not_authenticated' | 'error'
   Future<String> redeemAccessCode(String code) async {
     try {
-      final result = await _client.rpc(
-        'redeem_access_code',
-        params: {'input_code': code.trim()},
-      ).timeout(serverTimeout);
+      final result = await _client
+          .rpc('redeem_access_code', params: {'input_code': code.trim()})
+          .timeout(serverTimeout);
 
       final statusString = result.toString();
       if (statusString == 'approved') {
@@ -296,27 +303,80 @@ class TeamAccessService {
     }
 
     // 2. Update password baru
-    await _client.auth.updateUser(
-      UserAttributes(password: newPassword),
-    );
+    await _client.auth.updateUser(UserAttributes(password: newPassword));
   }
 
-  /// Logout manual: hapus sesi auth Supabase, bersihkan cache lokal, dan kosongkan
-  /// data visit lokal agar tidak ikut ter-push bila akun lain login di perangkat yang sama.
-  Future<void> signOut({String? userId}) async {
+  /// Logout manual:
+  /// 1. Hitung baris pending (`sync_state = 0`) milik akun aktif.
+  /// 2. Bila ada baris pending, coba sinkron terlebih dahulu (`VisitSyncService.pushPendingVisits`).
+  /// 3. Bila setelah dicoba sinkron masih ada baris pending, minta konfirmasi lewat
+  ///    `confirmDiscardPendingVisits(remainingPendingCount)`.
+  ///    - Hapus data visit lokal dan selesaikan logout HANYA bila user menyetujui
+  ///      (`confirmDiscardPendingVisits` mengembalikan `true` atau `forceDiscardPending == true`).
+  ///    - Bila batal / tanpa konfirmasi, jangan hapus data dan batalkan logout (return `false`).
+  Future<bool> signOut({
+    String? userId,
+    VisitSyncService? visitSyncService,
+    Future<bool> Function(int pendingCount)? confirmDiscardPendingVisits,
+    bool forceDiscardPending = false,
+  }) async {
     try {
-      final currentId = userId ?? _client.auth.currentUser?.id;
+      String? currentId = userId;
+      if (currentId == null) {
+        try {
+          currentId = _client.auth.currentUser?.id;
+        } catch (_) {}
+      }
+
+      // 1. Hitung baris pending milik akun aktif sebelum menghapus
+      final pendingBefore = await DatabaseHelper.instance.getPendingVisits(
+        ownerUserId: currentId,
+      );
+
+      if (pendingBefore.isNotEmpty) {
+        // 2. Coba sinkronkan dulu ke server
+        try {
+          final syncService =
+              visitSyncService ??
+              VisitSyncService(supabaseClient: _injectedClient);
+          await syncService.pushPendingVisits(isApproved: true);
+        } catch (syncErr) {
+          debugPrint('TeamAccessService: pre-signOut sync error: $syncErr');
+        }
+
+        // 3. Periksa kembali apakah masih ada baris pending setelah percobaan sinkron
+        final remainingPending = await DatabaseHelper.instance.getPendingVisits(
+          ownerUserId: currentId,
+        );
+        if (remainingPending.isNotEmpty) {
+          bool confirmed = forceDiscardPending;
+          if (!confirmed && confirmDiscardPendingVisits != null) {
+            confirmed = await confirmDiscardPendingVisits(
+              remainingPending.length,
+            );
+          }
+          if (!confirmed) {
+            // Batal logout: pertahankan data lokal, cache, dan sesi
+            return false;
+          }
+        }
+      }
+
       if (currentId != null) {
         await _clearCache(currentId);
       }
       try {
         await DatabaseHelper.instance.clearAllLocalVisits();
       } catch (dbErr) {
-        debugPrint('TeamAccessService: clearAllLocalVisits on signOut error: $dbErr');
+        debugPrint(
+          'TeamAccessService: clearAllLocalVisits on signOut error: $dbErr',
+        );
       }
       await _client.auth.signOut();
+      return true;
     } catch (e) {
       debugPrint('TeamAccessService: signOut error: $e');
+      return true;
     }
   }
 

@@ -103,6 +103,9 @@ class VisitSyncService {
   bool get _isSupabaseConfigured =>
       isConfiguredOverride ?? (SupabaseConfig.isConfigured && AppSupabase.isInitialized);
 
+  /// Mengembalikan ID user yang sedang login dari gateway (atau null bila belum login).
+  String? get currentAuthUserId => _gateway.currentUserId;
+
   /// Guard wajib: berhenti diam-diam bila Supabase belum dikonfigurasi, belum login,
   /// atau status user bukan approved.
   bool _canSync({required bool isApproved}) {

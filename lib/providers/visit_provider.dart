@@ -86,8 +86,13 @@ class VisitNotifier extends AsyncNotifier<List<VisitActivity>> {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
       final nowIso = DateTime.now().toUtc().toIso8601String();
+      final gatewayUid = ref.read(visitSyncServiceProvider).currentAuthUserId;
+      final resolvedOwner = visit.ownerUserId.trim().isNotEmpty
+          ? visit.ownerUserId.trim()
+          : DatabaseHelper.instance.resolveCurrentOwnerUserId(gatewayUid);
       final record = visit.copyWith(
         clientId: visit.clientId.trim().isEmpty ? _uuid.v4() : visit.clientId,
+        ownerUserId: resolvedOwner,
         updatedAt: nowIso,
         syncState: 0,
         deleted: false,
@@ -128,20 +133,22 @@ class VisitNotifier extends AsyncNotifier<List<VisitActivity>> {
       category: category,
     );
     final normalizedId = customerId.trim().toLowerCase();
-    return visitsOnDate.any((v) =>
-        v.id != excludeId &&
-        v.customerId.trim().toLowerCase() == normalizedId);
+    return visitsOnDate.any(
+      (v) =>
+          v.id != excludeId &&
+          v.customerId.trim().toLowerCase() == normalizedId,
+    );
   }
 }
 
-final visitProvider =
-    AsyncNotifierProvider<VisitNotifier, List<VisitActivity>>(
+final visitProvider = AsyncNotifierProvider<VisitNotifier, List<VisitActivity>>(
   () => VisitNotifier(),
 );
 
 /// Provider hitungan per kategori pada tanggal terpilih
-final visitCountsByCategoryProvider =
-    FutureProvider<Map<VisitCategory, int>>((ref) async {
+final visitCountsByCategoryProvider = FutureProvider<Map<VisitCategory, int>>((
+  ref,
+) async {
   // Watch visitProvider agar hitungan ikut ter-refresh saat ada tambah/ubah/hapus
   ref.watch(visitProvider);
   final selectedDate = ref.watch(visitSelectedDateProvider);

@@ -5,6 +5,7 @@ import '../../auth/screens/change_password_screen.dart';
 import '../../auth/screens/super_admin_panel_screen.dart';
 import '../../auth/supabase_client.dart';
 import '../../providers/user_info_provider.dart';
+import '../../providers/visit_provider.dart';
 
 class UserInfoScreen extends ConsumerStatefulWidget {
   const UserInfoScreen({super.key});
@@ -584,9 +585,41 @@ class _UserInfoScreenState extends ConsumerState<UserInfoScreen> {
                               ),
                             );
                             if (confirm == true && context.mounted) {
-                              await ref
+                              final didSignOut = await ref
                                   .read(teamAccessServiceProvider)
-                                  .signOut();
+                                  .signOut(
+                                    visitSyncService: ref.read(visitSyncServiceProvider),
+                                    confirmDiscardPendingVisits: (pendingCount) async {
+                                      if (!context.mounted) return false;
+                                      final discardConfirm = await showDialog<bool>(
+                                        context: context,
+                                        builder: (ctx) => AlertDialog(
+                                          title: const Text('Data Visit Belum Tersinkron'),
+                                          content: Text(
+                                            'Masih ada $pendingCount data aktivitas visit yang belum terkirim ke server. '
+                                            'Jika Anda keluar sekarang, $pendingCount data tersebut akan dihapus dari perangkat ini.\n\n'
+                                            'Tetap keluar dan hapus data yang belum terkirim?',
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(ctx, false),
+                                              child: const Text('Batal'),
+                                            ),
+                                            ElevatedButton(
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Colors.red.shade700,
+                                                foregroundColor: Colors.white,
+                                              ),
+                                              onPressed: () => Navigator.pop(ctx, true),
+                                              child: const Text('Tetap Keluar & Hapus'),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                      return discardConfirm == true;
+                                    },
+                                  );
+                              if (!didSignOut) return;
                               ref
                                   .read(accessGateProvider.notifier)
                                   .setState(GateState.noSession);

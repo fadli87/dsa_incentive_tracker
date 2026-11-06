@@ -3,6 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:dsa_incentive_tracker/auth/models/access_cache.dart';
 import 'package:dsa_incentive_tracker/auth/models/member_status.dart';
 import 'package:dsa_incentive_tracker/auth/services/team_access_service.dart';
+import 'package:dsa_incentive_tracker/data/local/database_helper.dart';
+import 'package:dsa_incentive_tracker/data/models/visit_activity.dart';
+import 'package:dsa_incentive_tracker/data/services/visit_sync_service.dart';
 
 /// In-memory fake untuk SecureStorageService
 class FakeSecureStorage implements SecureStorageService {
@@ -35,68 +38,74 @@ void main() {
       expect(MemberStatus.fromString(null), MemberStatus.unknown);
     });
 
-    test('TeamRole correctly parses and verifies superadmin, canViewAll, and canEditRoles privileges', () {
-      expect(TeamRole.fromString('superadmin'), TeamRole.superadmin);
-      expect(TeamRole.fromString('SUPERADMIN'), TeamRole.superadmin);
-      expect(TeamRole.fromString('admin'), TeamRole.admin);
-      expect(TeamRole.fromString('spv'), TeamRole.spv);
-      expect(TeamRole.fromString('SPV'), TeamRole.spv);
-      expect(TeamRole.fromString('tsc'), TeamRole.tsc);
-      expect(TeamRole.fromString('TSC'), TeamRole.tsc);
-      expect(TeamRole.fromString('member'), TeamRole.member);
-      expect(TeamRole.fromString('unknown'), TeamRole.member);
-      expect(TeamRole.fromString('role_aneh_123'), TeamRole.member);
-      expect(TeamRole.fromString(null), TeamRole.member);
+    test(
+      'TeamRole correctly parses and verifies superadmin, canViewAll, and canEditRoles privileges',
+      () {
+        expect(TeamRole.fromString('superadmin'), TeamRole.superadmin);
+        expect(TeamRole.fromString('SUPERADMIN'), TeamRole.superadmin);
+        expect(TeamRole.fromString('admin'), TeamRole.admin);
+        expect(TeamRole.fromString('spv'), TeamRole.spv);
+        expect(TeamRole.fromString('SPV'), TeamRole.spv);
+        expect(TeamRole.fromString('tsc'), TeamRole.tsc);
+        expect(TeamRole.fromString('TSC'), TeamRole.tsc);
+        expect(TeamRole.fromString('member'), TeamRole.member);
+        expect(TeamRole.fromString('unknown'), TeamRole.member);
+        expect(TeamRole.fromString('role_aneh_123'), TeamRole.member);
+        expect(TeamRole.fromString(null), TeamRole.member);
 
-      // isSuperadmin tetap hanya superadmin & admin (SPV/TSC tetap false)
-      expect(TeamRole.superadmin.isSuperadmin, isTrue);
-      expect(TeamRole.admin.isSuperadmin, isTrue);
-      expect(TeamRole.spv.isSuperadmin, isFalse);
-      expect(TeamRole.tsc.isSuperadmin, isFalse);
-      expect(TeamRole.member.isSuperadmin, isFalse);
+        // isSuperadmin tetap hanya superadmin & admin (SPV/TSC tetap false)
+        expect(TeamRole.superadmin.isSuperadmin, isTrue);
+        expect(TeamRole.admin.isSuperadmin, isTrue);
+        expect(TeamRole.spv.isSuperadmin, isFalse);
+        expect(TeamRole.tsc.isSuperadmin, isFalse);
+        expect(TeamRole.member.isSuperadmin, isFalse);
 
-      // canViewAll benar untuk semua selain member
-      expect(TeamRole.superadmin.canViewAll, isTrue);
-      expect(TeamRole.admin.canViewAll, isTrue);
-      expect(TeamRole.spv.canViewAll, isTrue);
-      expect(TeamRole.tsc.canViewAll, isTrue);
-      expect(TeamRole.member.canViewAll, isFalse);
+        // canViewAll benar untuk semua selain member
+        expect(TeamRole.superadmin.canViewAll, isTrue);
+        expect(TeamRole.admin.canViewAll, isTrue);
+        expect(TeamRole.spv.canViewAll, isTrue);
+        expect(TeamRole.tsc.canViewAll, isTrue);
+        expect(TeamRole.member.canViewAll, isFalse);
 
-      // canEditRoles hanya superadmin
-      expect(TeamRole.superadmin.canEditRoles, isTrue);
-      expect(TeamRole.admin.canEditRoles, isFalse);
-      expect(TeamRole.spv.canEditRoles, isFalse);
-      expect(TeamRole.tsc.canEditRoles, isFalse);
-      expect(TeamRole.member.canEditRoles, isFalse);
-    });
+        // canEditRoles hanya superadmin
+        expect(TeamRole.superadmin.canEditRoles, isTrue);
+        expect(TeamRole.admin.canEditRoles, isFalse);
+        expect(TeamRole.spv.canEditRoles, isFalse);
+        expect(TeamRole.tsc.canEditRoles, isFalse);
+        expect(TeamRole.member.canEditRoles, isFalse);
+      },
+    );
 
-    test('AccessCache legacy JSON (tanpa field role atau role lama) tetap terbaca aman', () {
-      final now = DateTime.now();
-      final validUntil = now.add(const Duration(days: 7));
-      final legacyJsonWithoutRole = {
-        'status': 'approved',
-        'checked_at': now.toIso8601String(),
-        'valid_until': validUntil.toIso8601String(),
-      };
+    test(
+      'AccessCache legacy JSON (tanpa field role atau role lama) tetap terbaca aman',
+      () {
+        final now = DateTime.now();
+        final validUntil = now.add(const Duration(days: 7));
+        final legacyJsonWithoutRole = {
+          'status': 'approved',
+          'checked_at': now.toIso8601String(),
+          'valid_until': validUntil.toIso8601String(),
+        };
 
-      final parsedLegacy = AccessCache.fromJson(legacyJsonWithoutRole);
-      expect(parsedLegacy.status, MemberStatus.approved);
-      expect(parsedLegacy.role, TeamRole.member);
-      expect(parsedLegacy.canViewAll, isFalse);
-      expect(parsedLegacy.isSuperadmin, isFalse);
-      expect(parsedLegacy.isAccessAllowed, isTrue);
+        final parsedLegacy = AccessCache.fromJson(legacyJsonWithoutRole);
+        expect(parsedLegacy.status, MemberStatus.approved);
+        expect(parsedLegacy.role, TeamRole.member);
+        expect(parsedLegacy.canViewAll, isFalse);
+        expect(parsedLegacy.isSuperadmin, isFalse);
+        expect(parsedLegacy.isAccessAllowed, isTrue);
 
-      final spvCache = AccessCache(
-        status: MemberStatus.approved,
-        role: TeamRole.spv,
-        checkedAt: now,
-        validUntil: validUntil,
-      );
-      final reconstructedSpv = AccessCache.fromJson(spvCache.toJson());
-      expect(reconstructedSpv.role, TeamRole.spv);
-      expect(reconstructedSpv.canViewAll, isTrue);
-      expect(reconstructedSpv.isSuperadmin, isFalse);
-    });
+        final spvCache = AccessCache(
+          status: MemberStatus.approved,
+          role: TeamRole.spv,
+          checkedAt: now,
+          validUntil: validUntil,
+        );
+        final reconstructedSpv = AccessCache.fromJson(spvCache.toJson());
+        expect(reconstructedSpv.role, TeamRole.spv);
+        expect(reconstructedSpv.canViewAll, isTrue);
+        expect(reconstructedSpv.isSuperadmin, isFalse);
+      },
+    );
 
     test('AccessCache serializes and deserializes correctly', () {
       final now = DateTime.now();
@@ -120,7 +129,9 @@ void main() {
 
     test('AccessCache detects expired grace period', () {
       final past = DateTime.now().subtract(const Duration(days: 8));
-      final expiredUntil = past.add(const Duration(days: 7)); // 1 hari yang lalu
+      final expiredUntil = past.add(
+        const Duration(days: 7),
+      ); // 1 hari yang lalu
       final cache = AccessCache(
         status: MemberStatus.approved,
         checkedAt: past,
@@ -149,39 +160,45 @@ void main() {
       expect(result.isAccessAllowed, isFalse);
     });
 
-    test('Offline dengan cache approved yang masih valid (< 7 hari) mengizinkan akses', () async {
-      final now = DateTime.now();
-      final validCache = AccessCache(
-        status: MemberStatus.approved,
-        checkedAt: now.subtract(const Duration(days: 2)),
-        validUntil: now.add(const Duration(days: 5)),
-      );
-      await fakeStorage.write(
-        '${TeamAccessService.cacheKeyPrefix}user_test_2',
-        jsonEncode(validCache.toJson()),
-      );
+    test(
+      'Offline dengan cache approved yang masih valid (< 7 hari) mengizinkan akses',
+      () async {
+        final now = DateTime.now();
+        final validCache = AccessCache(
+          status: MemberStatus.approved,
+          checkedAt: now.subtract(const Duration(days: 2)),
+          validUntil: now.add(const Duration(days: 5)),
+        );
+        await fakeStorage.write(
+          '${TeamAccessService.cacheKeyPrefix}user_test_2',
+          jsonEncode(validCache.toJson()),
+        );
 
-      final result = await service.resolveAccess('user_test_2');
-      expect(result.status, MemberStatus.approved);
-      expect(result.isAccessAllowed, isTrue);
-    });
+        final result = await service.resolveAccess('user_test_2');
+        expect(result.status, MemberStatus.approved);
+        expect(result.isAccessAllowed, isTrue);
+      },
+    );
 
-    test('Offline dengan cache approved kedaluwarsa (> 7 hari) mengembalikan status unknown', () async {
-      final past = DateTime.now().subtract(const Duration(days: 10));
-      final expiredCache = AccessCache(
-        status: MemberStatus.approved,
-        checkedAt: past,
-        validUntil: past.add(const Duration(days: 7)), // 3 hari yang lalu
-      );
-      await fakeStorage.write(
-        '${TeamAccessService.cacheKeyPrefix}user_test_3',
-        jsonEncode(expiredCache.toJson()),
-      );
+    test(
+      'Offline dengan cache approved kedaluwarsa (> 7 hari) mengembalikan status unknown',
+      () async {
+        final past = DateTime.now().subtract(const Duration(days: 10));
+        final expiredCache = AccessCache(
+          status: MemberStatus.approved,
+          checkedAt: past,
+          validUntil: past.add(const Duration(days: 7)), // 3 hari yang lalu
+        );
+        await fakeStorage.write(
+          '${TeamAccessService.cacheKeyPrefix}user_test_3',
+          jsonEncode(expiredCache.toJson()),
+        );
 
-      final result = await service.resolveAccess('user_test_3');
-      expect(result.status, MemberStatus.unknown);
-      expect(result.isAccessAllowed, isFalse);
-    });
+        final result = await service.resolveAccess('user_test_3');
+        expect(result.status, MemberStatus.unknown);
+        expect(result.isAccessAllowed, isFalse);
+      },
+    );
 
     test('Offline dengan cache status revoked tetap diblokir', () async {
       final revokedCache = AccessCache(
@@ -199,32 +216,38 @@ void main() {
       expect(result.isAccessAllowed, isFalse);
     });
 
-    test('CRITICAL REGRESSION TEST: Kegagalan koneksi offline tidak pernah merusak sesi/memanggil logout', () async {
-      // Setup user dengan cache valid
-      final now = DateTime.now();
-      final validCache = AccessCache(
-        status: MemberStatus.approved,
-        checkedAt: now,
-        validUntil: now.add(const Duration(days: 7)),
-      );
-      await fakeStorage.write(
-        '${TeamAccessService.cacheKeyPrefix}user_sales_field',
-        jsonEncode(validCache.toJson()),
-      );
+    test(
+      'CRITICAL REGRESSION TEST: Kegagalan koneksi offline tidak pernah merusak sesi/memanggil logout',
+      () async {
+        // Setup user dengan cache valid
+        final now = DateTime.now();
+        final validCache = AccessCache(
+          status: MemberStatus.approved,
+          checkedAt: now,
+          validUntil: now.add(const Duration(days: 7)),
+        );
+        await fakeStorage.write(
+          '${TeamAccessService.cacheKeyPrefix}user_sales_field',
+          jsonEncode(validCache.toJson()),
+        );
 
-      // Panggil resolveAccess berulang kali dalam kondisi offline
-      final res1 = await service.resolveAccess('user_sales_field');
-      final res2 = await service.resolveAccess('user_sales_field');
+        // Panggil resolveAccess berulang kali dalam kondisi offline
+        final res1 = await service.resolveAccess('user_sales_field');
+        final res2 = await service.resolveAccess('user_sales_field');
 
-      expect(res1.status, MemberStatus.approved);
-      expect(res2.status, MemberStatus.approved);
+        expect(res1.status, MemberStatus.approved);
+        expect(res2.status, MemberStatus.approved);
 
-      // Pastikan cache tetap ada dan tidak terhapus
-      final storedValue = await fakeStorage.read('${TeamAccessService.cacheKeyPrefix}user_sales_field');
-      expect(storedValue, isNotNull);
-    });
+        // Pastikan cache tetap ada dan tidak terhapus
+        final storedValue = await fakeStorage.read(
+          '${TeamAccessService.cacheKeyPrefix}user_sales_field',
+        );
+        expect(storedValue, isNotNull);
+      },
+    );
 
     test('signOut menghapus cache lokal user secara bersih', () async {
+      DatabaseHelper.instance.clearInMemoryVisits();
       final validCache = AccessCache(
         status: MemberStatus.approved,
         checkedAt: DateTime.now(),
@@ -235,10 +258,114 @@ void main() {
         jsonEncode(validCache.toJson()),
       );
 
-      await service.signOut(userId: 'user_to_logout');
+      final didSignOut = await service.signOut(userId: 'user_to_logout');
+      expect(didSignOut, isTrue);
 
-      final storedValue = await fakeStorage.read('${TeamAccessService.cacheKeyPrefix}user_to_logout');
+      final storedValue = await fakeStorage.read(
+        '${TeamAccessService.cacheKeyPrefix}user_to_logout',
+      );
       expect(storedValue, isNull);
     });
+
+    test(
+      'signOut dengan baris pending tidak menghapus data tanpa konfirmasi, dan hanya menghapus bila user setuju',
+      () async {
+        final db = DatabaseHelper.instance;
+        db.clearInMemoryVisits();
+
+        final validCache = AccessCache(
+          status: MemberStatus.approved,
+          checkedAt: DateTime.now(),
+          validUntil: DateTime.now().add(const Duration(days: 7)),
+        );
+        await fakeStorage.write(
+          '${TeamAccessService.cacheKeyPrefix}user_offline_logout',
+          jsonEncode(validCache.toJson()),
+        );
+
+        await db.insertVisit(
+          const VisitActivity(
+            clientId: 'cid-pending-logout-1',
+            ownerUserId: 'user_offline_logout',
+            customerId: '88112233',
+            customerName: 'Pelanggan Belum Terkirim',
+            category: VisitCategory.rvai,
+            plannedDate: '2026-11-06',
+            updatedAt: '2026-11-06T10:00:00Z',
+          ),
+        );
+
+        // Sync service dalam kondisi tidak terkonfigurasi/offline sehingga pushPendingVisits tidak mengirim baris
+        final offlineSyncService = VisitSyncService(
+          databaseHelper: db,
+          isConfiguredOverride: false,
+        );
+
+        // 1. Panggil signOut tanpa konfirmasi -> batal logout, data & cache tetap utuh
+        final resNoConfirm = await service.signOut(
+          userId: 'user_offline_logout',
+          visitSyncService: offlineSyncService,
+        );
+        expect(resNoConfirm, isFalse);
+        expect(
+          (await db.getPendingVisits(
+            ownerUserId: 'user_offline_logout',
+          )).length,
+          1,
+        );
+        expect(
+          await fakeStorage.read(
+            '${TeamAccessService.cacheKeyPrefix}user_offline_logout',
+          ),
+          isNotNull,
+        );
+
+        // 2. Panggil signOut tetapi user menekan "Batal" (confirmDiscardPendingVisits -> false)
+        int? reportedPendingCount;
+        final resCancelled = await service.signOut(
+          userId: 'user_offline_logout',
+          visitSyncService: offlineSyncService,
+          confirmDiscardPendingVisits: (count) async {
+            reportedPendingCount = count;
+            return false;
+          },
+        );
+        expect(resCancelled, isFalse);
+        expect(reportedPendingCount, 1);
+        expect(
+          (await db.getPendingVisits(
+            ownerUserId: 'user_offline_logout',
+          )).length,
+          1,
+        );
+        expect(
+          await fakeStorage.read(
+            '${TeamAccessService.cacheKeyPrefix}user_offline_logout',
+          ),
+          isNotNull,
+        );
+
+        // 3. Panggil signOut dan user menyetujui penghapusan (confirmDiscardPendingVisits -> true)
+        final resConfirmed = await service.signOut(
+          userId: 'user_offline_logout',
+          visitSyncService: offlineSyncService,
+          confirmDiscardPendingVisits: (count) async {
+            expect(count, 1);
+            return true;
+          },
+        );
+        expect(resConfirmed, isTrue);
+        expect(
+          await db.getPendingVisits(ownerUserId: 'user_offline_logout'),
+          isEmpty,
+        );
+        expect(
+          await fakeStorage.read(
+            '${TeamAccessService.cacheKeyPrefix}user_offline_logout',
+          ),
+          isNull,
+        );
+      },
+    );
   });
 }

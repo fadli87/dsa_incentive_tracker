@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:path/path.dart';
 import '../../ai/models/coach_log_entry.dart';
+import '../../auth/supabase_client.dart';
 import '../models/incentive_record.dart';
 import '../models/sa_record.dart';
 import '../models/user_profile.dart';
@@ -58,7 +59,8 @@ class DatabaseHelper {
 
     String dbFolder;
     if (!kIsWeb && Platform.isWindows) {
-      final localAppData = Platform.environment['LOCALAPPDATA'] ??
+      final localAppData =
+          Platform.environment['LOCALAPPDATA'] ??
           Platform.environment['APPDATA'] ??
           '';
       if (localAppData.isNotEmpty) {
@@ -90,7 +92,8 @@ class DatabaseHelper {
       // Fallback path bila terjadi conflict locking dengan multiple instance
       if (!kIsWeb && Platform.isWindows) {
         final fallbackDir = Directory(
-            join(Platform.environment['TEMP'] ?? '.', 'DSAIncentiveTracker'));
+          join(Platform.environment['TEMP'] ?? '.', 'DSAIncentiveTracker'),
+        );
         if (!fallbackDir.existsSync()) {
           fallbackDir.createSync(recursive: true);
         }
@@ -210,7 +213,8 @@ class DatabaseHelper {
   Future<void> _ensureVisitColumns(Database db) async {
     try {
       await db.execute(
-          "ALTER TABLE visit_activities ADD COLUMN owner_user_id TEXT NOT NULL DEFAULT ''");
+        "ALTER TABLE visit_activities ADD COLUMN owner_user_id TEXT NOT NULL DEFAULT ''",
+      );
     } catch (_) {}
   }
 
@@ -218,20 +222,34 @@ class DatabaseHelper {
     if (oldVersion < 2) {
       try {
         await db.execute(
-            "ALTER TABLE history ADD COLUMN position TEXT NOT NULL DEFAULT 'Elite'");
+          "ALTER TABLE history ADD COLUMN position TEXT NOT NULL DEFAULT 'Elite'",
+        );
         await db.execute(
-            "ALTER TABLE history ADD COLUMN city TEXT NOT NULL DEFAULT 'KAB. CILACAP'");
+          "ALTER TABLE history ADD COLUMN city TEXT NOT NULL DEFAULT 'KAB. CILACAP'",
+        );
         await db.execute(
-            "ALTER TABLE history ADD COLUMN basic_fee REAL NOT NULL DEFAULT 0.0");
+          "ALTER TABLE history ADD COLUMN basic_fee REAL NOT NULL DEFAULT 0.0",
+        );
         await db.execute(
-            "ALTER TABLE history ADD COLUMN monthly_subtotal REAL NOT NULL DEFAULT 0.0");
+          "ALTER TABLE history ADD COLUMN monthly_subtotal REAL NOT NULL DEFAULT 0.0",
+        );
       } catch (_) {}
     }
     if (oldVersion < 3) {
-      for (final col in ['f0', 'f50', 'f100', 'f125', 'f200', 'fwa', 'p35', 'p6']) {
+      for (final col in [
+        'f0',
+        'f50',
+        'f100',
+        'f125',
+        'f200',
+        'fwa',
+        'p35',
+        'p6',
+      ]) {
         try {
           await db.execute(
-              "ALTER TABLE history ADD COLUMN $col INTEGER NOT NULL DEFAULT 0");
+            "ALTER TABLE history ADD COLUMN $col INTEGER NOT NULL DEFAULT 0",
+          );
         } catch (_) {}
       }
     }
@@ -271,11 +289,13 @@ class DatabaseHelper {
     if (oldVersion < 5) {
       try {
         await db.execute(
-            "ALTER TABLE sa_history ADD COLUMN no_hp_utama TEXT NOT NULL DEFAULT ''");
+          "ALTER TABLE sa_history ADD COLUMN no_hp_utama TEXT NOT NULL DEFAULT ''",
+        );
       } catch (_) {}
       try {
         await db.execute(
-            "ALTER TABLE sa_history ADD COLUMN no_hp_alternatif TEXT NOT NULL DEFAULT ''");
+          "ALTER TABLE sa_history ADD COLUMN no_hp_alternatif TEXT NOT NULL DEFAULT ''",
+        );
       } catch (_) {}
       try {
         await db.execute("ALTER TABLE sa_history ADD COLUMN latitude REAL");
@@ -307,7 +327,11 @@ class DatabaseHelper {
   }
 
   @visibleForTesting
-  Future<void> runUpgradeForTest(Database db, int oldVersion, int newVersion) async {
+  Future<void> runUpgradeForTest(
+    Database db,
+    int oldVersion,
+    int newVersion,
+  ) async {
     await _onUpgrade(db, oldVersion, newVersion);
   }
 
@@ -493,7 +517,9 @@ class DatabaseHelper {
     if (_isInMemory) {
       final index = _webCoachLogs.indexWhere((e) => e.id == id);
       if (index != -1) {
-        _webCoachLogs[index] = _webCoachLogs[index].copyWith(feedback: feedback);
+        _webCoachLogs[index] = _webCoachLogs[index].copyWith(
+          feedback: feedback,
+        );
         return 1;
       }
       return 0;
@@ -520,33 +546,70 @@ class DatabaseHelper {
     return result.map((m) => CoachLogEntry.fromMap(m)).toList();
   }
 
-  Future<List<Map<String, dynamic>>> getTopUnknownQueries({int limit = 20}) async {
+  Future<List<Map<String, dynamic>>> getTopUnknownQueries({
+    int limit = 20,
+  }) async {
     if (_isInMemory) {
-      final unknowns = _webCoachLogs.where((e) => e.intent == 'unknown').toList();
+      final unknowns = _webCoachLogs
+          .where((e) => e.intent == 'unknown')
+          .toList();
       final Map<String, int> counts = {};
       for (final u in unknowns) {
         counts[u.queryNorm] = (counts[u.queryNorm] ?? 0) + 1;
       }
-      final sorted = counts.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
-      return sorted.take(limit).map((e) => {'query_norm': e.key, 'count': e.value}).toList();
+      final sorted = counts.entries.toList()
+        ..sort((a, b) => b.value.compareTo(a.value));
+      return sorted
+          .take(limit)
+          .map((e) => {'query_norm': e.key, 'count': e.value})
+          .toList();
     }
     final db = (await instance.database)!;
-    final result = await db.rawQuery('''
+    final result = await db.rawQuery(
+      '''
       SELECT query_norm, COUNT(*) as count
       FROM coach_log
       WHERE intent = 'unknown'
       GROUP BY query_norm
       ORDER BY count DESC
       LIMIT ?
-    ''', [limit]);
+    ''',
+      [limit],
+    );
     return result;
   }
 
   // --- Visit Activities CRUD (Offline-First + Sync Queue) ---
 
+  /// Resolver opsional untuk pengujian unit agar `insertVisit` dapat mensimulasikan
+  /// `auth.currentUser?.id` tanpa inisialisasi penuh `Supabase`.
+  @visibleForTesting
+  String? Function()? currentUserIdResolver;
+
   @visibleForTesting
   void clearInMemoryVisits() {
     _webVisits.clear();
+    currentUserIdResolver = null;
+  }
+
+  /// Mengambil `ownerUserId` dari argumen eksplisit, `currentUserIdResolver` (saat test),
+  /// atau `AppSupabase.client.auth.currentUser?.id` bila sesi tersedia; fallback `''` bila tanpa sesi.
+  String resolveCurrentOwnerUserId([String? explicitOwnerId]) {
+    final trimmedExplicit = explicitOwnerId?.trim() ?? '';
+    if (trimmedExplicit.isNotEmpty) return trimmedExplicit;
+
+    if (currentUserIdResolver != null) {
+      final resolved = currentUserIdResolver!()?.trim() ?? '';
+      if (resolved.isNotEmpty) return resolved;
+    }
+
+    if (AppSupabase.isInitialized) {
+      try {
+        final uid = AppSupabase.client.auth.currentUser?.id.trim() ?? '';
+        if (uid.isNotEmpty) return uid;
+      } catch (_) {}
+    }
+    return '';
   }
 
   /// Menghapus seluruh data lokal `visit_activities` (dipanggil saat logout
@@ -586,23 +649,25 @@ class DatabaseHelper {
       where: "owner_user_id != '' AND owner_user_id != ?",
       whereArgs: [trimmed],
     );
-    await db.update(
-      'visit_activities',
-      {'owner_user_id': trimmed},
-      where: "owner_user_id = ''",
-    );
+    await db.update('visit_activities', {
+      'owner_user_id': trimmed,
+    }, where: "owner_user_id = ''");
   }
 
   Future<int> insertVisit(VisitActivity visit) async {
     final nowIso = DateTime.now().toUtc().toIso8601String();
+    final resolvedOwner = resolveCurrentOwnerUserId(visit.ownerUserId);
     final toSave = visit.copyWith(
+      ownerUserId: resolvedOwner,
       syncState: 0,
       updatedAt: visit.updatedAt.isNotEmpty ? visit.updatedAt : nowIso,
       deleted: false,
     );
 
     if (_isInMemory) {
-      final existingIdx = _webVisits.indexWhere((v) => v.clientId == toSave.clientId);
+      final existingIdx = _webVisits.indexWhere(
+        (v) => v.clientId == toSave.clientId,
+      );
       if (existingIdx != -1) {
         final existingId = _webVisits[existingIdx].id;
         _webVisits[existingIdx] = toSave.copyWith(id: existingId);
@@ -624,14 +689,13 @@ class DatabaseHelper {
 
   Future<int> updateVisit(VisitActivity visit) async {
     final nowIso = DateTime.now().toUtc().toIso8601String();
-    final updated = visit.copyWith(
-      syncState: 0,
-      updatedAt: nowIso,
-    );
+    final updated = visit.copyWith(syncState: 0, updatedAt: nowIso);
 
     if (_isInMemory) {
       final index = _webVisits.indexWhere(
-        (v) => (visit.id != null && v.id == visit.id) || v.clientId == visit.clientId,
+        (v) =>
+            (visit.id != null && v.id == visit.id) ||
+            v.clientId == visit.clientId,
       );
       if (index == -1) return 0;
       _webVisits[index] = updated.copyWith(id: _webVisits[index].id);
@@ -672,11 +736,7 @@ class DatabaseHelper {
     final db = (await instance.database)!;
     return await db.update(
       'visit_activities',
-      {
-        'deleted': 1,
-        'sync_state': 0,
-        'updated_at': nowIso,
-      },
+      {'deleted': 1, 'sync_state': 0, 'updated_at': nowIso},
       where: 'id = ?',
       whereArgs: [id],
     );
@@ -815,7 +875,9 @@ class DatabaseHelper {
     );
   }
 
-  Future<Map<VisitCategory, int>> visitCountsByCategory(String plannedDate) async {
+  Future<Map<VisitCategory, int>> visitCountsByCategory(
+    String plannedDate,
+  ) async {
     final counts = <VisitCategory, int>{
       VisitCategory.rvai: 0,
       VisitCategory.dismantle: 0,
@@ -832,12 +894,15 @@ class DatabaseHelper {
     }
 
     final db = (await instance.database)!;
-    final rows = await db.rawQuery('''
+    final rows = await db.rawQuery(
+      '''
       SELECT category, COUNT(*) as cnt
       FROM visit_activities
       WHERE deleted = 0 AND planned_date = ?
       GROUP BY category
-    ''', [plannedDate]);
+    ''',
+      [plannedDate],
+    );
 
     for (final row in rows) {
       final cat = VisitCategory.fromString(row['category'] as String?);
@@ -888,4 +953,3 @@ class DatabaseHelper {
     );
   }
 }
-

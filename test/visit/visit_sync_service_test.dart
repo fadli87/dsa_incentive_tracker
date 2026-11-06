@@ -368,5 +368,60 @@ void main() {
       expect(gateway.remoteTable.isEmpty, isTrue);
       expect(await db.getVisitsByDate('2026-11-06'), isEmpty);
     });
+
+    test('Temuan B: Baris yang dibuat akun A otomatis terisi ownerUserId dari sesi saat insertVisit dan tidak pernah dikirim atas nama akun B walau signOut tidak dipanggil', () async {
+      // 1. Sesi aktif adalah 'akun-A'
+      db.currentUserIdResolver = () => 'akun-A';
+
+      // Akun A membuat baris visit TANPA mengisi ownerUserId secara manual
+      await db.insertVisit(
+        const VisitActivity(
+          clientId: 'c-dibuat-akun-a-offline',
+          customerId: '91002003',
+          customerName: 'Target Akun A Tanpa SignOut',
+          category: VisitCategory.rvai,
+          plannedDate: '2026-11-06',
+          updatedAt: '2026-11-06T10:00:00Z',
+        ),
+      );
+
+      // Pastikan ownerUserId langsung terisi 'akun-A' saat baris dibuat (sebelum sinkron pertama)
+      final createdList = await db.getVisitsByDate('2026-11-06');
+      expect(createdList.length, 1);
+      expect(createdList.first.ownerUserId, 'akun-A');
+
+      // 2. Sesi 'akun-A' berakhir tanpa lewat signOut (mis. token dicabut), lalu 'akun-B' login
+      db.currentUserIdResolver = () => 'akun-B';
+      final gatewayB = FakeVisitRemoteGateway(activeUserId: 'akun-B');
+      final serviceB = VisitSyncService(
+        databaseHelper: db,
+        remoteGateway: gatewayB,
+        isConfiguredOverride: true,
+      );
+
+      // 3. 'akun-B' menjalankan sinkronisasi
+      final res = await serviceB.pushPendingVisits(isApproved: true);
+
+      // Baris yang dibuat 'akun-A' TIDAK PERNAH dikirim atas nama 'akun-B'
+      expect(res.pushedCount, 0);
+      expect(gatewayB.remoteTable.isEmpty, isTrue);
+      expect(await db.getPendingVisits(ownerUserId: 'akun-B'), isEmpty);
+
+      // 4. Pastikan fallback '' tetap berjalan bila tidak ada sesi sama sekali
+      db.currentUserIdResolver = () => null;
+      await db.insertVisit(
+        const VisitActivity(
+          clientId: 'c-tanpa-sesi',
+          customerId: '91002004',
+          customerName: 'Target Offline Murni Tanpa Sesi',
+          category: VisitCategory.unpaid,
+          plannedDate: '2026-11-06',
+          updatedAt: '2026-11-06T10:05:00Z',
+        ),
+      );
+      final noSessionList = await db.getVisitsByDate('2026-11-06');
+      expect(noSessionList.length, 1);
+      expect(noSessionList.first.ownerUserId, '');
+    });
   });
 }
