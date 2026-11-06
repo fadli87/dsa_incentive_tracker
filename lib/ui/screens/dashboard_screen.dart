@@ -10,6 +10,7 @@ import 'history_screen.dart';
 import 'guide_screen.dart';
 import 'network_tools_screen.dart';
 import 'coverage_map_screen.dart';
+import 'visit_daily_screen.dart';
 import '../../core/constants/app_constants.dart';
 import '../../ai/widgets/ai_coach_chat_sheet.dart';
 
@@ -370,7 +371,23 @@ class DashboardScreen extends ConsumerWidget {
                           },
                         ),
 
-                        // 4. Sinyal & Speed Test (AURA Network)
+                        // 4. Aktivitas Harian Visit (RVAI / Dismantle / Unpaid)
+                        _buildCircularMenuItem(
+                          icon: Icons.fact_check_rounded,
+                          iconColor: const Color(0xFF15803D),
+                          gradientColors: const [Color(0xFFDCFCE7), Color(0xFFBBF7D0)],
+                          shadowColor: const Color(0xFF16A34A).withValues(alpha: 0.25),
+                          title: 'Aktivitas Harian',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const VisitDailyScreen()),
+                            );
+                          },
+                        ),
+
+                        // 5. Sinyal & Speed Test (AURA Network)
                         _buildCircularMenuItem(
                           icon: Icons.cell_tower_rounded,
                           iconColor: const Color(0xFF6366F1),

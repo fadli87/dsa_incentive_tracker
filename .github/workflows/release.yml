@@ -41,7 +41,10 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-        run: flutter build apk --release --android-skip-build-dependency-validation --dart-define=SUPABASE_URL="$SUPABASE_URL" --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY"
+          VISIT_FORM_URL: ${{ vars.VISIT_FORM_URL || secrets.VISIT_FORM_URL }}
+          VISIT_FORM_CUSTOMER_ENTRY: ${{ vars.VISIT_FORM_CUSTOMER_ENTRY || secrets.VISIT_FORM_CUSTOMER_ENTRY }}
+          VISIT_FORM_CATEGORY_ENTRY: ${{ vars.VISIT_FORM_CATEGORY_ENTRY || secrets.VISIT_FORM_CATEGORY_ENTRY }}
+        run: flutter build apk --release --android-skip-build-dependency-validation --dart-define=SUPABASE_URL="$SUPABASE_URL" --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY" --dart-define=VISIT_FORM_URL="$VISIT_FORM_URL" --dart-define=VISIT_FORM_CUSTOMER_ENTRY="$VISIT_FORM_CUSTOMER_ENTRY" --dart-define=VISIT_FORM_CATEGORY_ENTRY="$VISIT_FORM_CATEGORY_ENTRY"
 
       - name: Verify APK Signature
         run: |
@@ -87,11 +90,17 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          VISIT_FORM_URL: ${{ vars.VISIT_FORM_URL || secrets.VISIT_FORM_URL }}
+          VISIT_FORM_CUSTOMER_ENTRY: ${{ vars.VISIT_FORM_CUSTOMER_ENTRY || secrets.VISIT_FORM_CUSTOMER_ENTRY }}
+          VISIT_FORM_CATEGORY_ENTRY: ${{ vars.VISIT_FORM_CATEGORY_ENTRY || secrets.VISIT_FORM_CATEGORY_ENTRY }}
         shell: powershell
         run: |
           $dartDefines = @()
           if ($env:SUPABASE_URL) { $dartDefines += "--dart-define=SUPABASE_URL=$env:SUPABASE_URL" }
           if ($env:SUPABASE_ANON_KEY) { $dartDefines += "--dart-define=SUPABASE_ANON_KEY=$env:SUPABASE_ANON_KEY" }
+          if ($env:VISIT_FORM_URL) { $dartDefines += "--dart-define=VISIT_FORM_URL=$env:VISIT_FORM_URL" }
+          if ($env:VISIT_FORM_CUSTOMER_ENTRY) { $dartDefines += "--dart-define=VISIT_FORM_CUSTOMER_ENTRY=$env:VISIT_FORM_CUSTOMER_ENTRY" }
+          if ($env:VISIT_FORM_CATEGORY_ENTRY) { $dartDefines += "--dart-define=VISIT_FORM_CATEGORY_ENTRY=$env:VISIT_FORM_CATEGORY_ENTRY" }
           flutter build windows --release $dartDefines
 
       - name: Setup Inno Setup
