@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../auth/providers/auth_providers.dart';
 import '../../providers/user_info_provider.dart';
 import 'user_info_screen.dart';
 import 'update_notes_screen.dart';
@@ -11,6 +12,7 @@ import 'guide_screen.dart';
 import 'network_tools_screen.dart';
 import 'coverage_map_screen.dart';
 import 'visit_daily_screen.dart';
+import 'visit_team_summary_screen.dart';
 import '../../core/constants/app_constants.dart';
 import '../../ai/widgets/ai_coach_chat_sheet.dart';
 
@@ -20,6 +22,7 @@ class DashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(userInfoProvider);
+    final canViewAll = ref.watch(canViewAllProvider);
 
     final String displayName = profileAsync.maybeWhen(
       data: (p) => p.name.trim().isNotEmpty ? p.name : 'Rekan Sales',
@@ -386,6 +389,23 @@ class DashboardScreen extends ConsumerWidget {
                             );
                           },
                         ),
+
+                        // Rekap Tim (Tampil HANYA bila canViewAllProvider == true)
+                        if (canViewAll)
+                          _buildCircularMenuItem(
+                            icon: Icons.analytics_rounded,
+                            iconColor: const Color(0xFF0F766E),
+                            gradientColors: const [Color(0xFFCCFBF1), Color(0xFF99F6E4)],
+                            shadowColor: const Color(0xFF0D9488).withValues(alpha: 0.25),
+                            title: 'Rekap Tim',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const VisitTeamSummaryScreen()),
+                              );
+                            },
+                          ),
 
                         // 5. Sinyal & Speed Test (AURA Network)
                         _buildCircularMenuItem(
