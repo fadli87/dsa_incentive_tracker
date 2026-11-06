@@ -6,6 +6,7 @@ import '../../ai/models/coach_log_entry.dart';
 import '../models/incentive_record.dart';
 import '../models/sa_record.dart';
 import '../models/user_profile.dart';
+import '../models/visit_activity.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -24,6 +25,7 @@ class DatabaseHelper {
   final List<IncentiveRecord> _webIncentives = [];
   final List<SaRecord> _webSaRecords = [];
   final List<CoachLogEntry> _webCoachLogs = [];
+  final List<VisitActivity> _webVisits = [];
   UserProfile _webUserProfile = const UserProfile(
     name: '',
     salesCode: '',
@@ -33,6 +35,7 @@ class DatabaseHelper {
   int _webIncentiveIdCounter = 1;
   int _webSaIdCounter = 1;
   int _webCoachLogIdCounter = 1;
+  int _webVisitIdCounter = 1;
 
   DatabaseHelper._init();
 
@@ -78,7 +81,7 @@ class DatabaseHelper {
     try {
       return await openDatabase(
         path,
-        version: 6,
+        version: 7,
         onCreate: _createDB,
         onUpgrade: _onUpgrade,
       );
@@ -92,7 +95,7 @@ class DatabaseHelper {
         }
         return await openDatabase(
           join(fallbackDir.path, filePath),
-          version: 6,
+          version: 7,
           onCreate: _createDB,
           onUpgrade: _onUpgrade,
         );
@@ -163,6 +166,40 @@ class DatabaseHelper {
         matched INTEGER NOT NULL,
         feedback INTEGER
       )
+    ''');
+
+    await _createVisitTable(db);
+  }
+
+  Future<void> _createVisitTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS visit_activities (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        client_id TEXT NOT NULL UNIQUE,
+        customer_id TEXT NOT NULL,
+        customer_name TEXT NOT NULL DEFAULT '',
+        category TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'belum',
+        address TEXT NOT NULL DEFAULT '',
+        package_name TEXT NOT NULL DEFAULT '',
+        latitude REAL,
+        longitude REAL,
+        planned_date TEXT NOT NULL,
+        visited_at TEXT,
+        note TEXT NOT NULL DEFAULT '',
+        form_submitted INTEGER NOT NULL DEFAULT 0,
+        sync_state INTEGER NOT NULL DEFAULT 0,
+        updated_at TEXT NOT NULL,
+        deleted INTEGER NOT NULL DEFAULT 0
+      )
+    ''');
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS visit_activities_planned_date_idx
+        ON visit_activities (planned_date)
+    ''');
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS visit_activities_cat_status_idx
+        ON visit_activities (category, status)
     ''');
   }
 
@@ -251,6 +288,16 @@ class DatabaseHelper {
         ''');
       } catch (_) {}
     }
+    if (oldVersion < 7) {
+      try {
+        await _createVisitTable(db);
+      } catch (_) {}
+    }
+  }
+
+  @visibleForTesting
+  Future<void> runUpgradeForTest(Database db, int oldVersion, int newVersion) async {
+    await _onUpgrade(db, oldVersion, newVersion);
   }
 
   // --- Incentive History CRUD ---
@@ -482,6 +529,248 @@ class DatabaseHelper {
       LIMIT ?
     ''', [limit]);
     return result;
+  }
+
+  // --- Visit Activities CRUD (Offline-First + Sync Queue) ---
+
+  @visibleForTesting
+  void clearInMemoryVisits() {
+    _webVisits.clear();
+  }
+
+  Future<int> insertVisit(VisitActivity visit) async {
+    final nowIso = DateTime.now().toUtc().toIso8601String();
+    final toSave = visit.copyWith(
+      syncState: 0,
+      updatedAt: visit.updatedAt.isNotEmpty ? visit.updatedAt : nowIso,
+      deleted: false,
+    );
+
+    if (_isInMemory) {
+      final existingIdx = _webVisits.indexWhere((v) => v.clientId == toSave.clientId);
+      if (existingIdx != -1) {
+        final existingId = _webVisits[existingIdx].id;
+        _webVisits[existingIdx] = toSave.copyWith(id: existingId);
+        return existingId ?? 1;
+      }
+      final id = _webVisitIdCounter++;
+      _webVisits.insert(0, toSave.copyWith(id: id));
+      return id;
+    }
+
+    final db = (await instance.database)!;
+    final map = toSave.toMap()..remove('id');
+    return await db.insert(
+      'visit_activities',
+      map,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<int> updateVisit(VisitActivity visit) async {
+    final nowIso = DateTime.now().toUtc().toIso8601String();
+    final updated = visit.copyWith(
+      syncState: 0,
+      updatedAt: nowIso,
+    );
+
+    if (_isInMemory) {
+      final index = _webVisits.indexWhere(
+        (v) => (visit.id != null && v.id == visit.id) || v.clientId == visit.clientId,
+      );
+      if (index == -1) return 0;
+      _webVisits[index] = updated.copyWith(id: _webVisits[index].id);
+      return 1;
+    }
+
+    final db = (await instance.database)!;
+    final map = updated.toMap()..remove('id');
+    if (visit.id != null) {
+      return await db.update(
+        'visit_activities',
+        map,
+        where: 'id = ?',
+        whereArgs: [visit.id],
+      );
+    }
+    return await db.update(
+      'visit_activities',
+      map,
+      where: 'client_id = ?',
+      whereArgs: [visit.clientId],
+    );
+  }
+
+  Future<int> softDeleteVisit(int id) async {
+    final nowIso = DateTime.now().toUtc().toIso8601String();
+    if (_isInMemory) {
+      final index = _webVisits.indexWhere((v) => v.id == id);
+      if (index == -1) return 0;
+      _webVisits[index] = _webVisits[index].copyWith(
+        deleted: true,
+        syncState: 0,
+        updatedAt: nowIso,
+      );
+      return 1;
+    }
+
+    final db = (await instance.database)!;
+    return await db.update(
+      'visit_activities',
+      {
+        'deleted': 1,
+        'sync_state': 0,
+        'updated_at': nowIso,
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<List<VisitActivity>> getVisitsByDate(
+    String plannedDate, {
+    VisitCategory? category,
+  }) async {
+    if (_isInMemory) {
+      return _webVisits.where((v) {
+        if (v.deleted) return false;
+        if (v.plannedDate != plannedDate) return false;
+        if (category != null && v.category != category) return false;
+        return true;
+      }).toList();
+    }
+
+    final db = (await instance.database)!;
+    final where = category == null
+        ? 'deleted = 0 AND planned_date = ?'
+        : 'deleted = 0 AND planned_date = ? AND category = ?';
+    final whereArgs = category == null
+        ? [plannedDate]
+        : [plannedDate, category.toDbString()];
+    final result = await db.query(
+      'visit_activities',
+      where: where,
+      whereArgs: whereArgs,
+      orderBy: 'id DESC',
+    );
+    return result.map((m) => VisitActivity.fromMap(m)).toList();
+  }
+
+  Future<List<VisitActivity>> getVisitsByRange(
+    String fromDate,
+    String toDate,
+  ) async {
+    if (_isInMemory) {
+      return _webVisits.where((v) {
+        if (v.deleted) return false;
+        return v.plannedDate.compareTo(fromDate) >= 0 &&
+            v.plannedDate.compareTo(toDate) <= 0;
+      }).toList();
+    }
+
+    final db = (await instance.database)!;
+    final result = await db.query(
+      'visit_activities',
+      where: 'deleted = 0 AND planned_date >= ? AND planned_date <= ?',
+      whereArgs: [fromDate, toDate],
+      orderBy: 'planned_date DESC, id DESC',
+    );
+    return result.map((m) => VisitActivity.fromMap(m)).toList();
+  }
+
+  Future<List<VisitActivity>> getPendingVisits() async {
+    if (_isInMemory) {
+      return _webVisits.where((v) => v.syncState == 0).toList();
+    }
+
+    final db = (await instance.database)!;
+    final result = await db.query(
+      'visit_activities',
+      where: 'sync_state = 0',
+      orderBy: 'updated_at ASC',
+    );
+    return result.map((m) => VisitActivity.fromMap(m)).toList();
+  }
+
+  Future<void> markVisitsSynced(List<String> clientIds) async {
+    if (clientIds.isEmpty) return;
+    if (_isInMemory) {
+      for (int i = 0; i < _webVisits.length; i++) {
+        if (clientIds.contains(_webVisits[i].clientId)) {
+          _webVisits[i] = _webVisits[i].copyWith(syncState: 1);
+        }
+      }
+      return;
+    }
+
+    final db = (await instance.database)!;
+    final placeholders = List.filled(clientIds.length, '?').join(',');
+    await db.rawUpdate(
+      'UPDATE visit_activities SET sync_state = 1 WHERE client_id IN ($placeholders)',
+      clientIds,
+    );
+  }
+
+  Future<Map<VisitCategory, int>> visitCountsByCategory(String plannedDate) async {
+    final counts = <VisitCategory, int>{
+      VisitCategory.rvai: 0,
+      VisitCategory.dismantle: 0,
+      VisitCategory.unpaid: 0,
+    };
+
+    if (_isInMemory) {
+      for (final v in _webVisits) {
+        if (!v.deleted && v.plannedDate == plannedDate) {
+          counts[v.category] = (counts[v.category] ?? 0) + 1;
+        }
+      }
+      return counts;
+    }
+
+    final db = (await instance.database)!;
+    final rows = await db.rawQuery('''
+      SELECT category, COUNT(*) as cnt
+      FROM visit_activities
+      WHERE deleted = 0 AND planned_date = ?
+      GROUP BY category
+    ''', [plannedDate]);
+
+    for (final row in rows) {
+      final cat = VisitCategory.fromString(row['category'] as String?);
+      final cnt = (row['cnt'] as num?)?.toInt() ?? 0;
+      counts[cat] = cnt;
+    }
+    return counts;
+  }
+
+  Future<bool> hasAnyLocalVisits() async {
+    if (_isInMemory) {
+      return _webVisits.isNotEmpty;
+    }
+    final db = (await instance.database)!;
+    final rows = await db.rawQuery('SELECT 1 FROM visit_activities LIMIT 1');
+    return rows.isNotEmpty;
+  }
+
+  Future<void> upsertRestoredVisit(VisitActivity visit) async {
+    final synced = visit.copyWith(syncState: 1, deleted: false);
+    if (_isInMemory) {
+      final idx = _webVisits.indexWhere((v) => v.clientId == synced.clientId);
+      if (idx != -1) {
+        _webVisits[idx] = synced.copyWith(id: _webVisits[idx].id);
+      } else {
+        _webVisits.add(synced.copyWith(id: _webVisitIdCounter++));
+      }
+      return;
+    }
+
+    final db = (await instance.database)!;
+    final map = synced.toMap()..remove('id');
+    await db.insert(
+      'visit_activities',
+      map,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 }
 
