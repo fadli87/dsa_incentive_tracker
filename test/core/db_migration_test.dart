@@ -344,5 +344,49 @@ void main() {
       expect(pendingAfterDelete.first.deleted, isTrue);
       expect(pendingAfterDelete.first.toSupabaseJson()['deleted_at'], isNotNull);
     });
+
+    test('Isolasi data lokal per akun: baris akun pertama tidak pernah dikirim sebagai milik akun kedua', () async {
+      db.clearInMemoryVisits();
+
+      // Akun pertama ('user-akun-1') membuat 2 baris visit
+      await db.insertVisit(
+        const VisitActivity(
+          clientId: 'cid-user1-a',
+          ownerUserId: 'user-akun-1',
+          customerId: '11100011',
+          customerName: 'Pelanggan Akun 1',
+          category: VisitCategory.rvai,
+          plannedDate: '2026-11-06',
+          updatedAt: '2026-11-06T08:00:00Z',
+        ),
+      );
+
+      // Pastikan getPendingVisits untuk 'user-akun-2' TIDAK mengembalikan baris 'user-akun-1'
+      final pendingForUser2BeforeIsolate =
+          await db.getPendingVisits(ownerUserId: 'user-akun-2');
+      expect(pendingForUser2BeforeIsolate, isEmpty);
+
+      // Saat 'user-akun-2' login di database yang sama, isolateVisitsForUser membersihkan baris akun lama
+      await db.isolateVisitsForUser('user-akun-2');
+      expect(await db.getPendingVisits(ownerUserId: 'user-akun-2'), isEmpty);
+      expect(await db.getVisitsByDate('2026-11-06'), isEmpty);
+
+      // 'user-akun-2' membuat baris baru -> diikat ke 'user-akun-2'
+      await db.insertVisit(
+        const VisitActivity(
+          clientId: 'cid-user2-a',
+          customerId: '22200022',
+          customerName: 'Pelanggan Akun 2',
+          category: VisitCategory.unpaid,
+          plannedDate: '2026-11-06',
+          updatedAt: '2026-11-06T09:00:00Z',
+        ),
+      );
+      await db.isolateVisitsForUser('user-akun-2');
+      final pendingUser2 = await db.getPendingVisits(ownerUserId: 'user-akun-2');
+      expect(pendingUser2.length, 1);
+      expect(pendingUser2.first.clientId, 'cid-user2-a');
+      expect(pendingUser2.first.ownerUserId, 'user-akun-2');
+    });
   });
 }

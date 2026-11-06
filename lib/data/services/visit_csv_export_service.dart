@@ -16,6 +16,20 @@ class VisitCsvExportService {
     'Alamat',
   ];
 
+  /// Mengamankan sel teks dari CSV Formula Injection (Excel/Spreadsheet)
+  /// bila diawali dengan karakter `=`, `+`, `-`, atau `@`.
+  static String sanitizeCsvCell(String value) {
+    if (value.isEmpty) return value;
+    final firstChar = value[0];
+    if (firstChar == '=' ||
+        firstChar == '+' ||
+        firstChar == '-' ||
+        firstChar == '@') {
+      return "'$value";
+    }
+    return value;
+  }
+
   /// Membentuk konten CSV untuk daftar visit tertentu.
   /// Baris tanpa koordinat (`!v.hasLocation`) otomatis dilewati karena Google My Maps
   /// membutuhkan titik Latitude & Longitude.
@@ -25,13 +39,13 @@ class VisitCsvExportService {
       headers,
       ...validVisits.map(
         (v) => [
-          v.customerId,
-          v.customerName,
+          sanitizeCsvCell(v.customerId),
+          sanitizeCsvCell(v.customerName),
           v.latitude!.toStringAsFixed(6),
           v.longitude!.toStringAsFixed(6),
           v.category.displayLabel,
           v.status.displayLabel,
-          v.address,
+          sanitizeCsvCell(v.address),
         ],
       ),
     ];

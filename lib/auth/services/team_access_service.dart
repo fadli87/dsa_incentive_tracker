@@ -6,6 +6,7 @@ import '../models/access_cache.dart';
 import '../models/member_status.dart';
 import '../models/team_member_item.dart';
 import '../supabase_client.dart';
+import '../../data/local/database_helper.dart';
 
 abstract class SecureStorageService {
   Future<void> write(String key, String value);
@@ -300,12 +301,18 @@ class TeamAccessService {
     );
   }
 
-  /// Logout manual: hapus sesi auth Supabase dan bersihkan cache lokal
+  /// Logout manual: hapus sesi auth Supabase, bersihkan cache lokal, dan kosongkan
+  /// data visit lokal agar tidak ikut ter-push bila akun lain login di perangkat yang sama.
   Future<void> signOut({String? userId}) async {
     try {
       final currentId = userId ?? _client.auth.currentUser?.id;
       if (currentId != null) {
         await _clearCache(currentId);
+      }
+      try {
+        await DatabaseHelper.instance.clearAllLocalVisits();
+      } catch (dbErr) {
+        debugPrint('TeamAccessService: clearAllLocalVisits on signOut error: $dbErr');
       }
       await _client.auth.signOut();
     } catch (e) {

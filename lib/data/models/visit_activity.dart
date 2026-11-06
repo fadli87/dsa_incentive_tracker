@@ -89,6 +89,7 @@ enum VisitStatus {
 class VisitActivity {
   final int? id;
   final String clientId;
+  final String ownerUserId;
   final String customerId;
   final String customerName;
   final VisitCategory category;
@@ -108,6 +109,7 @@ class VisitActivity {
   const VisitActivity({
     this.id,
     required this.clientId,
+    this.ownerUserId = '',
     required this.customerId,
     this.customerName = '',
     required this.category,
@@ -131,6 +133,7 @@ class VisitActivity {
   VisitActivity copyWith({
     int? id,
     String? clientId,
+    String? ownerUserId,
     String? customerId,
     String? customerName,
     VisitCategory? category,
@@ -152,6 +155,7 @@ class VisitActivity {
     return VisitActivity(
       id: id ?? this.id,
       clientId: clientId ?? this.clientId,
+      ownerUserId: ownerUserId ?? this.ownerUserId,
       customerId: customerId ?? this.customerId,
       customerName: customerName ?? this.customerName,
       category: category ?? this.category,
@@ -174,6 +178,7 @@ class VisitActivity {
     return {
       'id': ?id,
       'client_id': clientId,
+      'owner_user_id': ownerUserId,
       'customer_id': customerId,
       'customer_name': customerName,
       'category': category.toDbString(),
@@ -201,6 +206,7 @@ class VisitActivity {
     return VisitActivity(
       id: map['id'] is int ? map['id'] as int : null,
       clientId: (map['client_id'] as String?) ?? '',
+      ownerUserId: (map['owner_user_id'] as String?) ?? '',
       customerId: (map['customer_id'] as String?) ?? '',
       customerName: (map['customer_name'] as String?) ?? '',
       category: VisitCategory.fromString(map['category'] as String?),
@@ -245,6 +251,7 @@ class VisitActivity {
   factory VisitActivity.fromSupabaseJson(Map<String, dynamic> json) {
     return VisitActivity(
       clientId: (json['client_id'] as String?) ?? '',
+      ownerUserId: (json['user_id']?.toString()) ?? '',
       customerId: (json['customer_id'] as String?) ?? '',
       customerName: (json['customer_name'] as String?) ?? '',
       category: VisitCategory.fromString(json['category'] as String?),

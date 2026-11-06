@@ -104,5 +104,27 @@ void main() {
       expect(map[VisitCategory.rvai], contains('32003001'));
       expect(map[VisitCategory.unpaid], contains('32003002'));
     });
+
+    test('Prioritas 8: Sel teks yang diawali =, +, -, atau @ diamankan dengan tanda petik tunggal', () {
+      final visits = [
+        const VisitActivity(
+          clientId: 'csv-formula-1',
+          customerId: '32004001',
+          customerName: '=SUM(A1:A10)',
+          category: VisitCategory.rvai,
+          address: '-Jl. Minus @ Komplek +Blok',
+          latitude: -7.72,
+          longitude: 109.02,
+          plannedDate: '2026-11-06',
+          updatedAt: '2026-11-06T10:00:00Z',
+        ),
+      ];
+
+      final csv = VisitCsvExportService.buildCsvContent(visits);
+      expect(csv, contains("'=SUM(A1:A10)"));
+      expect(csv, contains("'-Jl. Minus @ Komplek +Blok"));
+      // Koordinat negatif (-7.720000) tetap angka murni tanpa petik tunggal agar Google My Maps bisa memetakan
+      expect(csv, contains(',-7.720000,109.020000,'));
+    });
   });
 }

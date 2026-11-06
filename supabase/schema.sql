@@ -255,17 +255,37 @@ revoke execute on function public.make_superadmin(text) from public, anon, authe
 create or replace function public.can_view_all(check_user_id uuid default auth.uid())
 returns boolean language sql security definer set search_path = public stable as $$
   select exists (
-    select 1 from public.team_members
-    where user_id = check_user_id and status = 'approved'
-      and role in ('spv','tsc','admin','superadmin')
+    select 1 from public.team_members target_tm
+    where target_tm.user_id = check_user_id
+      and target_tm.status = 'approved'
+      and target_tm.role in ('spv','tsc','admin','superadmin')
+      and (
+        check_user_id = auth.uid()
+        or exists (
+          select 1 from public.team_members caller_tm
+          where caller_tm.user_id = auth.uid()
+            and caller_tm.status = 'approved'
+            and caller_tm.role in ('spv','tsc','admin','superadmin')
+        )
+      )
   );
 $$;
 
 create or replace function public.is_approved_member(check_user_id uuid default auth.uid())
 returns boolean language sql security definer set search_path = public stable as $$
   select exists (
-    select 1 from public.team_members
-    where user_id = check_user_id and status = 'approved'
+    select 1 from public.team_members target_tm
+    where target_tm.user_id = check_user_id
+      and target_tm.status = 'approved'
+      and (
+        check_user_id = auth.uid()
+        or exists (
+          select 1 from public.team_members caller_tm
+          where caller_tm.user_id = auth.uid()
+            and caller_tm.status = 'approved'
+            and caller_tm.role in ('spv','tsc','admin','superadmin')
+        )
+      )
   );
 $$;
 
@@ -329,7 +349,7 @@ create policy "visit update own" on public.visit_activities for update to authen
 -- Tidak ada policy DELETE: penghapusan = soft delete (isi deleted_at lewat UPDATE).
 -- SPV/TSC tidak punya policy tulis sama sekali (read-only).
 
--- 13. RPC: ubah role (HANYA role 'superadmin' persis, bukan 'admin')
+-- 13. RPC: ubah role (HANYA role 'superadmin' persis, bukan 'admin'; dibatasi ke member/spv/tsc)
 create or replace function public.admin_update_member_role(target_user_id uuid, new_role text)
 returns text language plpgsql security definer set search_path = public as $$
 declare caller_role text;
@@ -337,7 +357,7 @@ begin
   select role into caller_role from public.team_members
    where user_id = auth.uid() and status = 'approved';
   if caller_role is distinct from 'superadmin' then return 'unauthorized'; end if;
-  if new_role not in ('member','spv','tsc','admin','superadmin') then return 'invalid_role'; end if;
+  if new_role not in ('member','spv','tsc') then return 'invalid_role'; end if;
   if target_user_id = auth.uid() then return 'cannot_change_self'; end if;
   update public.team_members set role = new_role where user_id = target_user_id;
   if not found then return 'not_found'; end if;

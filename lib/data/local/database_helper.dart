@@ -84,6 +84,7 @@ class DatabaseHelper {
         version: 7,
         onCreate: _createDB,
         onUpgrade: _onUpgrade,
+        onOpen: _ensureVisitColumns,
       );
     } catch (e) {
       // Fallback path bila terjadi conflict locking dengan multiple instance
@@ -98,6 +99,7 @@ class DatabaseHelper {
           version: 7,
           onCreate: _createDB,
           onUpgrade: _onUpgrade,
+          onOpen: _ensureVisitColumns,
         );
       }
       rethrow;
@@ -176,6 +178,7 @@ class DatabaseHelper {
       CREATE TABLE IF NOT EXISTS visit_activities (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         client_id TEXT NOT NULL UNIQUE,
+        owner_user_id TEXT NOT NULL DEFAULT '',
         customer_id TEXT NOT NULL,
         customer_name TEXT NOT NULL DEFAULT '',
         category TEXT NOT NULL,
@@ -193,6 +196,7 @@ class DatabaseHelper {
         deleted INTEGER NOT NULL DEFAULT 0
       )
     ''');
+    await _ensureVisitColumns(db);
     await db.execute('''
       CREATE INDEX IF NOT EXISTS visit_activities_planned_date_idx
         ON visit_activities (planned_date)
@@ -201,6 +205,13 @@ class DatabaseHelper {
       CREATE INDEX IF NOT EXISTS visit_activities_cat_status_idx
         ON visit_activities (category, status)
     ''');
+  }
+
+  Future<void> _ensureVisitColumns(Database db) async {
+    try {
+      await db.execute(
+          "ALTER TABLE visit_activities ADD COLUMN owner_user_id TEXT NOT NULL DEFAULT ''");
+    } catch (_) {}
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -538,6 +549,50 @@ class DatabaseHelper {
     _webVisits.clear();
   }
 
+  /// Menghapus seluruh data lokal `visit_activities` (dipanggil saat logout
+  /// agar data visit akun lama tidak tertinggal atau ter-push oleh akun lain).
+  Future<void> clearAllLocalVisits() async {
+    if (_isInMemory) {
+      _webVisits.clear();
+      return;
+    }
+    final db = await instance.database;
+    if (db == null) return;
+    await db.delete('visit_activities');
+  }
+
+  /// Mengisolasi data visit lokal untuk `userId` yang sedang aktif:
+  /// 1. Menghapus baris milik akun lain (`owner_user_id != '' AND owner_user_id != userId`).
+  /// 2. Mengikat baris yang dibuat saat offline/sebelum login (`owner_user_id = ''`) ke `userId`.
+  Future<void> isolateVisitsForUser(String userId) async {
+    final trimmed = userId.trim();
+    if (trimmed.isEmpty) return;
+
+    if (_isInMemory) {
+      _webVisits.removeWhere(
+        (v) => v.ownerUserId.isNotEmpty && v.ownerUserId != trimmed,
+      );
+      for (int i = 0; i < _webVisits.length; i++) {
+        if (_webVisits[i].ownerUserId.isEmpty) {
+          _webVisits[i] = _webVisits[i].copyWith(ownerUserId: trimmed);
+        }
+      }
+      return;
+    }
+
+    final db = (await instance.database)!;
+    await db.delete(
+      'visit_activities',
+      where: "owner_user_id != '' AND owner_user_id != ?",
+      whereArgs: [trimmed],
+    );
+    await db.update(
+      'visit_activities',
+      {'owner_user_id': trimmed},
+      where: "owner_user_id = ''",
+    );
+  }
+
   Future<int> insertVisit(VisitActivity visit) async {
     final nowIso = DateTime.now().toUtc().toIso8601String();
     final toSave = visit.copyWith(
@@ -678,32 +733,81 @@ class DatabaseHelper {
     return result.map((m) => VisitActivity.fromMap(m)).toList();
   }
 
-  Future<List<VisitActivity>> getPendingVisits() async {
+  Future<List<VisitActivity>> getPendingVisits({String? ownerUserId}) async {
+    final owner = ownerUserId?.trim() ?? '';
     if (_isInMemory) {
-      return _webVisits.where((v) => v.syncState == 0).toList();
+      return _webVisits.where((v) {
+        if (v.syncState != 0) return false;
+        if (owner.isNotEmpty &&
+            v.ownerUserId.isNotEmpty &&
+            v.ownerUserId != owner) {
+          return false;
+        }
+        return true;
+      }).toList();
     }
 
     final db = (await instance.database)!;
+    final where = owner.isEmpty
+        ? 'sync_state = 0'
+        : "sync_state = 0 AND (owner_user_id = ? OR owner_user_id = '')";
+    final whereArgs = owner.isEmpty ? null : [owner];
     final result = await db.query(
       'visit_activities',
-      where: 'sync_state = 0',
+      where: where,
+      whereArgs: whereArgs,
       orderBy: 'updated_at ASC',
     );
     return result.map((m) => VisitActivity.fromMap(m)).toList();
   }
 
-  Future<void> markVisitsSynced(List<String> clientIds) async {
+  /// Menandai baris sebagai tersinkron (`sync_state = 1`).
+  /// Bila `expectedUpdatedAtByClientId` diberikan, hanya menandai baris yang `updated_at`-nya
+  /// masih sama dengan versi yang baru saja dikirim (`WHERE client_id = ? AND updated_at = ?`),
+  /// sehingga edit baru yang terjadi saat push berjalan tidak ikut ditandai synced.
+  Future<void> markVisitsSynced(
+    List<String> clientIds, {
+    Map<String, String>? expectedUpdatedAtByClientId,
+  }) async {
     if (clientIds.isEmpty) return;
     if (_isInMemory) {
       for (int i = 0; i < _webVisits.length; i++) {
-        if (clientIds.contains(_webVisits[i].clientId)) {
-          _webVisits[i] = _webVisits[i].copyWith(syncState: 1);
+        final v = _webVisits[i];
+        if (!clientIds.contains(v.clientId)) continue;
+        if (expectedUpdatedAtByClientId != null &&
+            expectedUpdatedAtByClientId.containsKey(v.clientId)) {
+          if (v.updatedAt == expectedUpdatedAtByClientId[v.clientId]) {
+            _webVisits[i] = v.copyWith(syncState: 1);
+          }
+        } else {
+          _webVisits[i] = v.copyWith(syncState: 1);
         }
       }
       return;
     }
 
     final db = (await instance.database)!;
+    if (expectedUpdatedAtByClientId != null &&
+        expectedUpdatedAtByClientId.isNotEmpty) {
+      final batch = db.batch();
+      for (final cid in clientIds) {
+        final expectedUpdatedAt = expectedUpdatedAtByClientId[cid];
+        if (expectedUpdatedAt != null) {
+          batch.rawUpdate(
+            'UPDATE visit_activities SET sync_state = 1 WHERE client_id = ? AND updated_at = ?',
+            [cid, expectedUpdatedAt],
+          );
+        } else {
+          batch.rawUpdate(
+            'UPDATE visit_activities SET sync_state = 1 WHERE client_id = ?',
+            [cid],
+          );
+        }
+      }
+      await batch.commit(noResult: true);
+      return;
+    }
+
     final placeholders = List.filled(clientIds.length, '?').join(',');
     await db.rawUpdate(
       'UPDATE visit_activities SET sync_state = 1 WHERE client_id IN ($placeholders)',
@@ -743,12 +847,23 @@ class DatabaseHelper {
     return counts;
   }
 
-  Future<bool> hasAnyLocalVisits() async {
+  Future<bool> hasAnyLocalVisits({String? ownerUserId}) async {
+    final owner = ownerUserId?.trim() ?? '';
     if (_isInMemory) {
-      return _webVisits.isNotEmpty;
+      if (owner.isEmpty) return _webVisits.isNotEmpty;
+      return _webVisits.any(
+        (v) => v.ownerUserId.isEmpty || v.ownerUserId == owner,
+      );
     }
     final db = (await instance.database)!;
-    final rows = await db.rawQuery('SELECT 1 FROM visit_activities LIMIT 1');
+    if (owner.isEmpty) {
+      final rows = await db.rawQuery('SELECT 1 FROM visit_activities LIMIT 1');
+      return rows.isNotEmpty;
+    }
+    final rows = await db.rawQuery(
+      "SELECT 1 FROM visit_activities WHERE owner_user_id = ? OR owner_user_id = '' LIMIT 1",
+      [owner],
+    );
     return rows.isNotEmpty;
   }
 

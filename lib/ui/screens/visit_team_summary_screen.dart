@@ -2,6 +2,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/utils/launcher_helper.dart';
 import '../../data/models/visit_activity.dart';
 import '../../data/services/visit_team_summary_service.dart';
@@ -86,10 +87,14 @@ class _VisitTeamSummaryScreenState extends ConsumerState<VisitTeamSummaryScreen>
       });
     } catch (e) {
       if (!mounted) return;
+      final bool isPostgrestUnauth = e is PostgrestException &&
+          (e.message.toLowerCase().contains('unauthorized') ||
+              e.code == '42501' ||
+              e.code == 'P0001');
       final errStr = e.toString().toLowerCase();
       setState(() {
         _isLoading = false;
-        if (errStr.contains('unauthorized')) {
+        if (isPostgrestUnauth || errStr.contains('unauthorized')) {
           _isUnauthorized = true;
         } else {
           _errorMsg = e.toString();

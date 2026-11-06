@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:dsa_incentive_tracker/auth/models/member_status.dart';
 import 'package:dsa_incentive_tracker/auth/providers/auth_providers.dart';
 import 'package:dsa_incentive_tracker/data/models/user_profile.dart';
@@ -39,7 +40,7 @@ class _FakeVisitSummaryGateway implements VisitSummaryRemoteGateway {
     required String toDate,
   }) async {
     if (shouldThrowUnauthorized) {
-      throw Exception('PostgrestException(message: unauthorized)');
+      throw const PostgrestException(message: 'unauthorized', code: 'P0001');
     }
     return rpcRows;
   }
