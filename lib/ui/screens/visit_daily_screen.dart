@@ -6,7 +6,9 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/config/visit_form_config.dart';
 import '../../core/utils/launcher_helper.dart';
+import '../../data/local/database_helper.dart';
 import '../../data/models/visit_activity.dart';
+import '../../data/services/visit_csv_export_service.dart';
 import '../../providers/visit_provider.dart';
 import 'visit_form_screen.dart';
 import 'visit_map_screen.dart';
@@ -141,6 +143,35 @@ class _VisitDailyScreenState extends ConsumerState<VisitDailyScreen>
     }
   }
 
+  Future<void> _onExportCsvPressed(String selectedDateStr) async {
+    try {
+      final allVisits = await DatabaseHelper.instance.getVisitsByDate(selectedDateStr);
+      final count = await VisitCsvExportService.shareCategoryCsvFiles(
+        visits: allVisits,
+        dateStr: selectedDateStr,
+      );
+      if (!mounted) return;
+      if (count == 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Belum ada target visit berkoordinat pada tanggal ini untuk diekspor ke CSV My Maps.',
+            ),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal mengekspor CSV: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final selectedDateStr = ref.watch(visitSelectedDateProvider);
@@ -211,6 +242,26 @@ class _VisitDailyScreenState extends ConsumerState<VisitDailyScreen>
                 ),
               );
             },
+          ),
+          PopupMenuButton<String>(
+            tooltip: 'Menu Lainnya',
+            onSelected: (value) {
+              if (value == 'export_csv') {
+                _onExportCsvPressed(selectedDateStr);
+              }
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem<String>(
+                value: 'export_csv',
+                child: Row(
+                  children: [
+                    Icon(Icons.file_download_outlined, size: 18, color: Color(0xFF002B66)),
+                    SizedBox(width: 8),
+                    Text('Ekspor CSV (My Maps)'),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
