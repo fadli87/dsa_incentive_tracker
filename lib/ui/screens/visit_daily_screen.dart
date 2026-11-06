@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -9,8 +11,51 @@ import '../../providers/visit_provider.dart';
 import 'visit_form_screen.dart';
 import 'visit_map_screen.dart';
 
-class VisitDailyScreen extends ConsumerWidget {
+class VisitDailyScreen extends ConsumerStatefulWidget {
   const VisitDailyScreen({super.key});
+
+  @override
+  ConsumerState<VisitDailyScreen> createState() => _VisitDailyScreenState();
+}
+
+class _VisitDailyScreenState extends ConsumerState<VisitDailyScreen>
+    with WidgetsBindingObserver {
+  StreamSubscription<List<ConnectivityResult>>? _connSub;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // Trigger initial restore/sync bila online
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(visitProvider.notifier).syncNow();
+      }
+    });
+    // Trigger sync saat koneksi kembali
+    try {
+      _connSub = Connectivity().onConnectivityChanged.listen((results) {
+        final isOnline = results.any((r) => r != ConnectivityResult.none);
+        if (isOnline && mounted) {
+          ref.read(visitProvider.notifier).syncNow();
+        }
+      });
+    } catch (_) {}
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _connSub?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      ref.read(visitProvider.notifier).syncNow();
+    }
+  }
 
   Color _categoryColor(VisitCategory cat) {
     switch (cat) {
@@ -34,14 +79,14 @@ class VisitDailyScreen extends ConsumerWidget {
     }
   }
 
-  void _shiftDate(WidgetRef ref, int days) {
+  void _shiftDate(int days) {
     final currentStr = ref.read(visitSelectedDateProvider);
     final current = DateTime.tryParse(currentStr) ?? DateTime.now();
     final next = current.add(Duration(days: days));
     ref.read(visitSelectedDateProvider.notifier).state = formatVisitDate(next);
   }
 
-  Future<void> _pickDate(BuildContext context, WidgetRef ref) async {
+  Future<void> _pickDate(BuildContext context) async {
     final currentStr = ref.read(visitSelectedDateProvider);
     final current = DateTime.tryParse(currentStr) ?? DateTime.now();
     final picked = await showDatePicker(
@@ -55,7 +100,7 @@ class VisitDailyScreen extends ConsumerWidget {
     }
   }
 
-  void _showVisitDetailSheet(BuildContext context, WidgetRef ref, VisitActivity visit) {
+  void _showVisitDetailSheet(BuildContext context, VisitActivity visit) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -66,12 +111,45 @@ class VisitDailyScreen extends ConsumerWidget {
     );
   }
 
+  Future<void> _onManualSyncPressed() async {
+    final res = await ref.read(visitProvider.notifier).syncNow();
+    if (!mounted) return;
+    if (res.skippedByGuard) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Mode offline lokal aktif. Data disimpan aman di perangkat.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } else if (res.hasError) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Gagal menyinkronkan ke server. Data tetap tersimpan di perangkat.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Sinkronisasi selesai (${res.pushedCount} terkirim, ${res.restoredCount} dipulihkan).',
+          ),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final selectedDateStr = ref.watch(visitSelectedDateProvider);
     final selectedCategory = ref.watch(visitSelectedCategoryProvider);
     final visitsAsync = ref.watch(visitProvider);
     final countsAsync = ref.watch(visitCountsByCategoryProvider);
+    final pendingAsync = ref.watch(pendingVisitCountProvider);
+    final isSyncing = ref.watch(visitIsSyncingProvider);
+    final pendingCount = pendingAsync.valueOrNull ?? 0;
 
     final counts = countsAsync.valueOrNull ??
         const {
@@ -109,6 +187,20 @@ class VisitDailyScreen extends ConsumerWidget {
         ),
         actions: [
           IconButton(
+            tooltip: 'Sinkronkan',
+            icon: isSyncing
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.sync_rounded),
+            onPressed: isSyncing ? null : _onManualSyncPressed,
+          ),
+          IconButton(
             tooltip: 'Buka Peta Visit',
             icon: const Icon(Icons.map_outlined),
             onPressed: () {
@@ -141,6 +233,50 @@ class VisitDailyScreen extends ConsumerWidget {
       ),
       body: Column(
         children: [
+          // Indikator Status Sinkronisasi yang tidak mengganggu
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            color: pendingCount > 0 ? Colors.amber.shade50 : Colors.green.shade50,
+            child: Row(
+              children: [
+                Icon(
+                  pendingCount > 0 ? Icons.cloud_upload_outlined : Icons.cloud_done_outlined,
+                  size: 15,
+                  color: pendingCount > 0 ? Colors.amber.shade900 : Colors.green.shade800,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    isSyncing
+                        ? 'Menyinkronkan data visit...'
+                        : (pendingCount > 0
+                            ? 'Belum tersinkron ($pendingCount)'
+                            : 'Semua data tersimpan & sinkron'),
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: pendingCount > 0 ? Colors.amber.shade900 : Colors.green.shade800,
+                    ),
+                  ),
+                ),
+                if (pendingCount > 0 && !isSyncing)
+                  InkWell(
+                    onTap: _onManualSyncPressed,
+                    child: Text(
+                      'Sinkronkan',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.amber.shade900,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+
           // Bar Pemilih Tanggal & Filter Kategori
           Container(
             color: Colors.white,
@@ -154,11 +290,11 @@ class VisitDailyScreen extends ConsumerWidget {
                     IconButton(
                       visualDensity: VisualDensity.compact,
                       icon: const Icon(Icons.chevron_left_rounded, color: Color(0xFF002B66)),
-                      onPressed: () => _shiftDate(ref, -1),
+                      onPressed: () => _shiftDate(-1),
                     ),
                     Expanded(
                       child: InkWell(
-                        onTap: () => _pickDate(context, ref),
+                        onTap: () => _pickDate(context),
                         borderRadius: BorderRadius.circular(8),
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
@@ -190,7 +326,7 @@ class VisitDailyScreen extends ConsumerWidget {
                     IconButton(
                       visualDensity: VisualDensity.compact,
                       icon: const Icon(Icons.chevron_right_rounded, color: Color(0xFF002B66)),
-                      onPressed: () => _shiftDate(ref, 1),
+                      onPressed: () => _shiftDate(1),
                     ),
                   ],
                 ),
@@ -332,7 +468,7 @@ class VisitDailyScreen extends ConsumerWidget {
                       ),
                       child: InkWell(
                         borderRadius: BorderRadius.circular(14),
-                        onTap: () => _showVisitDetailSheet(context, ref, visit),
+                        onTap: () => _showVisitDetailSheet(context, visit),
                         child: Padding(
                           padding: const EdgeInsets.all(14.0),
                           child: Column(

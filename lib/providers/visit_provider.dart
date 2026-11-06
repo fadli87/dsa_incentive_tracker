@@ -1,11 +1,23 @@
+import 'dart:async';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
+import '../auth/providers/auth_providers.dart';
 import '../data/local/database_helper.dart';
 import '../data/models/visit_activity.dart';
+import '../data/services/visit_sync_service.dart';
 
 /// Helper format tanggal yyyy-MM-dd
 String formatVisitDate(DateTime date) => DateFormat('yyyy-MM-dd').format(date);
+
+/// Provider VisitSyncService
+final visitSyncServiceProvider = Provider<VisitSyncService>((ref) {
+  return VisitSyncService();
+});
+
+/// Provider indikator sedang sinkronisasi
+final visitIsSyncingProvider = StateProvider<bool>((ref) => false);
 
 /// Provider tanggal terpilih untuk layar Aktivitas Harian (default: hari ini)
 final visitSelectedDateProvider = StateProvider<String>((ref) {
@@ -45,6 +57,31 @@ class VisitNotifier extends AsyncNotifier<List<VisitActivity>> {
     state = await AsyncValue.guard(_fetchCurrent);
   }
 
+  Future<void> _tryAutoSyncIfOnline() async {
+    try {
+      final conn = await Connectivity().checkConnectivity();
+      final isOnline = conn.any((c) => c != ConnectivityResult.none);
+      if (isOnline) {
+        await syncNow();
+      }
+    } catch (_) {}
+  }
+
+  Future<VisitSyncResult> syncNow() async {
+    final isApproved = ref.read(accessGateProvider) == GateState.approved;
+    final syncService = ref.read(visitSyncServiceProvider);
+    ref.read(visitIsSyncingProvider.notifier).state = true;
+    try {
+      final result = await syncService.syncAll(isApproved: isApproved);
+      if (!result.skippedByGuard) {
+        state = AsyncValue.data(await _fetchCurrent());
+      }
+      return result;
+    } finally {
+      ref.read(visitIsSyncingProvider.notifier).state = false;
+    }
+  }
+
   Future<void> addVisit(VisitActivity visit) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
@@ -58,6 +95,7 @@ class VisitNotifier extends AsyncNotifier<List<VisitActivity>> {
       await DatabaseHelper.instance.insertVisit(record);
       return await _fetchCurrent();
     });
+    unawaited(_tryAutoSyncIfOnline());
   }
 
   Future<void> updateVisit(VisitActivity visit) async {
@@ -66,6 +104,7 @@ class VisitNotifier extends AsyncNotifier<List<VisitActivity>> {
       await DatabaseHelper.instance.updateVisit(visit);
       return await _fetchCurrent();
     });
+    unawaited(_tryAutoSyncIfOnline());
   }
 
   Future<void> deleteVisit(int id) async {
@@ -74,6 +113,7 @@ class VisitNotifier extends AsyncNotifier<List<VisitActivity>> {
       await DatabaseHelper.instance.softDeleteVisit(id);
       return await _fetchCurrent();
     });
+    unawaited(_tryAutoSyncIfOnline());
   }
 
   /// Cek apakah kombinasi Customer ID + Kategori + Tanggal sudah ada (untuk peringatan non-blocking)
