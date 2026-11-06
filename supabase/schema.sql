@@ -240,11 +240,17 @@ begin
 end;
 $$;
 
+revoke execute on function public.make_superadmin(text) from public, anon, authenticated;
+
 -- =========================================================================
 -- CARA MENGGUNAKAN UNTUK MEMBUAT SUPERADMIN PERTAMA:
+-- CATATAN KEAMANAN: Fungsi public.make_superadmin(text) telah di-revoke dari
+-- public, anon, dan authenticated, sehingga HANYA bisa dipanggil langsung dari
+-- Supabase SQL Editor oleh owner project (tidak bisa dipanggil lewat RPC client).
 -- 1. Jalankan seluruh skrip SQL ini di SQL Editor Supabase.
 -- 2. Daftar di aplikasi dengan email Anda.
 --    (Jika Anda adalah akun pertama, Anda OTOMATIS menjadi Superadmin!).
--- 3. Jika Anda sudah mendaftar sebelumnya, cukup jalankan perintah berikut di SQL Editor:
+-- 3. Jika Anda sudah mendaftar sebelumnya, cukup jalankan perintah berikut
+--    langsung di Supabase SQL Editor (hanya oleh owner):
 --    SELECT public.make_superadmin('email_anda@gmail.com');
 -- =========================================================================
