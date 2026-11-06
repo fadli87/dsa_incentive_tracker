@@ -217,6 +217,27 @@ class TeamAccessService {
     }
   }
 
+  /// Mengubah role anggota tim (khusus Superadmin via RPC security definer)
+  Future<String> updateMemberRole({
+    required String targetUserId,
+    required TeamRole newRole,
+  }) async {
+    try {
+      final result = await _client.rpc(
+        'admin_update_member_role',
+        params: {
+          'target_user_id': targetUserId,
+          'new_role': newRole.toDbString(),
+        },
+      ).timeout(serverTimeout);
+
+      return result.toString();
+    } catch (e) {
+      debugPrint('TeamAccessService: updateMemberRole error: $e');
+      return 'error';
+    }
+  }
+
   /// Memperbarui kode akses tim (khusus Superadmin via RPC security definer)
   Future<String> updateTeamAccessCode(String newCode) async {
     try {

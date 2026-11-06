@@ -35,15 +35,67 @@ void main() {
       expect(MemberStatus.fromString(null), MemberStatus.unknown);
     });
 
-    test('TeamRole correctly parses and verifies superadmin privileges', () {
+    test('TeamRole correctly parses and verifies superadmin, canViewAll, and canEditRoles privileges', () {
       expect(TeamRole.fromString('superadmin'), TeamRole.superadmin);
       expect(TeamRole.fromString('SUPERADMIN'), TeamRole.superadmin);
       expect(TeamRole.fromString('admin'), TeamRole.admin);
+      expect(TeamRole.fromString('spv'), TeamRole.spv);
+      expect(TeamRole.fromString('SPV'), TeamRole.spv);
+      expect(TeamRole.fromString('tsc'), TeamRole.tsc);
+      expect(TeamRole.fromString('TSC'), TeamRole.tsc);
       expect(TeamRole.fromString('member'), TeamRole.member);
       expect(TeamRole.fromString('unknown'), TeamRole.member);
+      expect(TeamRole.fromString('role_aneh_123'), TeamRole.member);
+      expect(TeamRole.fromString(null), TeamRole.member);
+
+      // isSuperadmin tetap hanya superadmin & admin (SPV/TSC tetap false)
       expect(TeamRole.superadmin.isSuperadmin, isTrue);
       expect(TeamRole.admin.isSuperadmin, isTrue);
+      expect(TeamRole.spv.isSuperadmin, isFalse);
+      expect(TeamRole.tsc.isSuperadmin, isFalse);
       expect(TeamRole.member.isSuperadmin, isFalse);
+
+      // canViewAll benar untuk semua selain member
+      expect(TeamRole.superadmin.canViewAll, isTrue);
+      expect(TeamRole.admin.canViewAll, isTrue);
+      expect(TeamRole.spv.canViewAll, isTrue);
+      expect(TeamRole.tsc.canViewAll, isTrue);
+      expect(TeamRole.member.canViewAll, isFalse);
+
+      // canEditRoles hanya superadmin
+      expect(TeamRole.superadmin.canEditRoles, isTrue);
+      expect(TeamRole.admin.canEditRoles, isFalse);
+      expect(TeamRole.spv.canEditRoles, isFalse);
+      expect(TeamRole.tsc.canEditRoles, isFalse);
+      expect(TeamRole.member.canEditRoles, isFalse);
+    });
+
+    test('AccessCache legacy JSON (tanpa field role atau role lama) tetap terbaca aman', () {
+      final now = DateTime.now();
+      final validUntil = now.add(const Duration(days: 7));
+      final legacyJsonWithoutRole = {
+        'status': 'approved',
+        'checked_at': now.toIso8601String(),
+        'valid_until': validUntil.toIso8601String(),
+      };
+
+      final parsedLegacy = AccessCache.fromJson(legacyJsonWithoutRole);
+      expect(parsedLegacy.status, MemberStatus.approved);
+      expect(parsedLegacy.role, TeamRole.member);
+      expect(parsedLegacy.canViewAll, isFalse);
+      expect(parsedLegacy.isSuperadmin, isFalse);
+      expect(parsedLegacy.isAccessAllowed, isTrue);
+
+      final spvCache = AccessCache(
+        status: MemberStatus.approved,
+        role: TeamRole.spv,
+        checkedAt: now,
+        validUntil: validUntil,
+      );
+      final reconstructedSpv = AccessCache.fromJson(spvCache.toJson());
+      expect(reconstructedSpv.role, TeamRole.spv);
+      expect(reconstructedSpv.canViewAll, isTrue);
+      expect(reconstructedSpv.isSuperadmin, isFalse);
     });
 
     test('AccessCache serializes and deserializes correctly', () {

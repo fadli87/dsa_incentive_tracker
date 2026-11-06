@@ -17,6 +17,12 @@ class AccessCache {
   /// Cek apakah pengguna memiliki akses superadmin/admin
   bool get isSuperadmin => role.isSuperadmin;
 
+  /// Cek apakah pengguna memiliki hak melihat seluruh data tim (SPV/TSC/Admin/Superadmin)
+  bool get canViewAll => role.canViewAll;
+
+  /// Cek apakah pengguna dapat mengubah role anggota tim (khusus Superadmin)
+  bool get canEditRoles => role.canEditRoles;
+
   /// Cek apakah masa tenggang offline sudah kedaluwarsa
   bool get isExpired => DateTime.now().isAfter(validUntil);
 

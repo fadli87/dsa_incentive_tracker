@@ -46,6 +46,8 @@ class AccessGateNotifier extends StateNotifier<GateState> {
 
   TeamRole get currentRole => _currentRole;
   bool get isSuperadmin => _currentRole.isSuperadmin;
+  bool get canViewAll => _currentRole.canViewAll;
+  bool get canEditRoles => _currentRole.canEditRoles;
 
   /// Dipanggil saat ada perubahan sesi auth (login, logout, token refresh)
   Future<void> onAuthStateChanged(AuthState? authState) async {
@@ -118,6 +120,24 @@ final isSuperadminProvider = Provider<bool>((ref) {
 });
 
 // ---------------------------------------------------------------------------
+// Provider untuk mengecek apakah user aktif bisa melihat semua data (SPV/TSC/Admin/Superadmin)
+// ---------------------------------------------------------------------------
+final canViewAllProvider = Provider<bool>((ref) {
+  final gateState = ref.watch(accessGateProvider);
+  if (gateState != GateState.approved) return false;
+  return ref.watch(accessGateProvider.notifier).canViewAll;
+});
+
+// ---------------------------------------------------------------------------
+// Provider untuk mengecek apakah user aktif bisa mengubah role anggota tim (Superadmin)
+// ---------------------------------------------------------------------------
+final canEditRolesProvider = Provider<bool>((ref) {
+  final gateState = ref.watch(accessGateProvider);
+  if (gateState != GateState.approved) return false;
+  return ref.watch(accessGateProvider.notifier).canEditRoles;
+});
+
+// ---------------------------------------------------------------------------
 // Notifier & Provider untuk daftar anggota tim di panel Superadmin
 // ---------------------------------------------------------------------------
 class TeamMembersNotifier extends AsyncNotifier<List<TeamMemberItem>> {
@@ -142,6 +162,18 @@ class TeamMembersNotifier extends AsyncNotifier<List<TeamMemberItem>> {
       newStatus: newStatus,
     );
     if (result == 'success' || result == 'approved') {
+      await refresh();
+    }
+    return result;
+  }
+
+  Future<String> updateRole(String targetUserId, TeamRole newRole) async {
+    final service = ref.read(teamAccessServiceProvider);
+    final result = await service.updateMemberRole(
+      targetUserId: targetUserId,
+      newRole: newRole,
+    );
+    if (result == 'success') {
       await refresh();
     }
     return result;

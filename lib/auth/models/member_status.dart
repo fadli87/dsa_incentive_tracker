@@ -35,6 +35,8 @@ enum MemberStatus {
 /// Role pengguna di sistem tim
 enum TeamRole {
   member,
+  spv,
+  tsc,
   admin,
   superadmin;
 
@@ -44,6 +46,10 @@ enum TeamRole {
         return TeamRole.superadmin;
       case 'admin':
         return TeamRole.admin;
+      case 'spv':
+        return TeamRole.spv;
+      case 'tsc':
+        return TeamRole.tsc;
       default:
         return TeamRole.member;
     }
@@ -52,5 +58,24 @@ enum TeamRole {
   String toDbString() => name;
 
   bool get isSuperadmin => this == TeamRole.superadmin || this == TeamRole.admin;
+
+  bool get canViewAll => this != TeamRole.member;
+
+  bool get canEditRoles => this == TeamRole.superadmin;
+
+  String get displayLabel {
+    switch (this) {
+      case TeamRole.member:
+        return 'Sales';
+      case TeamRole.spv:
+        return 'SPV';
+      case TeamRole.tsc:
+        return 'TSC';
+      case TeamRole.admin:
+        return 'Admin';
+      case TeamRole.superadmin:
+        return 'Superadmin';
+    }
+  }
 }
 

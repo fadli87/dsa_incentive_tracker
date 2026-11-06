@@ -21,6 +21,7 @@ class TeamMemberItem {
   });
 
   bool get isSuperadmin => role.isSuperadmin;
+  bool get canViewAll => role.canViewAll;
   bool get isApproved => status == MemberStatus.approved;
   bool get isPending => status == MemberStatus.pending;
   bool get isRevoked => status == MemberStatus.revoked;

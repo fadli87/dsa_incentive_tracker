@@ -299,6 +299,7 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
 
   Widget _buildMemberCard(TeamMemberItem member, String? currentUserId) {
     final isMe = member.userId == currentUserId;
+    final canEditRoles = ref.watch(canEditRolesProvider);
 
     return Card(
       elevation: 1,
@@ -383,90 +384,300 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
             const SizedBox(height: 10),
 
             // Status Badges & Action Buttons Row
-            Row(
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              alignment: WrapAlignment.spaceBetween,
               children: [
-                // Role Badge
-                if (member.isSuperadmin)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: Colors.amber.shade100,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: Colors.amber.shade600),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.shield, size: 12, color: Colors.amber.shade900),
-                        const SizedBox(width: 4),
-                        Text(
-                          'SUPERADMIN',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.amber.shade900,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                if (member.isSuperadmin) const SizedBox(width: 8),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Role Badge (ditampilkan di tiap kartu)
+                    _roleBadge(member.role),
+                    const SizedBox(width: 8),
 
-                // Status Badge
-                _statusBadge(member.status),
-
-                const Spacer(),
+                    // Status Badge
+                    _statusBadge(member.status),
+                  ],
+                ),
 
                 // Actions
-                if (!isMe && !member.isSuperadmin) ...[
-                  if (member.isPending) ...[
-                    IconButton.filled(
-                      style: IconButton.styleFrom(backgroundColor: Colors.green.shade600),
-                      icon: const Icon(Icons.check, size: 16, color: Colors.white),
-                      tooltip: 'Setujui Akses',
-                      onPressed: () => _confirmChangeStatus(member, MemberStatus.approved),
-                    ),
-                    const SizedBox(width: 6),
-                    IconButton.filled(
-                      style: IconButton.styleFrom(backgroundColor: Colors.red.shade600),
-                      icon: const Icon(Icons.close, size: 16, color: Colors.white),
-                      tooltip: 'Tolak / Cabut Akses',
-                      onPressed: () => _confirmChangeStatus(member, MemberStatus.revoked),
-                    ),
-                  ] else if (member.isApproved) ...[
-                    OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.red.shade700,
-                        side: BorderSide(color: Colors.red.shade300),
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      icon: const Icon(Icons.block, size: 14),
-                      label: const Text('Cabut Akses', style: TextStyle(fontSize: 11)),
-                      onPressed: () => _confirmChangeStatus(member, MemberStatus.revoked),
-                    ),
-                  ] else if (member.isRevoked) ...[
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green.shade700,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      icon: const Icon(Icons.check_circle_outline, size: 14),
-                      label: const Text('Pulihkan Akses', style: TextStyle(fontSize: 11)),
-                      onPressed: () => _confirmChangeStatus(member, MemberStatus.approved),
-                    ),
-                  ],
-                ],
+                if (!isMe && !member.isSuperadmin)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (canEditRoles) ...[
+                        PopupMenuButton<TeamRole>(
+                          tooltip: 'Ubah Role',
+                          onSelected: (newRole) {
+                            if (newRole != member.role) {
+                              _changeMemberRole(member, newRole);
+                            }
+                          },
+                          itemBuilder: (ctx) => [
+                            PopupMenuItem<TeamRole>(
+                              value: TeamRole.member,
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.person_outline,
+                                    size: 16,
+                                    color: member.role == TeamRole.member
+                                        ? const Color(0xFF002B66)
+                                        : Colors.grey.shade700,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Sales (Member)',
+                                    style: TextStyle(
+                                      fontWeight: member.role == TeamRole.member
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem<TeamRole>(
+                              value: TeamRole.spv,
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.supervisor_account_outlined,
+                                    size: 16,
+                                    color: member.role == TeamRole.spv
+                                        ? Colors.indigo.shade700
+                                        : Colors.grey.shade700,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'SPV',
+                                    style: TextStyle(
+                                      fontWeight: member.role == TeamRole.spv
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem<TeamRole>(
+                              value: TeamRole.tsc,
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.manage_accounts_outlined,
+                                    size: 16,
+                                    color: member.role == TeamRole.tsc
+                                        ? Colors.teal.shade700
+                                        : Colors.grey.shade700,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'TSC',
+                                    style: TextStyle(
+                                      fontWeight: member.role == TeamRole.tsc
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF002B66).withValues(alpha: 0.06),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: const Color(0xFF002B66).withValues(alpha: 0.25),
+                              ),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.manage_accounts_rounded, size: 14, color: Color(0xFF002B66)),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Ubah Role',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF002B66),
+                                  ),
+                                ),
+                                SizedBox(width: 2),
+                                Icon(Icons.arrow_drop_down, size: 16, color: Color(0xFF002B66)),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                      ],
+                      if (member.isPending) ...[
+                        IconButton.filled(
+                          style: IconButton.styleFrom(backgroundColor: Colors.green.shade600),
+                          icon: const Icon(Icons.check, size: 16, color: Colors.white),
+                          tooltip: 'Setujui Akses',
+                          onPressed: () => _confirmChangeStatus(member, MemberStatus.approved),
+                        ),
+                        const SizedBox(width: 6),
+                        IconButton.filled(
+                          style: IconButton.styleFrom(backgroundColor: Colors.red.shade600),
+                          icon: const Icon(Icons.close, size: 16, color: Colors.white),
+                          tooltip: 'Tolak / Cabut Akses',
+                          onPressed: () => _confirmChangeStatus(member, MemberStatus.revoked),
+                        ),
+                      ] else if (member.isApproved) ...[
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.red.shade700,
+                            side: BorderSide(color: Colors.red.shade300),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          icon: const Icon(Icons.block, size: 14),
+                          label: const Text('Cabut Akses', style: TextStyle(fontSize: 11)),
+                          onPressed: () => _confirmChangeStatus(member, MemberStatus.revoked),
+                        ),
+                      ] else if (member.isRevoked) ...[
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green.shade700,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          icon: const Icon(Icons.check_circle_outline, size: 14),
+                          label: const Text('Pulihkan Akses', style: TextStyle(fontSize: 11)),
+                          onPressed: () => _confirmChangeStatus(member, MemberStatus.approved),
+                        ),
+                      ],
+                    ],
+                  ),
               ],
             ),
           ],
         ),
       ),
     );
+  }
+
+  Widget _roleBadge(TeamRole role) {
+    final (label, color, bg, icon) = switch (role) {
+      TeamRole.superadmin => (
+          'SUPERADMIN',
+          Colors.amber.shade900,
+          Colors.amber.shade100,
+          Icons.shield,
+        ),
+      TeamRole.admin => (
+          'ADMIN',
+          Colors.deepOrange.shade900,
+          Colors.deepOrange.shade50,
+          Icons.admin_panel_settings,
+        ),
+      TeamRole.spv => (
+          'SPV',
+          Colors.indigo.shade800,
+          Colors.indigo.shade50,
+          Icons.supervisor_account,
+        ),
+      TeamRole.tsc => (
+          'TSC',
+          Colors.teal.shade800,
+          Colors.teal.shade50,
+          Icons.manage_accounts,
+        ),
+      TeamRole.member => (
+          'SALES',
+          const Color(0xFF002B66),
+          const Color(0xFFE8EEF7),
+          Icons.badge_outlined,
+        ),
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _changeMemberRole(TeamMemberItem member, TeamRole newRole) async {
+    final res = await ref.read(teamMembersProvider.notifier).updateRole(
+          member.userId,
+          newRole,
+        );
+    if (!mounted) return;
+
+    final displayName = member.name.isNotEmpty ? member.name : member.email;
+    switch (res) {
+      case 'success':
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Role $displayName berhasil diubah menjadi ${newRole.displayLabel}!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      case 'unauthorized':
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Akses ditolak: Hanya Superadmin yang dapat mengubah role anggota.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      case 'cannot_change_self':
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Anda tidak dapat mengubah role akun Anda sendiri.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      case 'not_found':
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Anggota tim tidak ditemukan di server.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      case 'invalid_role':
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Role yang dipilih tidak valid.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      default:
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Gagal mengubah role anggota. Periksa koneksi internet Anda.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+    }
   }
 
   Widget _statusBadge(MemberStatus status) {
