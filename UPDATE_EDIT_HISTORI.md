@@ -1,6 +1,27 @@
-# Dokumentasi Update & Catatan Rilis: DSA XL Satu Handbook (Ver.1.1.1)
+# Dokumentasi Update & Catatan Rilis: DSA XL Satu Handbook (Ver.1.2.0)
 
-## 📌 Ringkasan Pembaruan Utama (Ver.1.1.1 - Oktober 2026)
+## 📌 Ringkasan Pembaruan Utama (Ver.1.2.0 - November 2026)
+
+Pembaruan ini menghadirkan modul **Aktivitas Harian Visit (RVAI / Dismantle / Unpaid)** yang 100% offline-first dengan sinkronisasi otomatis ke Supabase, pemetaan 3 layer interaktif, manajemen role **SPV & TSC** beserta layar **Rekap Tim (Read-Only)**, serta ekspor CSV ke Google My Maps:
+
+### 1. 📋 Aktivitas Harian Visit & Peta 3 Layer (`VisitDailyScreen`, `VisitFormScreen`, `VisitMapScreen`)
+- **Perencanaan & Pelacakan Harian Offline-First:** Sales merencanakan target kunjungan harian untuk kategori **RVAI** (Hijau), **Dismantle** (Merah), dan **Unpaid** (Kuning), mengubah status (*Belum Visit*, *Sudah Visit*, *Follow-up*), dan mencatat hasil kunjungan di SQLite v7.
+- **3 Metode Input Lokasi:** Ambil titik GPS saat ini, tempel link Google Maps / Shareloc WhatsApp (menggunakan `LocationParser.parse`), atau input koordinat manual dengan validasi rentang.
+- **Peta Visit 3 Layer:** Peta `flutter_map` dengan toggle `FilterChip` per kategori, marker berwarna, dan aksi cepat Navigasi Google Maps.
+- **Integrasi Google Form Prefill:** Membuka Google Form pelaporan dengan prefill otomatis *Customer ID* dan *Kategori* (`VISIT RVAI`, `DISMANTLE`, `UNPAID`) melalui konfigurasi environment (`VISIT_FORM_URL`, `VISIT_FORM_CUSTOMER_ENTRY`, `VISIT_FORM_CATEGORY_ENTRY`).
+
+### 2. ☁️ Sinkronisasi Supabase & Ekspor Google My Maps (`VisitSyncService`, `VisitCsvExportService`)
+- **Push & Restore Otomatis:** Pengiriman batch (maks. 50 baris) secara idempoten (`onConflict: 'user_id,client_id'`) saat online/app resume, serta pemulihan otomatis data milik sendiri saat instal ulang/ganti perangkat.
+- **Ekspor CSV per Kategori:** Membagikan file CSV berkolom `Customer ID, Nama, Latitude, Longitude, Kategori, Status, Alamat` via `share_plus` untuk di-import langsung ke layer Google My Maps.
+
+### 3. 👥 Role SPV / TSC & Rekap Tim Read-Only (`VisitTeamSummaryScreen`, `SuperAdminPanelScreen`)
+- **Hirarki Role Baru:** Penambahan role `spv` dan `tsc` yang dapat memantau rekap seluruh sales (`can_view_all`) secara **100% read-only** tanpa akses ke Panel Superadmin.
+- **Promosi Role 1-Tap:** Superadmin dapat mengubah role anggota tim antara Sales (`member`), SPV (`spv`), dan TSC (`tsc`) langsung dari Panel Superadmin melalui RPC `admin_update_member_role`.
+- **Pengamanan `make_superadmin`:** Pencabutan izin eksekusi publik (`revoke execute from public, anon, authenticated`) pada fungsi SQL `make_superadmin(text)`.
+
+---
+
+## 📌 Arsip Pembaruan Sebelumnya (Ver.1.1.1 - Oktober 2026)
 
 Pembaruan ini menambahkan sistem kontrol Superadmin terpadu dan manajemen keamanan akses tim secara langsung dari dalam aplikasi:
 

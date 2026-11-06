@@ -214,3 +214,4 @@ class VisitTeamSummaryService {
     return rows.map((r) => VisitActivity.fromSupabaseJson(r)).toList();
   }
 }
+

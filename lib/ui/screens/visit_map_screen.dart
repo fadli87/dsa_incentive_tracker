@@ -354,3 +354,4 @@ class _VisitMapScreenState extends ConsumerState<VisitMapScreen> {
     );
   }
 }
+

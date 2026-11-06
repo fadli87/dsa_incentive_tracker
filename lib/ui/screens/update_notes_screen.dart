@@ -19,9 +19,23 @@ class UpdateNotesScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildVersionCard(
+              version: 'Ver.1.2.0',
+              date: 'November 2026',
+              isLatest: true,
+              changes: [
+                'Aktivitas Harian Visit (RVAI / Dismantle / Unpaid): Modul perencanaan, pelacakan status (Belum Visit, Sudah Visit, Follow-up), dan navigasi target kunjungan harian 100% offline-first (SQLite v7).',
+                'Peta Visit 3 Layer & Integrasi Google Form: Visualisasi peta interaktif berlayer warna (RVAI hijau, Dismantle merah, Unpaid kuning), dukungan input lokasi GPS/Shareloc WhatsApp, dan prefill otomatis Google Form.',
+                'Sinkronisasi Otomatis & Pemulihan Cloud: Push batch otomatis ke Supabase (idempoten berdasarkan client_id) serta fitur restore otomatis saat ganti perangkat.',
+                'Role SPV / TSC & Rekap Tim (Read-Only): Penambahan role SPV dan TSC yang dapat memantau rekap seluruh tim tanpa hak ubah/hapus, serta manajemen promosi role langsung dari Panel Superadmin.',
+                'Ekspor CSV Google My Maps: Fitur berbagi file CSV per kategori berkoordinat lengkap untuk di-import langsung ke layer Google My Maps.',
+                'Pengamanan RPC & Sinkronisasi Versi Global (v1.2.0): Penguncian hak eksekusi fungsi make_superadmin dan keseragaman versi rilis v1.2.0.',
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildVersionCard(
               version: 'Ver.1.1.1',
               date: 'Oktober 2026',
-              isLatest: true,
+              isLatest: false,
               changes: [
                 'Panel Kontrol Superadmin di Aplikasi: Layar khusus Superadmin untuk memantau seluruh anggota tim terdaftar, melihat statistik status akses (Pending, Aktif, Dicabut), dan kontrol persetujuan sales 1-tap.',
                 'Aktivasi & Rotasi Kode Akses Tim: Pembaruan kode akses tim pendaftaran sales baru langsung dari aplikasi tanpa perlu membuka database Supabase.',

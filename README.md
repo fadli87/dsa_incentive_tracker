@@ -16,9 +16,56 @@ Aplikasi komprehensif untuk Direct Sales Agency (DSA) XL Satu — mencakup kalku
 3. **AURA AI Coach & Diagnostik Jaringan**:
    - RF Diagnostic & eNodeB / Cell ID separator.
    - Panduan pitching & objection handling penjualan XL Satu.
-4. **Offline-First & Keamanan Data**:
-   - Penyimpanan data SA 100% lokal terenkripsi di perangkat (tanpa KTP demi privasi).
+4. **Aktivitas Harian Visit (RVAI / Dismantle / Unpaid)**:
+   - Pencatatan target kunjungan harian (**RVAI** hijau, **Dismantle** merah, **Unpaid** kuning) 100% *offline-first* (SQLite v7) dengan sinkronisasi otomatis ke Supabase saat terhubung internet.
+   - Input titik koordinat via GPS saat ini, tempel tautan Google Maps / Shareloc WhatsApp, atau input manual.
+   - Peta Visit 3 Layer (`flutter_map`), navigasi 1-tap ke Google Maps, prefill otomatis Google Form pelaporan, serta **Ekspor CSV per kategori** untuk Google My Maps.
+   - Layar **Rekap Tim (Read-Only)** khusus untuk role **SPV**, **TSC**, **Admin**, dan **Superadmin**.
+5. **Offline-First & Keamanan Data**:
+   - Penyimpanan data SA & Visit lokal di perangkat (tanpa menyimpan nomor seri perangkat/ONT/SIM maupun NIK/KTP demi privasi pelanggan).
    - Akses tim berbasis Supabase dengan masa tenggang offline (*grace period*) 7 hari.
+
+---
+
+## 👥 Matriks Role & Hak Akses Tim
+
+| Role | Nilai DB | Kelola Visit Sendiri | Lihat Rekap Visit Seluruh Tim (`Rekap Tim`) | Ubah / Hapus Visit Sales Lain | Akses Panel SuperAdmin | Ubah Role Anggota Tim |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| **Sales** | `member` | Ya | Tidak | Tidak | Tidak | Tidak |
+| **Supervisor** | `spv` | Ya | **Ya (Read-Only)** | Tidak | Tidak | Tidak |
+| **TSC** | `tsc` | Ya | **Ya (Read-Only)** | Tidak | Tidak | Tidak |
+| **Admin** | `admin` | Ya | **Ya (Read-Only)** | Tidak | Ya (Approve/Revoke) | Tidak |
+| **Superadmin** | `superadmin` | Ya | **Ya (Read-Only)** | Tidak | Ya (Penuh) | **Ya** (`member`/`spv`/`tsc`) |
+
+### SOP Promosi Role SPV / TSC Lewat Panel SuperAdmin
+1. Login ke aplikasi menggunakan akun ber-role **Superadmin**.
+2. Buka **Info Pengguna** (ketuk avatar profil di pojok kanan atas Dashboard) ➔ pilih **Panel Kontrol Superadmin**.
+3. Pastikan anggota yang ingin dipromosikan sudah berstatus **Aktif (Approved)**.
+4. Pada kartu anggota tersebut, ketuk tombol menu **`Ubah Role`** lalu pilih **`Jadikan SPV`**, **`Jadikan TSC`**, atau **`Jadikan Sales (Member)`**.
+5. Saat perangkat SPV/TSC tersebut melakukan verifikasi akses online berikutnya, kartu menu **Rekap Tim** akan otomatis muncul di Dashboard mereka.
+
+---
+
+## 📝 Konfigurasi Integrasi Google Form Visit (`--dart-define` / `.env`)
+
+Tombol **Isi Google Form** pada detail Aktivitas Harian membaca tiga variabel environment saat build (`--dart-define` atau `--dart-define-from-file=.env`):
+
+```dotenv
+VISIT_FORM_URL=https://docs.google.com/forms/d/e/<FORM_ID>/viewform
+VISIT_FORM_CUSTOMER_ENTRY=entry.<ID_PERTANYAAN_CUSTOMER_ID>
+VISIT_FORM_CATEGORY_ENTRY=entry.<ID_PERTANYAAN_KATEGORI>
+```
+
+- Bila `VISIT_FORM_URL` dikosongkan, tombol Google Form otomatis tampil nonaktif beserta penjelasannya (aplikasi tetap berfungsi normal).
+- Saat dikonfigurasi, aplikasi membuka URL prefill dengan format:
+  `<VISIT_FORM_URL>?usp=pp_url&<CUSTOMER_ENTRY>=<customer_id>&<CATEGORY_ENTRY>=<label>`
+  di mana label kategori dikirim secara presisi: `VISIT RVAI`, `DISMANTLE`, atau `UNPAID`.
+
+### Cara Mengambil ID `entry.xxxx` dari Google Form
+1. Buka Google Form di mode editor (Google Forms ➔ klik ikon titik tiga **⋮** di kanan atas ➔ pilih **Dapatkan link yang sudah terisi / Get pre-filled link**).
+2. Isi contoh nilai pada kolom **Customer ID** (misal `12345`) dan pilih salah satu opsi pada pertanyaan **Kategori**, lalu klik **Dapatkan link / Get link** ➔ **Salin link**.
+3. Tempel link yang disalin ke teks editor; perhatikan parameter query seperti `...&entry.111111=12345&entry.222222=VISIT+RVAI`.
+4. Masukkan `entry.111111` ke `VISIT_FORM_CUSTOMER_ENTRY` dan `entry.222222` ke `VISIT_FORM_CATEGORY_ENTRY` pada file `.env` lokal atau GitHub Actions Repository Variables (`vars`). *(Jangan pernah meng-commit nilai URL/entry asli ke dalam repositori publik).*
 
 ---
 

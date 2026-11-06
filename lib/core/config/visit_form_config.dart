@@ -89,3 +89,4 @@ class VisitFormConfig {
     return Uri.tryParse(urlStr);
   }
 }
+

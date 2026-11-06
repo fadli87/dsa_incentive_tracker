@@ -121,3 +121,4 @@ begin
 end; $$;
 revoke execute on function public.get_visit_summary(date, date) from public, anon;
 grant execute on function public.get_visit_summary(date, date) to authenticated;
+
