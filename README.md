@@ -75,39 +75,40 @@ Aplikasi menggunakan pola **Access Gate** dengan Supabase backend dan enkripsi l
 - **Daftar/Masuk Mandiri**: Sales mendaftar akun menggunakan email, password, dan memasukkan **Kode Akses Tim**.
 - **Mode Offline 7 Hari**: Sales yang sudah disetujui (*approved*) dapat bekerja di lapangan tanpa koneksi internet hingga 7 hari berturut-turut.
 - **Perlindungan Sesi**: Kegagalan koneksi offline tidak pernah membatalkan sesi login user (*anti-auto-signout*).
+- **Superadmin pertama**: akun pertama yang mendaftar di database kosong otomatis menjadi `superadmin` dan langsung `approved`.
+
+> **Sales Code** di halaman Info Pengguna hanya label profil untuk ditampilkan di kalkulator dan dashboard. Sales Code tidak dipakai untuk login maupun persetujuan akses.
 
 ---
 
-## 📋 SOP Pengelolaan Anggota Tim (Untuk Admin / Supervisor)
+## 📋 SOP Pengelolaan Anggota Tim (Untuk Superadmin)
 
-Semua pengelolaan anggota dan kode akses tim dilakukan melalui **Supabase Dashboard** tanpa perlu modifikasi kode aplikasi:
+Anggota dan kode akses tim dikelola langsung dari **Panel SuperAdmin** di dalam aplikasi (Info Pengguna ➔ Panel Kontrol Superadmin), tanpa perlu membuka Supabase Dashboard.
 
-### 1. Prosedur Saat Sales Keluar / Berhenti
-Karena kode akses tim dipakai bersama oleh seluruh sales aktif, lakukan **2 langkah wajib** berikut saat ada sales yang berhenti:
+- **Tab Anggota Tim**: cari nama/email, filter status (Semua, Menunggu, Disetujui, Dicabut), lalu **Setujui**, **Cabut Akses**, atau **Pulihkan Akses**. Ubah role lewat menu **Ubah Role** (lihat SOP di atas).
+- **Tab Kode Akses Tim**: ubah kode akses tim (minimal 6 karakter). Kode disimpan sebagai hash bcrypt di tabel `app_config`.
 
-- **Langkah 1: Cabut Akses Akun (Revoke)**
-  1. Buka **Supabase Dashboard** ➔ **Table Editor** ➔ Tabel `team_members`.
-  2. Cari baris sales yang bersangkutan, ubah nilai kolom `status` dari `approved` menjadi `revoked`.
-  3. Akun tersebut langsung diblokir di server. Ketika perangkat sales terhubung internet, aplikasi akan menampilkan layar **Akses Dicabut**. Akun tidak akan bisa masuk lagi meskipun mendaftar ulang dengan kode yang sama.
+### Prosedur Saat Sales Keluar / Berhenti
+Karena kode akses tim dipakai bersama oleh seluruh sales aktif, lakukan **2 langkah wajib** berikut:
 
-- **Langkah 2: Rotasi Kode Akses Tim (Rotate)**
-  1. Buka **Supabase Dashboard** ➔ **SQL Editor**.
-  2. Jalankan query berikut untuk memperbarui kode akses tim baru:
-     ```sql
-     update public.app_config 
-     set value = crypt('KODE-BARU-ANDA', gen_salt('bf')) 
-     where key = 'access_code_hash';
-     ```
-  3. Bagikan kode akses baru hanya kepada anggota tim aktif yang tersisa.
+1. **Cabut akses akun**: Panel SuperAdmin ➔ tab **Anggota Tim** ➔ cari sales ➔ **Cabut Akses**. Saat perangkat sales terhubung internet, aplikasi menampilkan layar **Akses Dicabut**, dan akun tidak bisa masuk lagi meskipun mendaftar ulang dengan kode yang sama.
+2. **Ganti kode akses tim**: tab **Kode Akses Tim** ➔ simpan kode baru, lalu bagikan hanya kepada anggota aktif yang tersisa.
+
+### Menjadikan Akun Tertentu Superadmin
+Untuk akun yang sudah terdaftar, jalankan di Supabase SQL Editor (fungsi ini sengaja tidak bisa dipanggil dari aplikasi):
+
+```sql
+select public.make_superadmin('email_anda@gmail.com');
+```
 
 ---
 
 ## 🛠️ Panduan Setup Supabase Backend
 
 1. **Jalankan Skema Database**:
-   - Buka SQL Editor di project Supabase Anda.
-   - Salin dan jalankan seluruh isi file [`supabase/schema.sql`](file:///l:/dev_app/dsa_incentive_tracker/supabase/schema.sql).
-   - Skema ini membuat tabel `team_members`, `app_config`, trigger pendaftaran akun, dan RPC security definer `redeem_access_code`.
+   - **Project baru**: buka SQL Editor di project Supabase Anda, lalu salin dan jalankan seluruh isi file [`supabase/schema.sql`](supabase/schema.sql). File ini sudah memuat semua perbaikan.
+   - **Project yang sudah berjalan**: jalankan file di [`supabase/migrations/`](supabase/migrations) **berurutan**: `2026-11-06_phase0_harden_make_superadmin.sql`, `2026-11-06_visit_activities.sql`, lalu `2026-11-06_phase1_fix_rpc_security.sql`. Sebelumnya, pastikan constraint role lama bernama `team_members_role_check` (`select conname from pg_constraint where conrelid = 'public.team_members'::regclass;`), kalau tidak, role `spv`/`tsc` masih ditolak.
+   - Skema membuat tabel `team_members`, `app_config`, dan `visit_activities`, trigger pendaftaran akun, fungsi `is_superadmin`, `can_view_all`, `is_approved_member`, serta RPC `redeem_access_code`, `admin_update_member_status`, `admin_update_member_role`, `admin_update_access_code`, `get_visit_summary`, dan `make_superadmin`.
 
 2. **Atur Kode Akses Tim Awal**:
    Jalankan query di SQL Editor Supabase:
@@ -123,21 +124,26 @@ Karena kode akses tim dipakai bersama oleh seluruh sales aktif, lakukan **2 lang
    - Matikan pilihan *Confirm email* agar pendaftar baru bisa langsung login dan beraktivitas seketika.
 
 4. **Koneksikan ke Aplikasi**:
-   Isi URL & Anon Key di [`lib/core/config/supabase_config.dart`](file:///l:/dev_app/dsa_incentive_tracker/lib/core/config/supabase_config.dart), atau lewat `--dart-define`:
+   Kredensial tidak ditulis di kode ([`lib/core/config/supabase_config.dart`](lib/core/config/supabase_config.dart) hanya membacanya dari `--dart-define`). Salin [`.env.example`](.env.example) menjadi `.env` (sudah di `.gitignore`), isi nilainya, lalu jalankan:
+   ```bash
+   flutter run --dart-define-from-file=.env
+   ```
+   atau langsung:
    ```bash
    flutter run --dart-define=SUPABASE_URL=https://xyz.supabase.co --dart-define=SUPABASE_ANON_KEY=ey...
    ```
+   Untuk build rilis lewat GitHub Actions, isi `SUPABASE_URL` dan `SUPABASE_ANON_KEY` sebagai secret, serta variabel `VISIT_FORM_*` di bagian Google Form di atas.
 
 ---
 
 ## 🧪 Menjalankan Pengujian Otomatis (*Automated Tests*)
 
-Seluruh logika bisnis, kalkulasi insentif, dan autentikasi dilindungi oleh automated test suite lengkap:
+Logika bisnis, kalkulasi insentif, peta coverage, AI Coach, autentikasi, dan fitur Aktivitas Harian Visit dicakup oleh test suite di folder [`test/`](test):
 
 ```bash
 # Menjalankan static analysis
 flutter analyze
 
-# Menjalankan seluruh test suite (45 tests)
+# Menjalankan seluruh test suite
 flutter test
 ```
