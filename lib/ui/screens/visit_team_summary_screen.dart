@@ -5,7 +5,9 @@ import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/utils/launcher_helper.dart';
 import '../../data/models/visit_activity.dart';
+import '../../data/services/customer_master_service.dart';
 import '../../data/services/visit_team_summary_service.dart';
+import '../../providers/customer_master_provider.dart';
 import '../../providers/visit_provider.dart';
 
 /// Provider untuk `VisitTeamSummaryService` agar mudah di-override pada test
@@ -34,6 +36,8 @@ class _VisitTeamSummaryScreenState extends ConsumerState<VisitTeamSummaryScreen>
   bool _isUnauthorized = false;
   String? _errorMsg;
   List<SalesVisitSummary> _summaries = [];
+  List<RvaiComplianceRow> _rvaiCompliance = [];
+  bool _rvaiExpanded = false;
 
   @override
   void initState() {
@@ -76,13 +80,22 @@ class _VisitTeamSummaryScreenState extends ConsumerState<VisitTeamSummaryScreen>
 
     try {
       final service = ref.read(visitTeamSummaryServiceProvider);
+      final masterService = ref.read(customerMasterServiceProvider);
       final data = await service.fetchTeamSummary(
         fromDate: formatVisitDate(_fromDate),
         toDate: formatVisitDate(_toDate),
       );
+      List<RvaiComplianceRow> compliance = const [];
+      try {
+        compliance = await masterService.fetchRvaiCompliance(
+          fromDate: _fromDate,
+          toDate: _toDate,
+        );
+      } catch (_) {}
       if (!mounted) return;
       setState(() {
         _summaries = data;
+        _rvaiCompliance = compliance;
         _isLoading = false;
       });
     } catch (e) {
@@ -307,7 +320,7 @@ class _VisitTeamSummaryScreenState extends ConsumerState<VisitTeamSummaryScreen>
       );
     }
 
-    if (_summaries.isEmpty) {
+    if (_summaries.isEmpty && _rvaiCompliance.isEmpty) {
       return Center(
         child: Text(
           'Belum ada data aktivitas visit tim pada rentang tanggal ini.',
@@ -316,12 +329,165 @@ class _VisitTeamSummaryScreenState extends ConsumerState<VisitTeamSummaryScreen>
       );
     }
 
-    return ListView.builder(
+    return ListView(
       padding: const EdgeInsets.all(16),
-      itemCount: _summaries.length,
-      itemBuilder: (context, index) {
-        final item = _summaries[index];
-        return Card(
+      children: [
+        if (_rvaiCompliance.isNotEmpty) _buildRvaiComplianceCard(),
+        if (_summaries.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: Center(
+              child: Text(
+                'Belum ada data aktivitas visit tim pada rentang tanggal ini.',
+                style: TextStyle(color: Colors.grey.shade600),
+              ),
+            ),
+          )
+        else
+          ..._summaries.map((item) => _buildSalesSummaryCard(item)),
+      ],
+    );
+  }
+
+  Widget _buildRvaiComplianceCard() {
+    final totalDue = _rvaiCompliance.fold<int>(0, (sum, r) => sum + r.dueTotal);
+    final totalVisited = _rvaiCompliance.fold<int>(
+      0,
+      (sum, r) => sum + r.visitedTotal,
+    );
+    final visibleRows = _rvaiExpanded
+        ? _rvaiCompliance
+        : _rvaiCompliance.take(5).toList();
+
+    return Card(
+      key: const Key('rvai_compliance_card'),
+      elevation: 1,
+      margin: const EdgeInsets.only(bottom: 16),
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: Colors.green.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.fact_check_rounded,
+                  size: 18,
+                  color: Colors.green.shade800,
+                ),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'Ringkasan Kepatuhan RVAI per Sales',
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF002B66),
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '$totalVisited / $totalDue Divisit',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green.shade800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Perbandingan pelanggan jatuh tempo RVAI (H+7 install) vs sudah divisit (Read-Only).',
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+            ),
+            const SizedBox(height: 10),
+            const Divider(height: 1),
+            const SizedBox(height: 8),
+            ...visibleRows.map(
+              (row) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            row.salesName,
+                            style: const TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF001A40),
+                            ),
+                          ),
+                          if (row.spvName.isNotEmpty || row.tscName.isNotEmpty)
+                            Text(
+                              [
+                                if (row.spvName.isNotEmpty) 'SPV: ${row.spvName}',
+                                if (row.tscName.isNotEmpty) 'TSC: ${row.tscName}',
+                              ].join(' · '),
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    _statBadge(
+                      'Sudah: ${row.visitedTotal} / ${row.dueTotal}',
+                      row.visitedTotal >= row.dueTotal && row.dueTotal > 0
+                          ? Colors.green.shade800
+                          : Colors.orange.shade900,
+                      row.visitedTotal >= row.dueTotal && row.dueTotal > 0
+                          ? Colors.green.shade50
+                          : Colors.orange.shade50,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (_rvaiCompliance.length > 5) ...[
+              const SizedBox(height: 4),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () {
+                    setState(() => _rvaiExpanded = !_rvaiExpanded);
+                  },
+                  child: Text(
+                    _rvaiExpanded
+                        ? 'Sembunyikan'
+                        : 'Lihat Semua (${_rvaiCompliance.length} Sales)',
+                    style: const TextStyle(fontSize: 11.5),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSalesSummaryCard(SalesVisitSummary item) {
+    return Card(
           elevation: 1,
           margin: const EdgeInsets.only(bottom: 12),
           color: Colors.white,
@@ -451,8 +617,6 @@ class _VisitTeamSummaryScreenState extends ConsumerState<VisitTeamSummaryScreen>
             ),
           ),
         );
-      },
-    );
   }
 
   Widget _statBadge(String text, Color fg, Color bg) {

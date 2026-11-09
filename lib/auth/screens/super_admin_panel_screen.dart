@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+import '../../data/models/master_customer.dart';
+import '../../providers/customer_master_provider.dart';
 import '../models/member_status.dart';
 import '../models/team_member_item.dart';
 import '../providers/auth_providers.dart';
@@ -93,7 +96,10 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
             tooltip: 'Segarkan Data',
-            onPressed: () => ref.read(teamMembersProvider.notifier).refresh(),
+            onPressed: () {
+              ref.read(teamMembersProvider.notifier).refresh();
+              ref.invalidate(masterStatusSummaryProvider);
+            },
           ),
         ],
       ),
@@ -139,10 +145,14 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
         }).toList();
 
         return RefreshIndicator(
-          onRefresh: () => ref.read(teamMembersProvider.notifier).refresh(),
+          onRefresh: () async {
+            ref.invalidate(masterStatusSummaryProvider);
+            await ref.read(teamMembersProvider.notifier).refresh();
+          },
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              _buildMasterStatusCard(),
               // Summary Cards Row
               Row(
                 children: [
@@ -305,6 +315,171 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildMasterStatusCard() {
+    final statusAsync = ref.watch(masterStatusSummaryProvider);
+    return statusAsync.when(
+      data: (status) {
+        if (status == null) return const SizedBox.shrink();
+        final isStale = status.isImportStale();
+        final lastImportText = status.lastImport != null
+            ? DateFormat('dd MMM yyyy HH:mm').format(status.lastImport!.toLocal())
+            : 'Belum pernah';
+        final batchText = status.lastBatch.trim().isNotEmpty
+            ? status.lastBatch
+            : '-';
+
+        return Card(
+          key: const Key('master_status_card'),
+          elevation: 1,
+          margin: const EdgeInsets.only(bottom: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: BorderSide(
+              color: isStale ? Colors.amber.shade400 : Colors.blueGrey.shade100,
+            ),
+          ),
+          color: Colors.white,
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.storage_rounded,
+                      size: 18,
+                      color: const Color(0xFF002B66),
+                    ),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'Data Master Pelanggan',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF001A40),
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE8EEF7),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        'Batch: $batchText',
+                        style: const TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF002B66),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 6,
+                  children: [
+                    _masterMetricItem(
+                      'Total Pelanggan',
+                      '${status.total}',
+                      const Color(0xFF002B66),
+                    ),
+                    _masterMetricItem(
+                      'Impor Terakhir',
+                      lastImportText,
+                      Colors.teal.shade800,
+                    ),
+                    _masterMetricItem(
+                      'Tanpa Nama Sales',
+                      '${status.withoutSales}',
+                      status.withoutSales > 0
+                          ? Colors.orange.shade900
+                          : Colors.grey.shade700,
+                    ),
+                  ],
+                ),
+                if (isStale) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    key: const Key('master_stale_warning'),
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.amber.shade300),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.warning_amber_rounded,
+                          size: 18,
+                          color: Colors.amber.shade900,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            status.lastImport == null
+                                ? 'Data master pelanggan belum pernah diimpor.'
+                                : 'Impor terakhir sudah lebih dari 35 hari yang lalu. Disarankan mengimpor KMZ terbaru.',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.amber.shade900,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+
+  Widget _masterMetricItem(String label, String value, Color valueColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.bold,
+              color: valueColor,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -173,3 +173,12 @@ final rvaiSuggestionsProvider = FutureProvider<List<RvaiSuggestionItem>>((
   );
 });
 
+/// Provider status impor Master Pelanggan untuk Panel SuperAdmin (`get_master_status`).
+final masterStatusSummaryProvider = FutureProvider<MasterStatusSummary?>((
+  ref,
+) async {
+  final service = ref.watch(customerMasterServiceProvider);
+  return service.fetchMasterStatus();
+});
+
+

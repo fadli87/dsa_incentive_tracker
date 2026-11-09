@@ -3,10 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:dsa_incentive_tracker/auth/models/member_status.dart';
+import 'package:dsa_incentive_tracker/auth/models/team_member_item.dart';
 import 'package:dsa_incentive_tracker/auth/providers/auth_providers.dart';
+import 'package:dsa_incentive_tracker/auth/screens/super_admin_panel_screen.dart';
+import 'package:dsa_incentive_tracker/data/models/master_customer.dart';
 import 'package:dsa_incentive_tracker/data/models/user_profile.dart';
 import 'package:dsa_incentive_tracker/data/models/visit_activity.dart';
+import 'package:dsa_incentive_tracker/data/services/customer_master_service.dart';
 import 'package:dsa_incentive_tracker/data/services/visit_team_summary_service.dart';
+import 'package:dsa_incentive_tracker/providers/customer_master_provider.dart';
 import 'package:dsa_incentive_tracker/providers/user_info_provider.dart';
 import 'package:dsa_incentive_tracker/ui/screens/dashboard_screen.dart';
 import 'package:dsa_incentive_tracker/ui/screens/visit_team_summary_screen.dart';
@@ -237,4 +242,135 @@ void main() {
       expect(find.text('Akses Rekap Tim Tidak Diizinkan'), findsOneWidget);
     });
   });
+
+  group('Phase 10E — SuperAdmin Master Status & Team Summary RVAI Compliance', () {
+    testWidgets(
+      'Kartu Data Master Pelanggan tampil di SuperAdmin Panel beserta peringatan kuning bila impor > 35 hari',
+      (tester) async {
+        final staleDate = DateTime.now().subtract(const Duration(days: 40));
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              teamMembersProvider.overrideWith(
+                () => _FakeTeamMembersNotifier(),
+              ),
+              masterStatusSummaryProvider.overrideWith(
+                (ref) async => MasterStatusSummary(
+                  total: 1250,
+                  lastImport: staleDate,
+                  lastBatch: '2026-09-25',
+                  withSales: 1200,
+                ),
+              ),
+            ],
+            child: const MaterialApp(home: SuperAdminPanelScreen()),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(const Key('master_status_card')), findsOneWidget);
+        expect(find.text('Data Master Pelanggan'), findsOneWidget);
+        expect(find.text('1250'), findsOneWidget);
+        expect(find.text('50'), findsOneWidget); // withoutSales = 1250 - 1200
+        expect(find.text('Batch: 2026-09-25'), findsOneWidget);
+        expect(find.byKey(const Key('master_stale_warning')), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'VisitTeamSummaryScreen menampilkan Ringkasan Kepatuhan RVAI per Sales secara read-only',
+      (tester) async {
+        final visitGateway = _FakeVisitSummaryGateway(
+          rpcRows: [
+            {
+              'member_id': 'sales-1',
+              'member_name': 'Budi Sales',
+              'member_email': 'budi@example.test',
+              'category': 'rvai',
+              'status': 'sudah_visit',
+              'total': 3,
+            },
+          ],
+        );
+        final masterGateway = _FakeMasterComplianceGateway(
+          complianceRows: [
+            {
+              'sales_name': 'BUDI SANTOSO',
+              'spv_name': 'SPV HERI',
+              'tsc_name': 'TSC PIPIN',
+              'due_total': 10,
+              'visited_total': 7,
+            },
+          ],
+        );
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              visitTeamSummaryServiceProvider.overrideWithValue(
+                VisitTeamSummaryService(remoteGateway: visitGateway),
+              ),
+              customerMasterServiceProvider.overrideWithValue(
+                CustomerMasterService(
+                  remoteGateway: masterGateway,
+                  isConfiguredOverride: true,
+                ),
+              ),
+            ],
+            child: const MaterialApp(
+              home: VisitTeamSummaryScreen(isOnlineOverride: true),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(const Key('rvai_compliance_card')), findsOneWidget);
+        expect(find.text('Ringkasan Kepatuhan RVAI per Sales'), findsOneWidget);
+        expect(find.text('BUDI SANTOSO'), findsOneWidget);
+        expect(find.text('Sudah: 7 / 10'), findsOneWidget);
+      },
+    );
+  });
+}
+
+class _FakeTeamMembersNotifier extends TeamMembersNotifier {
+  @override
+  Future<List<TeamMemberItem>> build() async {
+    return const <TeamMemberItem>[];
+  }
+
+  @override
+  Future<void> refresh() async {
+    state = const AsyncValue.data(<TeamMemberItem>[]);
+  }
+}
+
+class _FakeMasterComplianceGateway implements CustomerMasterRemoteGateway {
+  final List<Map<String, dynamic>> complianceRows;
+
+  _FakeMasterComplianceGateway({this.complianceRows = const []});
+
+  @override
+  String? get currentUserId => 'spv-1';
+
+  @override
+  Future<String> claimSalesNameRpc(String salesName) async => 'success';
+
+  @override
+  Future<List<Map<String, dynamic>>> fetchCustomerMasterPage({
+    required int fromIndex,
+    required int toIndex,
+  }) async => const [];
+
+  @override
+  Future<Map<String, dynamic>?> fetchMasterStatusRpc() async => null;
+
+  @override
+  Future<List<Map<String, dynamic>>> fetchRvaiComplianceRpc({
+    required String fromDate,
+    required String toDate,
+  }) async => complianceRows;
+
+  @override
+  Future<List<Map<String, dynamic>>> fetchSalesNamesRpc() async => const [];
 }
