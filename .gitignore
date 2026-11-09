@@ -58,3 +58,9 @@ Output/
 env.json
 *.env.json
 
+# Customer Master Private Data & GIS Raw Files
+private_data/
+*.kmz
+*.kml
+
+
