@@ -1,14 +1,50 @@
+import 'dart:io';
+import 'dart:typed_data';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../auth/providers/auth_providers.dart';
 import '../core/constants/visit_constants.dart';
 import '../data/local/database_helper.dart';
 import '../data/models/master_customer.dart';
+import '../data/services/customer_master_import_service.dart';
 import '../data/services/customer_master_service.dart';
 import 'visit_provider.dart';
 
 /// Provider untuk instance `CustomerMasterService`.
 final customerMasterServiceProvider = Provider<CustomerMasterService>((ref) {
   return CustomerMasterService();
+});
+
+/// Provider untuk instance `CustomerMasterImportService` (Khusus SuperAdmin).
+final customerMasterImportServiceProvider =
+    Provider<CustomerMasterImportService>((ref) {
+      return CustomerMasterImportService();
+    });
+
+/// Callback pemilih file KMZ/KML yang hanya mengembalikan bytes di memori
+/// (tidak pernah menyalin/menyimpan file ke disk aplikasi).
+/// Dapat di-override pada widget test.
+typedef PickMasterImportBytesCallback = Future<Uint8List?> Function();
+
+final pickMasterImportBytesProvider = Provider<PickMasterImportBytesCallback>((
+  ref,
+) {
+  return () async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['kmz', 'kml'],
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty) return null;
+    final picked = result.files.single;
+    if (picked.bytes != null) {
+      return picked.bytes;
+    }
+    if (picked.path != null && picked.path!.isNotEmpty) {
+      return File(picked.path!).readAsBytes();
+    }
+    return null;
+  };
 });
 
 /// Provider untuk membaca `sales_name` milik akun yang sedang aktif.
