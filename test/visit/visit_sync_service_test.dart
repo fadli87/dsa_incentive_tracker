@@ -1,7 +1,13 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dsa_incentive_tracker/data/local/database_helper.dart';
 import 'package:dsa_incentive_tracker/data/models/visit_activity.dart';
+import 'package:dsa_incentive_tracker/data/models/visit_form_response.dart';
 import 'package:dsa_incentive_tracker/data/services/visit_sync_service.dart';
+import 'package:dsa_incentive_tracker/providers/visit_provider.dart';
+import 'package:dsa_incentive_tracker/ui/screens/visit_daily_screen.dart';
 
 /// Fake implementasi `VisitRemoteGateway` dengan simulasi constraint `unique(user_id, client_id)`,
 /// penolakan baris tertentu (RLS/constraint), hook saat upsert berjalan, dan paginasi `.range()`.
@@ -11,6 +17,8 @@ class FakeVisitRemoteGateway implements VisitRemoteGateway {
   final Set<String> failingClientIds;
   Future<void> Function()? onBeforeUpsertComplete;
   final Map<String, Map<String, dynamic>> remoteTable = {};
+  final List<String> callOrderLog = [];
+  List<Map<String, dynamic>> submittedOwnedRows = [];
 
   FakeVisitRemoteGateway({
     this.activeUserId = 'user-sales-fiktif-1',
@@ -24,6 +32,7 @@ class FakeVisitRemoteGateway implements VisitRemoteGateway {
 
   @override
   Future<void> upsertBatch(List<Map<String, dynamic>> payload) async {
+    callOrderLog.add('push');
     if (shouldThrowOnUpsert) {
       throw Exception('Simulasi kegagalan jaringan atau RLS revoked');
     }
@@ -59,12 +68,35 @@ class FakeVisitRemoteGateway implements VisitRemoteGateway {
     final end = (toIndex + 1 < matching.length) ? toIndex + 1 : matching.length;
     return matching.sublist(fromIndex, end);
   }
+
+  @override
+  Future<List<Map<String, dynamic>>> fetchSubmittedOwnedVisits(
+    String userId, {
+    String? sinceIso,
+  }) async {
+    callOrderLog.add('pull');
+    return submittedOwnedRows.where((r) {
+      if (sinceIso != null && sinceIso.isNotEmpty) {
+        final upd = (r['updated_at'] as String?) ?? '';
+        return upd.compareTo(sinceIso) > 0;
+      }
+      return true;
+    }).toList();
+  }
+
+  @override
+  Future<Map<String, dynamic>?> fetchFormResponseForVisit({
+    required String clientId,
+    String? ownerUserId,
+    String? remoteVisitId,
+  }) async => null;
 }
 
 void main() {
   final db = DatabaseHelper.instance;
 
   setUp(() {
+    SharedPreferences.setMockInitialValues({});
     db.clearInMemoryVisits();
   });
 
@@ -422,6 +454,169 @@ void main() {
       final noSessionList = await db.getVisitsByDate('2026-11-06');
       expect(noSessionList.length, 1);
       expect(noSessionList.first.ownerUserId, '');
+    });
+
+    test('Phase 9D: toSupabaseJson TIDAK pernah mengirim form_submitted=false dan hanya mengirim saat true', () {
+      const visitFalse = VisitActivity(
+        clientId: 'c-json-1',
+        customerId: '11223344',
+        category: VisitCategory.rvai,
+        plannedDate: '2026-11-09',
+        formSubmitted: false,
+        updatedAt: '2026-11-09T01:00:00Z',
+      );
+      final jsonFalse = visitFalse.toSupabaseJson(userId: 'u-1');
+      expect(jsonFalse.containsKey('form_submitted'), isFalse);
+
+      final visitTrue = visitFalse.copyWith(formSubmitted: true);
+      final jsonTrue = visitTrue.toSupabaseJson(userId: 'u-1');
+      expect(jsonTrue['form_submitted'], isTrue);
+    });
+
+    test('Phase 9D: pullFormStatus memperbarui baris lokal tanpa menandai sync_state=0 dan urutan syncAll adalah pull dulu baru push', () async {
+      // Baris lokal sudah tersinkron sebelumnya (sync_state = 1, status = belum, formSubmitted = false)
+      await db.upsertRestoredVisit(
+        const VisitActivity(
+          clientId: 'c-pull-form-1',
+          ownerUserId: 'user-sales-fiktif-1',
+          customerId: '32001234',
+          category: VisitCategory.rvai,
+          status: VisitStatus.belum,
+          plannedDate: '2026-11-09',
+          formSubmitted: false,
+          syncState: 1,
+          updatedAt: '2026-11-09T01:00:00Z',
+        ),
+      );
+      // Tambahkan 1 baris pending agar push juga terpanggil saat syncAll
+      await db.insertVisit(
+        const VisitActivity(
+          clientId: 'c-push-after-pull-1',
+          ownerUserId: 'user-sales-fiktif-1',
+          customerId: '32005678',
+          category: VisitCategory.unpaid,
+          status: VisitStatus.belum,
+          plannedDate: '2026-11-09',
+          formSubmitted: false,
+          updatedAt: '2026-11-09T01:05:00Z',
+        ),
+      );
+
+      final gateway = FakeVisitRemoteGateway();
+      gateway.submittedOwnedRows = [
+        {
+          'client_id': 'c-pull-form-1',
+          'status': 'sudah_visit',
+          'visited_at': '2026-11-09T02:00:00Z',
+          'form_submitted': true,
+          'updated_at': '2026-11-09T02:00:00Z',
+        },
+      ];
+
+      final service = VisitSyncService(
+        databaseHelper: db,
+        remoteGateway: gateway,
+        isConfiguredOverride: true,
+      );
+
+      final res = await service.syncAll(isApproved: true);
+      expect(res.pulledFormCount, 1);
+      expect(res.pushedCount, 1);
+
+      // Pastikan urutan tarik (pull) dijalankan SEBELUM dorong (push)
+      expect(gateway.callOrderLog, ['pull', 'push']);
+
+      // Pastikan c-pull-form-1 di lokal berubah menjadi formSubmitted=true, status=sudahVisit,
+      // dan TIDAK ditandai pending (sync_state tetap 1)
+      final onDate = await db.getVisitsByDate('2026-11-09');
+      final pulledRow = onDate.firstWhere((v) => v.clientId == 'c-pull-form-1');
+      expect(pulledRow.formSubmitted, isTrue);
+      expect(pulledRow.status, VisitStatus.sudahVisit);
+      expect(pulledRow.visitedAt, '2026-11-09T02:00:00Z');
+      expect(pulledRow.syncState, 1);
+      expect(await db.getPendingVisits(), isEmpty);
+    });
+
+    test('Phase 9D: VisitFormResponse.safeDrivePhotoUrls menyaring URL non-Google-Drive', () {
+      final resp = VisitFormResponse.fromJson({
+        'id': 'resp-id-1',
+        'response_key': 'rk-1',
+        'customer_id': '32018899',
+        'photo_urls': [
+          'https://drive.google.com/file/d/VALID_ID/view',
+          'https://evil.example.com/phishing.png',
+          'http://drive.google.com/insecure',
+          'javascript:alert(1)',
+        ],
+      });
+
+      expect(resp.safeDrivePhotoUrls, [
+        'https://drive.google.com/file/d/VALID_ID/view',
+      ]);
+    });
+
+    testWidgets('Phase 9D: Chip Belum isi Form menghitung dan memfilter visit yang sudah_visit tetapi belum isi Form', (tester) async {
+      final todayStr = formatVisitDate(DateTime.now());
+      // 1. sudahVisit tapi formSubmitted = false (harus terhitung di Belum isi Form)
+      await db.insertVisit(
+        VisitActivity(
+          clientId: 'c-missing-form',
+          customerId: '80001111',
+          customerName: 'Belum Lapor Form',
+          category: VisitCategory.rvai,
+          status: VisitStatus.sudahVisit,
+          formSubmitted: false,
+          plannedDate: todayStr,
+          updatedAt: '2026-11-09T03:00:00Z',
+        ),
+      );
+      // 2. sudahVisit dan formSubmitted = true (tidak masuk Belum isi Form)
+      await db.insertVisit(
+        VisitActivity(
+          clientId: 'c-done-form',
+          customerId: '80002222',
+          customerName: 'Sudah Lapor Form',
+          category: VisitCategory.rvai,
+          status: VisitStatus.sudahVisit,
+          formSubmitted: true,
+          plannedDate: todayStr,
+          updatedAt: '2026-11-09T03:01:00Z',
+        ),
+      );
+      // 3. belum visit (tidak masuk Belum isi Form)
+      await db.insertVisit(
+        VisitActivity(
+          clientId: 'c-belum-visit',
+          customerId: '80003333',
+          customerName: 'Masih Rencana',
+          category: VisitCategory.dismantle,
+          status: VisitStatus.belum,
+          formSubmitted: false,
+          plannedDate: todayStr,
+          updatedAt: '2026-11-09T03:02:00Z',
+        ),
+      );
+
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: VisitDailyScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final missingChip = find.byKey(const Key('filter_chip_missing_form'));
+      expect(missingChip, findsOneWidget);
+      expect(find.text('Belum isi Form (1)'), findsOneWidget);
+
+      // Ketuk chip "Belum isi Form (1)" -> hanya 80001111 yang tampil
+      await tester.tap(missingChip);
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('80001111'), findsOneWidget);
+      expect(find.textContaining('80002222'), findsNothing);
+      expect(find.textContaining('80003333'), findsNothing);
     });
   });
 }

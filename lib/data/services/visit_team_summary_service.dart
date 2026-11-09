@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../auth/supabase_client.dart';
 import '../models/visit_activity.dart';
+import '../models/visit_form_response.dart';
 
 /// Model agregasi rekap visit per sales untuk SPV/TSC/Admin/Superadmin
 class SalesVisitSummary {
@@ -8,6 +9,7 @@ class SalesVisitSummary {
   final String memberName;
   final String memberEmail;
   final int total;
+  final int formSubmittedTotal;
   final Map<VisitCategory, int> byCategory;
   final Map<VisitStatus, int> byStatus;
 
@@ -16,6 +18,7 @@ class SalesVisitSummary {
     required this.memberName,
     required this.memberEmail,
     required this.total,
+    this.formSubmittedTotal = 0,
     required this.byCategory,
     required this.byStatus,
   });
@@ -23,9 +26,26 @@ class SalesVisitSummary {
   String get displayName =>
       memberName.trim().isNotEmpty ? memberName : (memberEmail.isNotEmpty ? memberEmail : memberId);
 
+  SalesVisitSummary copyWith({
+    int? formSubmittedTotal,
+  }) {
+    return SalesVisitSummary(
+      memberId: memberId,
+      memberName: memberName,
+      memberEmail: memberEmail,
+      total: total,
+      formSubmittedTotal: formSubmittedTotal ?? this.formSubmittedTotal,
+      byCategory: byCategory,
+      byStatus: byStatus,
+    );
+  }
+
   /// Mengagregasi baris mentah hasil RPC `public.get_visit_summary(from_date, to_date)`
   /// menjadi daftar ringkasan per sales.
-  static List<SalesVisitSummary> aggregateRpcRows(List<Map<String, dynamic>> rawRows) {
+  static List<SalesVisitSummary> aggregateRpcRows(
+    List<Map<String, dynamic>> rawRows, {
+    Map<String, int> formSubmittedByMember = const {},
+  }) {
     final grouped = <String, _MutableSalesAcc>{};
 
     for (final row in rawRows) {
@@ -37,6 +57,7 @@ class SalesVisitSummary {
       final cat = VisitCategory.fromString(row['category'] as String?);
       final st = VisitStatus.fromString(row['status'] as String?);
       final count = (row['total'] as num?)?.toInt() ?? 0;
+      final formCount = (row['form_submitted_total'] as num?)?.toInt() ?? 0;
 
       final acc = grouped.putIfAbsent(
         memberId,
@@ -47,6 +68,7 @@ class SalesVisitSummary {
         ),
       );
       acc.total += count;
+      acc.formSubmittedTotal += formCount;
       acc.byCategory[cat] = (acc.byCategory[cat] ?? 0) + count;
       acc.byStatus[st] = (acc.byStatus[st] ?? 0) + count;
     }
@@ -58,6 +80,8 @@ class SalesVisitSummary {
             memberName: a.memberName,
             memberEmail: a.memberEmail,
             total: a.total,
+            formSubmittedTotal:
+                formSubmittedByMember[a.memberId] ?? a.formSubmittedTotal,
             byCategory: Map.unmodifiable(a.byCategory),
             byStatus: Map.unmodifiable(a.byStatus),
           ),
@@ -74,6 +98,7 @@ class _MutableSalesAcc {
   final String memberName;
   final String memberEmail;
   int total = 0;
+  int formSubmittedTotal = 0;
   final Map<VisitCategory, int> byCategory = {
     VisitCategory.rvai: 0,
     VisitCategory.dismantle: 0,
@@ -108,6 +133,18 @@ abstract class VisitSummaryRemoteGateway {
     required int fromIndex,
     required int toIndex,
   });
+
+  /// Mengambil jumlah visit yang `form_submitted = true` per `user_id` pada rentang tanggal.
+  Future<Map<String, int>> fetchFormSubmittedCountsByMember({
+    required String fromDate,
+    required String toDate,
+  }) async => const {};
+
+  /// Mengambil jawaban Google Form untuk satu visit berdasarkan `client_id` + `user_id`.
+  Future<Map<String, dynamic>?> fetchFormResponseForMemberVisit({
+    required String memberId,
+    required String clientId,
+  }) async => null;
 }
 
 class SupabaseVisitSummaryGateway implements VisitSummaryRemoteGateway {
@@ -132,6 +169,67 @@ class SupabaseVisitSummaryGateway implements VisitSummaryRemoteGateway {
     return (res as List<dynamic>)
         .map((e) => Map<String, dynamic>.from(e as Map))
         .toList();
+  }
+
+  @override
+  Future<Map<String, int>> fetchFormSubmittedCountsByMember({
+    required String fromDate,
+    required String toDate,
+  }) async {
+    try {
+      final res = await _client
+          .from('visit_activities')
+          .select('user_id')
+          .eq('form_submitted', true)
+          .isFilter('deleted_at', null)
+          .gte('planned_date', fromDate)
+          .lte('planned_date', toDate)
+          .timeout(const Duration(seconds: 10));
+
+      final counts = <String, int>{};
+      for (final item in (res as List<dynamic>)) {
+        if (item is Map) {
+          final uid = item['user_id']?.toString() ?? '';
+          if (uid.isNotEmpty) {
+            counts[uid] = (counts[uid] ?? 0) + 1;
+          }
+        }
+      }
+      return counts;
+    } catch (_) {
+      return const {};
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>?> fetchFormResponseForMemberVisit({
+    required String memberId,
+    required String clientId,
+  }) async {
+    final rows = await _client
+        .from('visit_activities')
+        .select('id')
+        .eq('user_id', memberId)
+        .eq('client_id', clientId)
+        .limit(1)
+        .timeout(const Duration(seconds: 10));
+
+    String? visitUuid;
+    if (rows is List && rows.isNotEmpty && rows.first is Map) {
+      visitUuid = (rows.first as Map)['id']?.toString();
+    }
+    if (visitUuid == null || visitUuid.isEmpty) return null;
+
+    final res = await _client
+        .rpc('get_form_response_for_visit', params: {'p_visit_id': visitUuid})
+        .timeout(const Duration(seconds: 10));
+    if (res is List && res.isNotEmpty && res.first is Map) {
+      return Map<String, dynamic>.from(res.first as Map);
+    }
+    if (res is Map) {
+      return Map<String, dynamic>.from(res);
+    }
+    return null;
   }
 
   @override
@@ -189,7 +287,30 @@ class VisitTeamSummaryService {
       fromDate: fromDate,
       toDate: toDate,
     );
-    return SalesVisitSummary.aggregateRpcRows(rows);
+    final formCounts = await _gateway.fetchFormSubmittedCountsByMember(
+      fromDate: fromDate,
+      toDate: toDate,
+    );
+    return SalesVisitSummary.aggregateRpcRows(
+      rows,
+      formSubmittedByMember: formCounts,
+    );
+  }
+
+  Future<VisitFormResponse?> fetchFormResponseForMemberVisit({
+    required String memberId,
+    required String clientId,
+  }) async {
+    try {
+      final map = await _gateway.fetchFormResponseForMemberVisit(
+        memberId: memberId,
+        clientId: clientId,
+      );
+      if (map == null) return null;
+      return VisitFormResponse.fromJson(map);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<List<VisitActivity>> fetchMemberVisits({

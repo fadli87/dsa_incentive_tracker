@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/utils/launcher_helper.dart';
 import '../../data/models/visit_activity.dart';
+import '../../data/models/visit_form_response.dart';
 import '../../data/services/customer_master_service.dart';
 import '../../data/services/visit_team_summary_service.dart';
 import '../../providers/customer_master_provider.dart';
@@ -610,6 +612,11 @@ class _VisitTeamSummaryScreenState extends ConsumerState<VisitTeamSummaryScreen>
                         Colors.grey.shade800,
                         Colors.grey.shade200,
                       ),
+                      _statBadge(
+                        'Form terisi: ${item.formSubmittedTotal} / ${item.total}',
+                        Colors.indigo.shade800,
+                        Colors.indigo.shade50,
+                      ),
                     ],
                   ),
                 ],
@@ -820,78 +827,113 @@ class _VisitMemberReadOnlyListScreenState
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(14.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Text(
-                                        '${v.category.displayLabel.toUpperCase()} · ${v.status.displayLabel}',
-                                        style: const TextStyle(
-                                          fontSize: 11.5,
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFF002B66),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: v.formSubmitted
+                                  ? () => _showReadOnlyFormResponseSheet(v)
+                                  : null,
+                              child: Padding(
+                                padding: const EdgeInsets.all(14.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Text(
+                                          '${v.category.displayLabel.toUpperCase()} · ${v.status.displayLabel}',
+                                          style: const TextStyle(
+                                            fontSize: 11.5,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF002B66),
+                                          ),
                                         ),
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          key: Key('member_visit_form_badge_${v.clientId}'),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 7,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: v.formSubmitted
+                                                ? Colors.green.shade50
+                                                : Colors.orange.shade50,
+                                            borderRadius: BorderRadius.circular(6),
+                                            border: Border.all(
+                                              color: v.formSubmitted
+                                                  ? Colors.green.shade400
+                                                  : Colors.orange.shade300,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            v.formSubmitted ? 'Form ✓' : 'Form belum',
+                                            style: TextStyle(
+                                              fontSize: 10.5,
+                                              fontWeight: FontWeight.bold,
+                                              color: v.formSubmitted
+                                                  ? Colors.green.shade800
+                                                  : Colors.orange.shade900,
+                                            ),
+                                          ),
+                                        ),
+                                        const Spacer(),
+                                        Text(
+                                          v.plannedDate,
+                                          style: TextStyle(
+                                            fontSize: 11.5,
+                                            color: Colors.grey.shade600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      v.customerName.isNotEmpty
+                                          ? '${v.customerId} · ${v.customerName}'
+                                          : 'ID: ${v.customerId}',
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
                                       ),
-                                      const Spacer(),
+                                    ),
+                                    if (v.address.isNotEmpty) ...[
+                                      const SizedBox(height: 4),
                                       Text(
-                                        v.plannedDate,
+                                        v.address,
                                         style: TextStyle(
-                                          fontSize: 11.5,
-                                          color: Colors.grey.shade600,
+                                          fontSize: 12,
+                                          color: Colors.grey.shade700,
                                         ),
                                       ),
                                     ],
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    v.customerName.isNotEmpty
-                                        ? '${v.customerId} · ${v.customerName}'
-                                        : 'ID: ${v.customerId}',
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  if (v.address.isNotEmpty) ...[
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      v.address,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey.shade700,
+                                    if (v.note.isNotEmpty) ...[
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Catatan: ${v.note}',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontStyle: FontStyle.italic,
+                                        ),
                                       ),
-                                    ),
-                                  ],
-                                  if (v.note.isNotEmpty) ...[
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'Catatan: ${v.note}',
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        fontStyle: FontStyle.italic,
+                                    ],
+                                    if (v.hasLocation) ...[
+                                      const SizedBox(height: 8),
+                                      Align(
+                                        alignment: Alignment.centerRight,
+                                        child: OutlinedButton.icon(
+                                          icon: const Icon(Icons.directions, size: 16),
+                                          label: const Text('Lihat di Maps'),
+                                          onPressed: () {
+                                            LauncherHelper.openGoogleMaps(
+                                              v.latitude!,
+                                              v.longitude!,
+                                            );
+                                          },
+                                        ),
                                       ),
-                                    ),
+                                    ],
                                   ],
-                                  if (v.hasLocation) ...[
-                                    const SizedBox(height: 8),
-                                    Align(
-                                      alignment: Alignment.centerRight,
-                                      child: OutlinedButton.icon(
-                                        icon: const Icon(Icons.directions, size: 16),
-                                        label: const Text('Lihat di Maps'),
-                                        onPressed: () {
-                                          LauncherHelper.openGoogleMaps(
-                                            v.latitude!,
-                                            v.longitude!,
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  ],
-                                ],
+                                ),
                               ),
                             ),
                           );
@@ -900,6 +942,98 @@ class _VisitMemberReadOnlyListScreenState
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _showReadOnlyFormResponseSheet(VisitActivity visit) async {
+    final service = ref.read(visitTeamSummaryServiceProvider);
+    final resp = await service.fetchFormResponseForMemberVisit(
+      memberId: widget.summary.memberId,
+      clientId: visit.clientId,
+    );
+    if (!mounted) return;
+
+    await showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        final safePhotos = resp?.safeDrivePhotoUrls ?? const <String>[];
+        return Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.fact_check_rounded,
+                    color: Colors.green.shade800,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Jawaban Google Form · ID ${visit.customerId}',
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF002B66),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              if (resp == null)
+                const Text(
+                  'Form terkirim (detail jawaban belum tersedia atau perangkat sedang offline).',
+                  style: TextStyle(fontSize: 12.5),
+                )
+              else ...[
+                if (resp.visitStatus.isNotEmpty)
+                  Text('Status Visit: ${resp.visitStatus}', style: const TextStyle(fontSize: 12.5)),
+                if (resp.result.isNotEmpty)
+                  Text('Hasil Kunjungan: ${resp.result}', style: const TextStyle(fontSize: 12.5)),
+                if (resp.obstacles.isNotEmpty)
+                  Text('Kendala: ${resp.obstacles.join(", ")}', style: const TextStyle(fontSize: 12.5)),
+                if (resp.note.isNotEmpty)
+                  Text('Catatan Form: ${resp.note}', style: const TextStyle(fontSize: 12.5)),
+                if (resp.followUp.isNotEmpty)
+                  Text('Tindak Lanjut: ${resp.followUp}', style: const TextStyle(fontSize: 12.5)),
+                if (safePhotos.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    children: [
+                      for (int i = 0; i < safePhotos.length; i++)
+                        OutlinedButton.icon(
+                          icon: const Icon(Icons.photo_library_outlined, size: 15),
+                          label: Text(
+                            safePhotos.length == 1
+                                ? 'Buka Foto Bukti'
+                                : 'Buka Foto ${i + 1}',
+                          ),
+                          onPressed: () {
+                            final uri = Uri.tryParse(safePhotos[i]);
+                            if (uri != null &&
+                                VisitFormResponse.isSafeGoogleDriveUrl(safePhotos[i])) {
+                              launchUrl(uri, mode: LaunchMode.externalApplication);
+                            }
+                          },
+                        ),
+                    ],
+                  ),
+                ],
+              ],
+              const SizedBox(height: 12),
+            ],
+          ),
+        );
+      },
     );
   }
 }

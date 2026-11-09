@@ -10,6 +10,7 @@ import '../../core/constants/visit_constants.dart';
 import '../../core/utils/launcher_helper.dart';
 import '../../data/local/database_helper.dart';
 import '../../data/models/visit_activity.dart';
+import '../../data/models/visit_form_response.dart';
 import '../../data/services/visit_csv_export_service.dart';
 import '../../providers/customer_master_provider.dart';
 import '../../providers/visit_provider.dart';
@@ -293,6 +294,9 @@ class _VisitDailyScreenState extends ConsumerState<VisitDailyScreen>
   Widget build(BuildContext context) {
     final selectedDateStr = ref.watch(visitSelectedDateProvider);
     final selectedCategory = ref.watch(visitSelectedCategoryProvider);
+    final filterMissingForm = ref.watch(visitFilterMissingFormProvider);
+    final missingFormCountAsync = ref.watch(visitMissingFormCountProvider);
+    final missingFormCount = missingFormCountAsync.valueOrNull ?? 0;
     final visitsAsync = ref.watch(visitProvider);
     final countsAsync = ref.watch(visitCountsByCategoryProvider);
     final pendingAsync = ref.watch(pendingVisitCountProvider);
@@ -545,15 +549,36 @@ class _VisitDailyScreenState extends ConsumerState<VisitDailyScreen>
                       ChoiceChip(
                         key: const Key('filter_chip_all'),
                         label: Text('Semua ($totalCount)'),
-                        selected: selectedCategory == null,
+                        selected: selectedCategory == null && !filterMissingForm,
                         selectedColor: const Color(0xFF002B66),
                         labelStyle: TextStyle(
-                          color: selectedCategory == null ? Colors.white : const Color(0xFF002B66),
+                          color: (selectedCategory == null && !filterMissingForm)
+                              ? Colors.white
+                              : const Color(0xFF002B66),
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
                         ),
                         onSelected: (_) {
                           ref.read(visitSelectedCategoryProvider.notifier).state = null;
+                          ref.read(visitFilterMissingFormProvider.notifier).state = false;
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      ChoiceChip(
+                        key: const Key('filter_chip_missing_form'),
+                        label: Text('Belum isi Form ($missingFormCount)'),
+                        selected: filterMissingForm,
+                        selectedColor: Colors.deepOrange.shade700,
+                        labelStyle: TextStyle(
+                          color: filterMissingForm
+                              ? Colors.white
+                              : Colors.deepOrange.shade900,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                        onSelected: (selected) {
+                          ref.read(visitFilterMissingFormProvider.notifier).state =
+                              !filterMissingForm;
                         },
                       ),
                       const SizedBox(width: 8),
@@ -666,7 +691,16 @@ class _VisitDailyScreenState extends ConsumerState<VisitDailyScreen>
           // Daftar Kartu Visit
           Expanded(
             child: visitsAsync.when(
-              data: (visits) {
+              data: (rawVisits) {
+                final visits = filterMissingForm
+                    ? rawVisits
+                        .where(
+                          (v) =>
+                              v.status == VisitStatus.sudahVisit &&
+                              !v.formSubmitted,
+                        )
+                        .toList()
+                    : rawVisits;
                 if (visits.isEmpty) {
                   return Center(
                     child: Padding(
@@ -1073,6 +1107,9 @@ class _VisitDetailBottomSheetState extends ConsumerState<_VisitDetailBottomSheet
   late VisitStatus _status;
   late TextEditingController _noteCtrl;
   late bool _formSubmitted;
+  bool _isLoadingFormResponse = false;
+  bool _isOfflineFormResponse = false;
+  VisitFormResponse? _formResponse;
 
   @override
   void initState() {
@@ -1080,6 +1117,41 @@ class _VisitDetailBottomSheetState extends ConsumerState<_VisitDetailBottomSheet
     _status = widget.visit.status;
     _noteCtrl = TextEditingController(text: widget.visit.note);
     _formSubmitted = widget.visit.formSubmitted;
+    if (_formSubmitted) {
+      _loadFormResponse();
+    }
+  }
+
+  Future<void> _loadFormResponse() async {
+    setState(() {
+      _isLoadingFormResponse = true;
+      _isOfflineFormResponse = false;
+    });
+    bool online = true;
+    try {
+      final conn = await Connectivity().checkConnectivity();
+      online = conn.any((c) => c != ConnectivityResult.none);
+    } catch (_) {
+      online = true;
+    }
+    if (!online) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingFormResponse = false;
+        _isOfflineFormResponse = true;
+      });
+      return;
+    }
+    final service = ref.read(visitSyncServiceProvider);
+    final resp = await service.fetchFormResponseForVisit(
+      clientId: widget.visit.clientId,
+      ownerUserId: widget.visit.ownerUserId,
+    );
+    if (!mounted) return;
+    setState(() {
+      _formResponse = resp;
+      _isLoadingFormResponse = false;
+    });
   }
 
   @override
@@ -1290,6 +1362,12 @@ class _VisitDetailBottomSheetState extends ConsumerState<_VisitDetailBottomSheet
             ),
             const SizedBox(height: 14),
 
+            // Ringkasan Jawaban Google Form bila formSubmitted == true
+            if (_formSubmitted) ...[
+              _buildFormResponseSummarySection(),
+              const SizedBox(height: 14),
+            ],
+
             // Tombol Navigasi & Isi Google Form
             Row(
               children: [
@@ -1347,6 +1425,114 @@ class _VisitDetailBottomSheetState extends ConsumerState<_VisitDetailBottomSheet
                 ),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFormResponseSummarySection() {
+    final resp = _formResponse;
+    final safePhotos = resp?.safeDrivePhotoUrls ?? const <String>[];
+
+    return Container(
+      key: const Key('visit_form_response_card'),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.green.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.green.shade300),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.fact_check_rounded,
+                size: 17,
+                color: Colors.green.shade800,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                _isOfflineFormResponse || resp == null
+                    ? 'Form terkirim'
+                    : 'Ringkasan Jawaban Google Form',
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green.shade900,
+                ),
+              ),
+            ],
+          ),
+          if (_isLoadingFormResponse) ...[
+            const SizedBox(height: 8),
+            const LinearProgressIndicator(),
+          ] else if (resp != null) ...[
+            const SizedBox(height: 8),
+            if (resp.visitStatus.isNotEmpty)
+              _formDetailLine('Status Form', resp.visitStatus),
+            if (resp.result.isNotEmpty)
+              _formDetailLine('Hasil Kunjungan', resp.result),
+            if (resp.obstacles.isNotEmpty)
+              _formDetailLine('Kendala', resp.obstacles.join(', ')),
+            if (resp.note.isNotEmpty)
+              _formDetailLine('Catatan Form', resp.note),
+            if (resp.followUp.isNotEmpty)
+              _formDetailLine('Tindak Lanjut', resp.followUp),
+            if (safePhotos.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: [
+                  for (int i = 0; i < safePhotos.length; i++)
+                    OutlinedButton.icon(
+                      key: Key('visit_open_drive_photo_$i'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.green.shade900,
+                        side: BorderSide(color: Colors.green.shade600),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      icon: const Icon(Icons.photo_library_outlined, size: 15),
+                      label: Text(
+                        safePhotos.length == 1
+                            ? 'Buka Foto Bukti'
+                            : 'Buka Foto ${i + 1}',
+                        style: const TextStyle(fontSize: 11.5),
+                      ),
+                      onPressed: () {
+                        final uri = Uri.tryParse(safePhotos[i]);
+                        if (uri != null &&
+                            VisitFormResponse.isSafeGoogleDriveUrl(
+                              safePhotos[i],
+                            )) {
+                          launchUrl(uri, mode: LaunchMode.externalApplication);
+                        }
+                      },
+                    ),
+                ],
+              ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _formDetailLine(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: RichText(
+        text: TextSpan(
+          style: const TextStyle(fontSize: 12, color: Colors.black87),
+          children: [
+            TextSpan(
+              text: '$label: ',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            TextSpan(text: value),
           ],
         ),
       ),

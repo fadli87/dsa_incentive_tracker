@@ -29,6 +29,21 @@ final visitSelectedCategoryProvider = StateProvider<VisitCategory?>((ref) {
   return null;
 });
 
+/// Provider filter khusus "Belum isi Form" (`status == sudahVisit && !formSubmitted`)
+final visitFilterMissingFormProvider = StateProvider<bool>((ref) {
+  return false;
+});
+
+/// Provider hitungan aktivitas pada tanggal terpilih yang sudah `sudah_visit` tetapi `formSubmitted == false`
+final visitMissingFormCountProvider = FutureProvider<int>((ref) async {
+  ref.watch(visitProvider);
+  final selectedDate = ref.watch(visitSelectedDateProvider);
+  final allOnDate = await DatabaseHelper.instance.getVisitsByDate(selectedDate);
+  return allOnDate
+      .where((v) => v.status == VisitStatus.sudahVisit && !v.formSubmitted)
+      .length;
+});
+
 /// AsyncNotifier utama untuk daftar Aktivitas Harian Visit
 class VisitNotifier extends AsyncNotifier<List<VisitActivity>> {
   static const Uuid _uuid = Uuid();

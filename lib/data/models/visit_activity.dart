@@ -225,7 +225,9 @@ class VisitActivity {
     );
   }
 
-  /// Konversi ke payload JSON untuk upsert ke tabel `public.visit_activities` di Supabase
+  /// Konversi ke payload JSON untuk upsert ke tabel `public.visit_activities` di Supabase.
+  /// Hanya mengirim `form_submitted: true` bila bernilai `true` (tidak pernah mengirim `false`
+  /// agar tidak menimpa penanda server).
   Map<String, dynamic> toSupabaseJson({String? userId}) {
     return {
       'user_id': ?userId,
@@ -241,7 +243,7 @@ class VisitActivity {
       'planned_date': plannedDate,
       'visited_at': visitedAt,
       'note': note,
-      'form_submitted': formSubmitted,
+      if (formSubmitted) 'form_submitted': true,
       'updated_at': updatedAt,
       'deleted_at': deleted ? updatedAt : null,
     };

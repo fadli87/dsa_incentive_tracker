@@ -988,6 +988,70 @@ class DatabaseHelper {
     );
   }
 
+  /// Memperbarui status `form_submitted` dari server berdasarkan `client_id`
+  /// **tanpa** menandai `sync_state = 0` (data berasal dari server).
+  /// Bila status lokal masih `belum`, status diperbarui ke `serverStatus` (default `sudahVisit`),
+  /// dan bila `visited_at` lokal masih kosong, diisi dengan `serverVisitedAt`.
+  Future<bool> applyPulledFormStatus({
+    required String clientId,
+    VisitStatus? serverStatus,
+    String? serverVisitedAt,
+  }) async {
+    final cid = clientId.trim();
+    if (cid.isEmpty) return false;
+
+    if (_isInMemory) {
+      final idx = _webVisits.indexWhere((v) => v.clientId == cid);
+      if (idx == -1) return false;
+      final existing = _webVisits[idx];
+      final newStatus = existing.status == VisitStatus.belum
+          ? (serverStatus ?? VisitStatus.sudahVisit)
+          : existing.status;
+      final newVisitedAt =
+          (existing.visitedAt == null || existing.visitedAt!.trim().isEmpty)
+          ? serverVisitedAt
+          : existing.visitedAt;
+
+      _webVisits[idx] = existing.copyWith(
+        formSubmitted: true,
+        status: newStatus,
+        visitedAt: newVisitedAt,
+        // Penting: jangan ubah syncState menjadi 0!
+      );
+      return true;
+    }
+
+    final db = (await instance.database)!;
+    final rows = await db.query(
+      'visit_activities',
+      where: 'client_id = ?',
+      whereArgs: [cid],
+      limit: 1,
+    );
+    if (rows.isEmpty) return false;
+
+    final existing = VisitActivity.fromMap(rows.first);
+    final newStatus = existing.status == VisitStatus.belum
+        ? (serverStatus ?? VisitStatus.sudahVisit)
+        : existing.status;
+    final newVisitedAt =
+        (existing.visitedAt == null || existing.visitedAt!.trim().isEmpty)
+        ? serverVisitedAt
+        : existing.visitedAt;
+
+    await db.update(
+      'visit_activities',
+      {
+        'form_submitted': 1,
+        'status': newStatus.toDbString(),
+        'visited_at': newVisitedAt,
+      },
+      where: 'client_id = ?',
+      whereArgs: [cid],
+    );
+    return true;
+  }
+
   /// Mengambil kumpulan `customer_id` yang sudah memiliki visit `rvai` aktif (`deleted = 0`).
   Future<Set<String>> getActiveRvaiCustomerIds({String? ownerUserId}) async {
     final owner = ownerUserId?.trim() ?? '';
