@@ -15,6 +15,7 @@ void main() {
 
     setUp(() {
       db.clearInMemoryVisits();
+      db.clearInMemoryBackupData();
     });
 
     test('Masking privasi: menghapus deretan angka >= 8 digit (nomor telepon / KTP)', () {
@@ -491,6 +492,215 @@ void main() {
       expect(pendingUser2.length, 1);
       expect(pendingUser2.first.clientId, 'cid-user2-a');
       expect(pendingUser2.first.ownerUserId, 'user-akun-2');
+    });
+
+    test('Phase 11B: tryParsePeriodMonth mengenali berbagai format periode Indonesia & Inggris', () {
+      expect(tryParsePeriodMonth('Nov 2026'), '2026-11-01');
+      expect(tryParsePeriodMonth('November 2026'), '2026-11-01');
+      expect(tryParsePeriodMonth('Oktober 2026'), '2026-10-01');
+      expect(tryParsePeriodMonth('Okt 2026'), '2026-10-01');
+      expect(tryParsePeriodMonth('Oct 2026'), '2026-10-01');
+      expect(tryParsePeriodMonth('Mei 2026'), '2026-05-01');
+      expect(tryParsePeriodMonth('Agustus 2026'), '2026-08-01');
+      expect(tryParsePeriodMonth('Des 2026'), '2026-12-01');
+      expect(tryParsePeriodMonth('2026-11-01'), '2026-11-01');
+      expect(tryParsePeriodMonth('2026-11'), '2026-11-01');
+      expect(tryParsePeriodMonth('teks aneh'), isNull);
+      expect(tryParsePeriodMonth(''), isNull);
+      expect(tryParsePeriodMonth('2026 saja'), isNull);
+    });
+
+    test('Phase 11B: Migrasi SQLite 7 -> 9 dan 8 -> 9 tidak menghapus data lama serta mengisi client_id unik & period_month', () async {
+      final ffiDb = await databaseFactoryFfi.openDatabase(
+        inMemoryDatabasePath,
+        options: OpenDatabaseOptions(
+          version: 7,
+          onCreate: (sqDb, _) async {
+            await sqDb.execute('''
+              CREATE TABLE history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                periode TEXT NOT NULL,
+                position TEXT NOT NULL DEFAULT 'Elite',
+                city TEXT NOT NULL DEFAULT 'KAB. CILACAP',
+                basic_fee REAL NOT NULL DEFAULT 0.0,
+                total_sa INTEGER NOT NULL,
+                pm_base REAL NOT NULL,
+                mult_rate REAL NOT NULL,
+                mult_bonus REAL NOT NULL,
+                prog_inc REAL NOT NULL,
+                special_inc REAL NOT NULL,
+                monthly_subtotal REAL NOT NULL DEFAULT 0.0,
+                grand_total REAL NOT NULL,
+                f0 INTEGER NOT NULL DEFAULT 0,
+                f50 INTEGER NOT NULL DEFAULT 0,
+                f100 INTEGER NOT NULL DEFAULT 0,
+                f125 INTEGER NOT NULL DEFAULT 0,
+                f200 INTEGER NOT NULL DEFAULT 0,
+                fwa INTEGER NOT NULL DEFAULT 0,
+                p35 INTEGER NOT NULL DEFAULT 0,
+                p6 INTEGER NOT NULL DEFAULT 0
+              )
+            ''');
+            await sqDb.execute('''
+              CREATE TABLE sa_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id_pelanggan TEXT NOT NULL,
+                nama TEXT NOT NULL,
+                no_hp_utama TEXT NOT NULL DEFAULT '',
+                no_hp_alternatif TEXT NOT NULL DEFAULT '',
+                alamat TEXT NOT NULL,
+                latitude REAL,
+                longitude REAL,
+                paket TEXT NOT NULL,
+                tanggal_pasang TEXT NOT NULL
+              )
+            ''');
+          },
+        ),
+      );
+      addTearDown(() async => await ffiDb.close());
+
+      // Masukkan 2 baris history dan 2 baris sa_history pada skema v7 (tanpa client_id / period_month)
+      await ffiDb.insert('history', {
+        'periode': 'Oktober 2026',
+        'position': 'Elite',
+        'city': 'KAB. CILACAP',
+        'basic_fee': 2000000.0,
+        'total_sa': 14,
+        'pm_base': 1400000.0,
+        'mult_rate': 4.0,
+        'mult_bonus': 5600000.0,
+        'prog_inc': 1000000.0,
+        'special_inc': 0.0,
+        'monthly_subtotal': 6600000.0,
+        'grand_total': 8600000.0,
+      });
+      await ffiDb.insert('history', {
+        'periode': 'Nov 2026',
+        'position': 'Pro',
+        'city': 'KAB. CILACAP',
+        'basic_fee': 1500000.0,
+        'total_sa': 10,
+        'pm_base': 1000000.0,
+        'mult_rate': 2.0,
+        'mult_bonus': 2000000.0,
+        'prog_inc': 750000.0,
+        'special_inc': 0.0,
+        'monthly_subtotal': 2750000.0,
+        'grand_total': 4250000.0,
+      });
+      await ffiDb.insert('sa_history', {
+        'id_pelanggan': '90001001',
+        'nama': 'Pelanggan Fiktif A',
+        'no_hp_utama': '08000000001',
+        'alamat': 'Jl. Fiktif No. 1',
+        'paket': 'FTTH 50 Mbps',
+        'tanggal_pasang': '2026-10-15',
+      });
+      await ffiDb.insert('sa_history', {
+        'id_pelanggan': '90001002',
+        'nama': 'Pelanggan Fiktif B',
+        'no_hp_utama': '08000000002',
+        'alamat': 'Jl. Fiktif No. 2',
+        'paket': 'FWA 100 Mbps',
+        'tanggal_pasang': '2026-11-02',
+      });
+
+      // Migrasi 7 -> 8 lalu 8 -> 9
+      await db.runUpgradeForTest(ffiDb, 7, 8);
+      await db.runUpgradeForTest(ffiDb, 8, 9);
+
+      final histAfter = await ffiDb.query('history', orderBy: 'id ASC');
+      final saAfter = await ffiDb.query('sa_history', orderBy: 'id ASC');
+
+      expect(histAfter.length, 2);
+      expect(saAfter.length, 2);
+
+      final h1ClientId = histAfter[0]['client_id']?.toString() ?? '';
+      final h2ClientId = histAfter[1]['client_id']?.toString() ?? '';
+      expect(h1ClientId, isNotEmpty);
+      expect(h2ClientId, isNotEmpty);
+      expect(h1ClientId, isNot(equals(h2ClientId)));
+      expect(histAfter[0]['period_month'], '2026-10-01');
+      expect(histAfter[1]['period_month'], '2026-11-01');
+      expect(histAfter[0]['sync_state'], 0);
+      expect(histAfter[0]['deleted'], 0);
+
+      final s1ClientId = saAfter[0]['client_id']?.toString() ?? '';
+      final s2ClientId = saAfter[1]['client_id']?.toString() ?? '';
+      expect(s1ClientId, isNotEmpty);
+      expect(s2ClientId, isNotEmpty);
+      expect(s1ClientId, isNot(equals(s2ClientId)));
+      expect(saAfter[0]['sync_state'], 0);
+      expect(saAfter[0]['deleted'], 0);
+    });
+
+    test('Phase 11B: Soft delete menyembunyikan baris dari query baca dan edit riwayat mengembalikan sync_state = 0', () async {
+      final saId = await db.insertSaRecord(
+        SaRecord(
+          idPelanggan: '99001122',
+          nama: 'Pelanggan Uji Soft Delete',
+          noHpUtama: '08000000009',
+          alamat: 'Jl. Cilacap Utara',
+          paket: 'XL Satu Fiber',
+          tanggalPasang: '2026-11-09',
+        ),
+      );
+      final incId = await db.insertRecord(
+        IncentiveRecord(
+          periode: 'Nov 2026',
+          totalSa: 12,
+          pmBase: 1200000,
+          multRate: 2.0,
+          multBonus: 2400000,
+          progInc: 800000,
+          specialInc: 0,
+          grandTotal: 5200000,
+        ),
+      );
+
+      final saBefore = (await db.getAllSaRecords()).firstWhere((r) => r.id == saId);
+      final incBefore = (await db.getAllRecords()).firstWhere((r) => r.id == incId);
+      expect(saBefore.syncState, 0);
+      expect(incBefore.syncState, 0);
+      expect(incBefore.periodMonth, IncentiveRecord.currentMonthIso());
+
+      // Tandai keduanya synced (sync_state = 1)
+      await db.markSaRecordsSynced([saBefore.clientId]);
+      await db.markIncentiveRecordsSynced([incBefore.clientId]);
+      expect(await db.getPendingSaRecords(), isEmpty);
+      expect(await db.getPendingIncentiveRecords(), isEmpty);
+
+      // Edit riwayat -> sync_state harus kembali ke 0 dengan client_id yang sama
+      await db.updateRecord(incBefore.copyWith(totalSa: 15, grandTotal: 7500000));
+      await db.updateSaRecord(saBefore.copyWith(alamat: 'Jl. Cilacap Baru'));
+
+      final pendingIncAfterEdit = await db.getPendingIncentiveRecords();
+      final pendingSaAfterEdit = await db.getPendingSaRecords();
+      expect(pendingIncAfterEdit.length, 1);
+      expect(pendingIncAfterEdit.first.clientId, incBefore.clientId);
+      expect(pendingIncAfterEdit.first.totalSa, 15);
+      expect(pendingSaAfterEdit.length, 1);
+      expect(pendingSaAfterEdit.first.clientId, saBefore.clientId);
+
+      // Tandai synced lagi, lalu soft delete -> hilang dari getAll*, muncul di getPending* dengan deleted = true
+      await db.markSaRecordsSynced([saBefore.clientId]);
+      await db.markIncentiveRecordsSynced([incBefore.clientId]);
+
+      await db.deleteSaRecord(saId);
+      await db.deleteRecord(incId);
+
+      expect((await db.getAllSaRecords()).where((r) => r.id == saId), isEmpty);
+      expect((await db.getAllRecords()).where((r) => r.id == incId), isEmpty);
+
+      final pendingSaDel = await db.getPendingSaRecords();
+      final pendingIncDel = await db.getPendingIncentiveRecords();
+      expect(pendingSaDel.length, 1);
+      expect(pendingSaDel.first.deleted, isTrue);
+      expect(pendingSaDel.first.toSupabaseJson()['deleted_at'], isNotNull);
+      expect(pendingIncDel.length, 1);
+      expect(pendingIncDel.first.deleted, isTrue);
+      expect(pendingIncDel.first.toSupabaseJson()['deleted_at'], isNotNull);
     });
   });
 }

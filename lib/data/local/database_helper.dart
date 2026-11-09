@@ -2,6 +2,7 @@ import 'dart:io' show Platform, Directory;
 import 'package:flutter/foundation.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:path/path.dart';
+import 'package:uuid/uuid.dart';
 import '../../ai/models/coach_log_entry.dart';
 import '../../auth/supabase_client.dart';
 import '../models/incentive_record.dart';
@@ -85,7 +86,7 @@ class DatabaseHelper {
     try {
       return await openDatabase(
         path,
-        version: 8,
+        version: 9,
         onCreate: _createDB,
         onUpgrade: _onUpgrade,
         onOpen: _ensureVisitColumns,
@@ -101,7 +102,7 @@ class DatabaseHelper {
         }
         return await openDatabase(
           join(fallbackDir.path, filePath),
-          version: 8,
+          version: 9,
           onCreate: _createDB,
           onUpgrade: _onUpgrade,
           onOpen: _ensureVisitColumns,
@@ -115,7 +116,9 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE history (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        client_id TEXT,
         periode TEXT NOT NULL,
+        period_month TEXT,
         position TEXT NOT NULL DEFAULT 'Elite',
         city TEXT NOT NULL DEFAULT 'KAB. CILACAP',
         basic_fee REAL NOT NULL DEFAULT 0.0,
@@ -134,13 +137,17 @@ class DatabaseHelper {
         f200 INTEGER NOT NULL DEFAULT 0,
         fwa INTEGER NOT NULL DEFAULT 0,
         p35 INTEGER NOT NULL DEFAULT 0,
-        p6 INTEGER NOT NULL DEFAULT 0
+        p6 INTEGER NOT NULL DEFAULT 0,
+        sync_state INTEGER NOT NULL DEFAULT 0,
+        updated_at TEXT,
+        deleted INTEGER NOT NULL DEFAULT 0
       )
     ''');
 
     await db.execute('''
       CREATE TABLE sa_history (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        client_id TEXT,
         id_pelanggan TEXT NOT NULL,
         nama TEXT NOT NULL,
         no_hp_utama TEXT NOT NULL DEFAULT '',
@@ -149,7 +156,10 @@ class DatabaseHelper {
         latitude REAL,
         longitude REAL,
         paket TEXT NOT NULL,
-        tanggal_pasang TEXT NOT NULL
+        tanggal_pasang TEXT NOT NULL,
+        sync_state INTEGER NOT NULL DEFAULT 0,
+        updated_at TEXT,
+        deleted INTEGER NOT NULL DEFAULT 0
       )
     ''');
 
@@ -358,6 +368,110 @@ class DatabaseHelper {
         await _createCustomerMasterLocalTable(db);
       } catch (_) {}
     }
+    if (oldVersion < 9) {
+      await _upgradeToV9(db);
+    }
+  }
+
+  Future<void> _upgradeToV9(Database db) async {
+    const uuid = Uuid();
+    final nowIso = DateTime.now().toUtc().toIso8601String();
+
+    // 1. Tambah kolom pada history secara idempotent
+    for (final colDef in [
+      'client_id TEXT',
+      'period_month TEXT',
+      'sync_state INTEGER NOT NULL DEFAULT 0',
+      'updated_at TEXT',
+      'deleted INTEGER NOT NULL DEFAULT 0',
+    ]) {
+      try {
+        await db.execute('ALTER TABLE history ADD COLUMN $colDef');
+      } catch (_) {}
+    }
+
+    // 2. Tambah kolom pada sa_history secara idempotent
+    for (final colDef in [
+      'client_id TEXT',
+      'sync_state INTEGER NOT NULL DEFAULT 0',
+      'updated_at TEXT',
+      'deleted INTEGER NOT NULL DEFAULT 0',
+    ]) {
+      try {
+        await db.execute('ALTER TABLE sa_history ADD COLUMN $colDef');
+      } catch (_) {}
+    }
+
+    // 3. Backfill baris lama di history tanpa menghapus atau mengubah kolom lain
+    try {
+      final histRows = await db.query(
+        'history',
+        columns: ['id', 'client_id', 'periode', 'period_month', 'updated_at'],
+      );
+      for (final row in histRows) {
+        final id = row['id'];
+        if (id == null) continue;
+        final existingClientId = row['client_id']?.toString().trim() ?? '';
+        final existingUpdated = row['updated_at']?.toString().trim() ?? '';
+        final existingPeriodMonth =
+            row['period_month']?.toString().trim() ?? '';
+        final periodeStr = row['periode']?.toString() ?? '';
+
+        if (existingClientId.isEmpty ||
+            existingUpdated.isEmpty ||
+            existingPeriodMonth.isEmpty) {
+          final updates = <String, Object?>{};
+          if (existingClientId.isEmpty) {
+            updates['client_id'] = uuid.v4();
+            updates['sync_state'] = 0;
+          }
+          if (existingUpdated.isEmpty) {
+            updates['updated_at'] = nowIso;
+          }
+          if (existingPeriodMonth.isEmpty) {
+            updates['period_month'] = tryParsePeriodMonth(periodeStr);
+          }
+          if (updates.isNotEmpty) {
+            await db.update(
+              'history',
+              updates,
+              where: 'id = ?',
+              whereArgs: [id],
+            );
+          }
+        }
+      }
+    } catch (_) {}
+
+    // 4. Backfill baris lama di sa_history tanpa menghapus atau mengubah kolom lain
+    try {
+      final saRows = await db.query(
+        'sa_history',
+        columns: ['id', 'client_id', 'updated_at'],
+      );
+      for (final row in saRows) {
+        final id = row['id'];
+        if (id == null) continue;
+        final existingClientId = row['client_id']?.toString().trim() ?? '';
+        final existingUpdated = row['updated_at']?.toString().trim() ?? '';
+        if (existingClientId.isEmpty || existingUpdated.isEmpty) {
+          final updates = <String, Object?>{};
+          if (existingClientId.isEmpty) {
+            updates['client_id'] = uuid.v4();
+            updates['sync_state'] = 0;
+          }
+          if (existingUpdated.isEmpty) {
+            updates['updated_at'] = nowIso;
+          }
+          await db.update(
+            'sa_history',
+            updates,
+            where: 'id = ?',
+            whereArgs: [id],
+          );
+        }
+      }
+    } catch (_) {}
   }
 
   @visibleForTesting
@@ -371,50 +485,84 @@ class DatabaseHelper {
 
   // --- Incentive History CRUD ---
   Future<int> insertRecord(IncentiveRecord record) async {
+    final nowIso = DateTime.now().toUtc().toIso8601String();
+    final resolvedPeriodMonth =
+        (record.periodMonth != null && record.periodMonth!.trim().isNotEmpty)
+        ? record.periodMonth!.trim()
+        : IncentiveRecord.currentMonthIso();
+    final toSave = record.copyWith(
+      periodMonth: resolvedPeriodMonth,
+      syncState: 0,
+      updatedAt: nowIso,
+      deleted: false,
+    );
+
     if (_isInMemory) {
       final id = _webIncentiveIdCounter++;
-      final newRecord = IncentiveRecord(
-        id: id,
-        periode: record.periode,
-        position: record.position,
-        city: record.city,
-        basicFee: record.basicFee,
-        totalSa: record.totalSa,
-        pmBase: record.pmBase,
-        multRate: record.multRate,
-        multBonus: record.multBonus,
-        progInc: record.progInc,
-        specialInc: record.specialInc,
-        monthlySubtotal: record.monthlySubtotal,
-        grandTotal: record.grandTotal,
-        f0: record.f0,
-        f50: record.f50,
-        f100: record.f100,
-        f125: record.f125,
-        f200: record.f200,
-        fwa: record.fwa,
-        p35: record.p35,
-        p6: record.p6,
-      );
+      final newRecord = toSave.copyWith(id: id);
       _webIncentives.insert(0, newRecord);
       return id;
     }
     final db = (await instance.database)!;
-    return await db.insert('history', record.toMap());
+    final map = toSave.toMap()..remove('id');
+    return await db.insert('history', map);
   }
 
   Future<int> updateRecord(IncentiveRecord record) async {
     if (record.id == null) return 0;
+    final nowIso = DateTime.now().toUtc().toIso8601String();
+
     if (_isInMemory) {
       final index = _webIncentives.indexWhere((r) => r.id == record.id);
       if (index == -1) return 0;
-      _webIncentives[index] = record;
+      final existing = _webIncentives[index];
+      final updated = record.copyWith(
+        clientId: record.clientId.isNotEmpty
+            ? record.clientId
+            : existing.clientId,
+        periodMonth: (record.periodMonth != null &&
+                record.periodMonth!.trim().isNotEmpty)
+            ? record.periodMonth
+            : (existing.periodMonth ?? tryParsePeriodMonth(record.periode)),
+        syncState: 0,
+        updatedAt: nowIso,
+        deleted: false,
+      );
+      _webIncentives[index] = updated;
       return 1;
     }
     final db = (await instance.database)!;
+    final existingRows = await db.query(
+      'history',
+      columns: ['client_id', 'period_month'],
+      where: 'id = ?',
+      whereArgs: [record.id],
+      limit: 1,
+    );
+    final existingClientId = existingRows.isNotEmpty
+        ? (existingRows.first['client_id']?.toString().trim() ?? '')
+        : '';
+    final existingPeriodMonth = existingRows.isNotEmpty
+        ? (existingRows.first['period_month']?.toString().trim() ?? '')
+        : '';
+
+    final updated = record.copyWith(
+      clientId: existingClientId.isNotEmpty
+          ? existingClientId
+          : record.clientId,
+      periodMonth: (record.periodMonth != null &&
+              record.periodMonth!.trim().isNotEmpty)
+          ? record.periodMonth
+          : (existingPeriodMonth.isNotEmpty
+                ? existingPeriodMonth
+                : tryParsePeriodMonth(record.periode)),
+      syncState: 0,
+      updatedAt: nowIso,
+      deleted: false,
+    );
     return await db.update(
       'history',
-      record.toMap(),
+      updated.toMap(),
       where: 'id = ?',
       whereArgs: [record.id],
     );
@@ -422,78 +570,320 @@ class DatabaseHelper {
 
   Future<List<IncentiveRecord>> getAllRecords() async {
     if (_isInMemory) {
-      return List.unmodifiable(_webIncentives);
+      return List.unmodifiable(_webIncentives.where((r) => !r.deleted));
     }
     final db = (await instance.database)!;
-    final result = await db.query('history', orderBy: 'id DESC');
+    final result = await db.query(
+      'history',
+      where: 'deleted = 0',
+      orderBy: 'id DESC',
+    );
     return result.map((json) => IncentiveRecord.fromMap(json)).toList();
   }
 
   Future<int> deleteRecord(int id) async {
+    final nowIso = DateTime.now().toUtc().toIso8601String();
     if (_isInMemory) {
-      _webIncentives.removeWhere((r) => r.id == id);
+      final index = _webIncentives.indexWhere((r) => r.id == id);
+      if (index == -1) return 0;
+      _webIncentives[index] = _webIncentives[index].copyWith(
+        deleted: true,
+        syncState: 0,
+        updatedAt: nowIso,
+      );
       return 1;
     }
     final db = (await instance.database)!;
-    return await db.delete('history', where: 'id = ?', whereArgs: [id]);
+    return await db.update(
+      'history',
+      {'deleted': 1, 'sync_state': 0, 'updated_at': nowIso},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
   }
 
   // --- SA Customer History CRUD (100% Offline Local Storage) ---
   Future<int> insertSaRecord(SaRecord record) async {
+    final nowIso = DateTime.now().toUtc().toIso8601String();
+    final toSave = record.copyWith(
+      syncState: 0,
+      updatedAt: nowIso,
+      deleted: false,
+    );
+
     if (_isInMemory) {
       final id = _webSaIdCounter++;
-      final newRecord = SaRecord(
-        id: id,
-        idPelanggan: record.idPelanggan,
-        nama: record.nama,
-        noHpUtama: record.noHpUtama,
-        noHpAlternatif: record.noHpAlternatif,
-        alamat: record.alamat,
-        latitude: record.latitude,
-        longitude: record.longitude,
-        paket: record.paket,
-        tanggalPasang: record.tanggalPasang,
-      );
+      final newRecord = toSave.copyWith(id: id);
       _webSaRecords.insert(0, newRecord);
       return id;
     }
     final db = (await instance.database)!;
-    return await db.insert('sa_history', record.toMap());
+    final map = toSave.toMap()..remove('id');
+    return await db.insert('sa_history', map);
   }
 
   Future<List<SaRecord>> getAllSaRecords() async {
     if (_isInMemory) {
-      return List.unmodifiable(_webSaRecords);
+      return List.unmodifiable(_webSaRecords.where((r) => !r.deleted));
     }
     final db = (await instance.database)!;
-    final result = await db.query('sa_history', orderBy: 'id DESC');
+    final result = await db.query(
+      'sa_history',
+      where: 'deleted = 0',
+      orderBy: 'id DESC',
+    );
     return result.map((json) => SaRecord.fromMap(json)).toList();
   }
 
   Future<int> updateSaRecord(SaRecord record) async {
     if (record.id == null) return 0;
+    final nowIso = DateTime.now().toUtc().toIso8601String();
+
     if (_isInMemory) {
       final index = _webSaRecords.indexWhere((r) => r.id == record.id);
       if (index == -1) return 0;
-      _webSaRecords[index] = record;
+      final existing = _webSaRecords[index];
+      _webSaRecords[index] = record.copyWith(
+        clientId: existing.clientId.isNotEmpty
+            ? existing.clientId
+            : record.clientId,
+        syncState: 0,
+        updatedAt: nowIso,
+        deleted: false,
+      );
       return 1;
     }
     final db = (await instance.database)!;
+    final existingRows = await db.query(
+      'sa_history',
+      columns: ['client_id'],
+      where: 'id = ?',
+      whereArgs: [record.id],
+      limit: 1,
+    );
+    final existingClientId = existingRows.isNotEmpty
+        ? (existingRows.first['client_id']?.toString().trim() ?? '')
+        : '';
+    final updated = record.copyWith(
+      clientId: existingClientId.isNotEmpty
+          ? existingClientId
+          : record.clientId,
+      syncState: 0,
+      updatedAt: nowIso,
+      deleted: false,
+    );
     return await db.update(
       'sa_history',
-      record.toMap(),
+      updated.toMap(),
       where: 'id = ?',
       whereArgs: [record.id],
     );
   }
 
   Future<int> deleteSaRecord(int id) async {
+    final nowIso = DateTime.now().toUtc().toIso8601String();
     if (_isInMemory) {
-      _webSaRecords.removeWhere((r) => r.id == id);
+      final index = _webSaRecords.indexWhere((r) => r.id == id);
+      if (index == -1) return 0;
+      _webSaRecords[index] = _webSaRecords[index].copyWith(
+        deleted: true,
+        syncState: 0,
+        updatedAt: nowIso,
+      );
       return 1;
     }
     final db = (await instance.database)!;
-    return await db.delete('sa_history', where: 'id = ?', whereArgs: [id]);
+    return await db.update(
+      'sa_history',
+      {'deleted': 1, 'sync_state': 0, 'updated_at': nowIso},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  // --- Backup Sync Helpers (Fase 11: sa_history & history) ---
+
+  /// Mengambil semua baris `sa_history` yang belum tersinkron (`sync_state = 0`), termasuk yang `deleted = 1`.
+  Future<List<SaRecord>> getPendingSaRecords() async {
+    if (_isInMemory) {
+      return _webSaRecords.where((r) => r.syncState == 0).toList();
+    }
+    final db = (await instance.database)!;
+    final rows = await db.query(
+      'sa_history',
+      where: 'sync_state = 0',
+      orderBy: 'id ASC',
+    );
+    return rows.map((m) => SaRecord.fromMap(m)).toList();
+  }
+
+  /// Mengambil semua baris `history` yang belum tersinkron (`sync_state = 0`), termasuk yang `deleted = 1`.
+  Future<List<IncentiveRecord>> getPendingIncentiveRecords() async {
+    if (_isInMemory) {
+      return _webIncentives.where((r) => r.syncState == 0).toList();
+    }
+    final db = (await instance.database)!;
+    final rows = await db.query(
+      'history',
+      where: 'sync_state = 0',
+      orderBy: 'id ASC',
+    );
+    return rows.map((m) => IncentiveRecord.fromMap(m)).toList();
+  }
+
+  /// Menandai baris `sa_history` sebagai tersinkron (`sync_state = 1`).
+  Future<void> markSaRecordsSynced(List<String> clientIds) async {
+    if (clientIds.isEmpty) return;
+    if (_isInMemory) {
+      final idSet = clientIds.toSet();
+      for (int i = 0; i < _webSaRecords.length; i++) {
+        if (idSet.contains(_webSaRecords[i].clientId)) {
+          _webSaRecords[i] = _webSaRecords[i].copyWith(syncState: 1);
+        }
+      }
+      return;
+    }
+    final db = (await instance.database)!;
+    final placeholders = List.filled(clientIds.length, '?').join(',');
+    await db.rawUpdate(
+      'UPDATE sa_history SET sync_state = 1 WHERE client_id IN ($placeholders)',
+      clientIds,
+    );
+  }
+
+  /// Menandai baris `history` sebagai tersinkron (`sync_state = 1`).
+  Future<void> markIncentiveRecordsSynced(List<String> clientIds) async {
+    if (clientIds.isEmpty) return;
+    if (_isInMemory) {
+      final idSet = clientIds.toSet();
+      for (int i = 0; i < _webIncentives.length; i++) {
+        if (idSet.contains(_webIncentives[i].clientId)) {
+          _webIncentives[i] = _webIncentives[i].copyWith(syncState: 1);
+        }
+      }
+      return;
+    }
+    final db = (await instance.database)!;
+    final placeholders = List.filled(clientIds.length, '?').join(',');
+    await db.rawUpdate(
+      'UPDATE history SET sync_state = 1 WHERE client_id IN ($placeholders)',
+      clientIds,
+    );
+  }
+
+  /// Menyimpan hasil restore `sa_customers` dari Supabase ke `sa_history` lokal (`sync_state = 1`).
+  Future<void> upsertSaRecordsFromRemote(List<SaRecord> records) async {
+    if (records.isEmpty) return;
+    if (_isInMemory) {
+      for (final remote in records) {
+        final synced = remote.copyWith(syncState: 1);
+        final idx = _webSaRecords.indexWhere(
+          (r) => r.clientId == synced.clientId,
+        );
+        if (idx != -1) {
+          _webSaRecords[idx] = synced.copyWith(id: _webSaRecords[idx].id);
+        } else {
+          final id = _webSaIdCounter++;
+          _webSaRecords.add(synced.copyWith(id: id));
+        }
+      }
+      return;
+    }
+    final db = (await instance.database)!;
+    await db.transaction((txn) async {
+      for (final remote in records) {
+        final synced = remote.copyWith(syncState: 1);
+        final existing = await txn.query(
+          'sa_history',
+          columns: ['id'],
+          where: 'client_id = ?',
+          whereArgs: [synced.clientId],
+          limit: 1,
+        );
+        final map = synced.toMap()..remove('id');
+        if (existing.isNotEmpty) {
+          await txn.update(
+            'sa_history',
+            map,
+            where: 'id = ?',
+            whereArgs: [existing.first['id']],
+          );
+        } else {
+          await txn.insert('sa_history', map);
+        }
+      }
+    });
+  }
+
+  /// Menyimpan hasil restore `incentive_records` dari Supabase ke `history` lokal (`sync_state = 1`).
+  Future<void> upsertIncentiveRecordsFromRemote(
+    List<IncentiveRecord> records,
+  ) async {
+    if (records.isEmpty) return;
+    if (_isInMemory) {
+      for (final remote in records) {
+        final synced = remote.copyWith(syncState: 1);
+        final idx = _webIncentives.indexWhere(
+          (r) => r.clientId == synced.clientId,
+        );
+        if (idx != -1) {
+          _webIncentives[idx] = synced.copyWith(id: _webIncentives[idx].id);
+        } else {
+          final id = _webIncentiveIdCounter++;
+          _webIncentives.add(synced.copyWith(id: id));
+        }
+      }
+      return;
+    }
+    final db = (await instance.database)!;
+    await db.transaction((txn) async {
+      for (final remote in records) {
+        final synced = remote.copyWith(syncState: 1);
+        final existing = await txn.query(
+          'history',
+          columns: ['id'],
+          where: 'client_id = ?',
+          whereArgs: [synced.clientId],
+          limit: 1,
+        );
+        final map = synced.toMap()..remove('id');
+        if (existing.isNotEmpty) {
+          await txn.update(
+            'history',
+            map,
+            where: 'id = ?',
+            whereArgs: [existing.first['id']],
+          );
+        } else {
+          await txn.insert('history', map);
+        }
+      }
+    });
+  }
+
+  /// Menghitung total baris belum tersinkron (`sync_state = 0`) pada `sa_history` + `history`.
+  Future<int> countPendingBackupItems() async {
+    if (_isInMemory) {
+      final saPending = _webSaRecords.where((r) => r.syncState == 0).length;
+      final incPending = _webIncentives.where((r) => r.syncState == 0).length;
+      return saPending + incPending;
+    }
+    final db = (await instance.database)!;
+    final saRes = await db.rawQuery(
+      'SELECT COUNT(*) AS cnt FROM sa_history WHERE sync_state = 0',
+    );
+    final incRes = await db.rawQuery(
+      'SELECT COUNT(*) AS cnt FROM history WHERE sync_state = 0',
+    );
+    final saCnt = (saRes.first['cnt'] as num?)?.toInt() ?? 0;
+    final incCnt = (incRes.first['cnt'] as num?)?.toInt() ?? 0;
+    return saCnt + incCnt;
+  }
+
+  @visibleForTesting
+  void clearInMemoryBackupData() {
+    _webIncentives.clear();
+    _webSaRecords.clear();
   }
 
   // --- User Profile (100% Offline Local Storage) ---

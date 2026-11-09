@@ -862,8 +862,10 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
                 );
                 return;
               }
+              final now = DateTime.now();
               final record = IncentiveRecord(
-                periode: DateFormat('MMM yyyy').format(DateTime.now()),
+                periode: DateFormat('MMM yyyy').format(now),
+                periodMonth: IncentiveRecord.currentMonthIso(now),
                 position: result.position.label,
                 city: result.city,
                 basicFee: result.basicFee,

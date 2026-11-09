@@ -752,6 +752,7 @@ class _SpvCalculatorViewState extends ConsumerState<SpvCalculatorView> {
                   final periodStr = DateFormat('MMMM yyyy', 'id').format(now);
                   final rec = IncentiveRecord(
                     periode: periodStr,
+                    periodMonth: IncentiveRecord.currentMonthIso(now),
                     position: 'SPV',
                     city: res.city,
                     basicFee: res.basicFee,
