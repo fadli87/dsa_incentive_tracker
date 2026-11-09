@@ -19,9 +19,22 @@ class UpdateNotesScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildVersionCard(
-              version: 'Ver.1.2.1',
+              version: 'Ver.1.2.2',
               date: 'November 2026',
               isLatest: true,
+              changes: [
+                'Cadangan Online Data SA & Riwayat Insentif (SQLite v9): Pencadangan otomatis data pelanggan (sa_customers) dan riwayat insentif (incentive_records) ke Supabase setelah persetujuan sales, lengkap dengan fitur restore saat ganti HP.',
+                'Pengaturan Cadangan Online & Indikator Sinkron: Saklar kontrol cadangan online di Info Pengguna serta indikator status Tersinkron / Belum tersinkron (N) di layar Data SA dan Histori.',
+                'Layar Data SA Tim (Read-Only): Menu khusus SPV, TSC, Admin, dan Superadmin untuk memantau daftar pelanggan tim dengan pencarian cepat, filter per sales, tombol Telepon/WhatsApp, dan Navigasi.',
+                'Kartu Pencapaian Bulan Ini & Simulasi Tier: Ringkasan capaian bulan berjalan di Dashboard sales (offline) dilengkapi Simulasi selisih aktivasi SA menuju tier insentif berikutnya.',
+                'Pencapaian Tim Bulan Ini & Proteksi Nominal: Ringkasan jumlah aktivasi per sales di Rekap Tim (tanpa nominal rupiah bagi SPV/TSC/Admin) serta rincian nominal khusus Superadmin.',
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildVersionCard(
+              version: 'Ver.1.2.1',
+              date: 'November 2026',
+              isLatest: false,
               changes: [
                 'Master Pelanggan KCLP ("Pelanggan Saya"): Pemilihan pelanggan langsung dari daftar instalasi milik sales sendiri (SQLite v8) dengan autofill Customer ID, alamat, paket, dan koordinat GPS.',
                 'Saran RVAI Otomatis (H+7): Rekomendasi otomatis pelanggan yang jatuh tempo kunjungan RVAI (7 hari pasca-instalasi) dan belum pernah dikunjungi, lengkap dengan tambah cepat ke target hari ini.',

@@ -35,9 +35,9 @@ IncentiveRecord? selectCurrentMonthIncentiveRecord(
   if (candidates.isEmpty) return null;
 
   candidates.sort((a, b) {
-    final dtA = DateTime.tryParse(a.updatedAt ?? '') ??
+    final dtA = DateTime.tryParse(a.updatedAt) ??
         DateTime.fromMillisecondsSinceEpoch(0);
-    final dtB = DateTime.tryParse(b.updatedAt ?? '') ??
+    final dtB = DateTime.tryParse(b.updatedAt) ??
         DateTime.fromMillisecondsSinceEpoch(0);
     final cmp = dtB.compareTo(dtA);
     if (cmp != 0) return cmp;
@@ -157,3 +157,4 @@ NextTierSimulationResult? simulateNextTierGap(IncentiveRecord record) {
 
   return null;
 }
+

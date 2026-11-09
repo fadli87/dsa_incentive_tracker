@@ -76,6 +76,17 @@ class _FakeVisitSummaryGateway implements VisitSummaryRemoteGateway {
     required String memberId,
     required String clientId,
   }) async => null;
+
+  @override
+  Future<List<Map<String, dynamic>>> callGetIncentiveTeamSummary({
+    required String monthDate,
+  }) async => const [];
+
+  @override
+  Future<Map<String, dynamic>?> fetchSuperadminMemberIncentiveNominal({
+    required String memberId,
+    required String monthDate,
+  }) async => null;
 }
 
 void main() {

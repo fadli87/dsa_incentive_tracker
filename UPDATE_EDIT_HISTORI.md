@@ -1,6 +1,24 @@
-# Dokumentasi Update & Catatan Rilis: DSA XL Satu Handbook (Ver.1.2.1)
+# Dokumentasi Update & Catatan Rilis: DSA XL Satu Handbook (Ver.1.2.2)
 
-## 📌 Ringkasan Pembaruan Utama (Ver.1.2.1 - November 2026)
+## 📌 Ringkasan Pembaruan Utama (Ver.1.2.2 - November 2026)
+
+Pembaruan ini menghadirkan **Cadangan Online Data SA (Pelanggan) & Riwayat Insentif ke Supabase (SQLite v9)**, layar **Data SA Tim (Read-Only)** untuk SPV/TSC/Admin/Superadmin, serta **Kartu Pencapaian Bulan Ini & Simulasi Tier Berikutnya**:
+
+### 1. ☁️ Cadangan Online Data SA & Riwayat Insentif (`BackupSyncService`, SQLite v9)
+- **Sinkronisasi Otomatis Berbasis Persetujuan Sales (`backup_consent_v1`):** Data pelanggan di `sa_history` (`public.sa_customers`) dan riwayat kalkulasi di `history` (`public.incentive_records`) dicadangkan ke server tim secara idempoten (`onConflict: 'user_id,client_id'`) hanya setelah sales menekan **Sinkronkan** pada dialog persetujuan.
+- **Pemulihan Otomatis (*Cloud Restore*) & *Soft Delete*:** Pemulihan otomatis berhalaman (1.000 baris/halaman) saat ganti HP atau instal ulang, serta penghapusan lunak (`deleted = 1` / `deleted_at`) tanpa menghapus baris fisik di database.
+- **Pengaturan Cadangan Online & Indikator Sinkronisasi:** Saklar aktif/nonaktif cadangan online, waktu sinkron terakhir, jumlah antrean belum tersinkron, dan tombol **Cadangkan Sekarang** di layar Info Pengguna, dilengkapi badge status sinkron di layar Data SA dan Histori.
+
+### 2. 📋 Layar "Data SA Tim" Read-Only (`SaTeamListScreen`, `list_sa_customers`)
+- **Monitoring Pelanggan Tim untuk SPV / TSC / Admin / Superadmin:** Akses baca seluruh Data SA tim lengkap dengan pencarian *debounce* 300 ms (nama, ID pelanggan, nomor HP), filter per sales, tombol cepat **Telepon** & **WhatsApp** (saat nomor HP valid), serta **Navigasi Peta** tanpa tombol ubah/hapus.
+
+### 3. 🏆 Kartu Pencapaian Bulan Ini & Ringkasan Pencapaian Tim (`monthly_target_helper.dart`, `VisitTeamSummaryScreen`)
+- **Kartu Pencapaian Bulan Ini (Offline di Dashboard):** Menampilkan pencapaian bulan berjalan terbaru milik sales (`total_sa`, rincian `F0..P6`, dan `grand_total`) beserta kotak **Simulasi** selisih aktivasi SA untuk naik ke tier berikutnya (murni memanggil `CalculatorEngine`).
+- **Pencapaian Tim Bulan Ini & Proteksi Privasi Nominal:** Menampilkan ringkasan aktivasi per sales di Rekap Tim melalui RPC `get_incentive_team_summary(p_month)` tanpa nominal rupiah untuk SPV/TSC/Admin, serta tombol **Nominal** khusus untuk `superadmin` persis (`is_superadmin_exact`).
+
+---
+
+## 📌 Arsip Pembaruan Sebelumnya (Ver.1.2.1 - November 2026)
 
 Pembaruan ini menggabungkan dua peningkatan besar pada modul Aktivitas Harian Visit: **Master Pelanggan KCLP ("Pelanggan Saya") & Saran RVAI Otomatis** serta **Integrasi Otomatis Jawaban Google Form ➔ Supabase**:
 

@@ -22,7 +22,11 @@ Aplikasi komprehensif untuk Direct Sales Agency (DSA) XL Satu — mencakup kalku
    - Input titik koordinat via GPS saat ini, tempel tautan Google Maps / Shareloc WhatsApp, atau input manual.
    - Peta Visit 3 Layer (`flutter_map`), navigasi 1-tap ke Google Maps, prefill otomatis Google Form pelaporan, serta **Ekspor CSV per kategori** untuk Google My Maps.
    - Layar **Rekap Tim (Read-Only)** beserta **Ringkasan Kepatuhan RVAI per Sales** khusus untuk role **SPV**, **TSC**, **Admin**, dan **Superadmin**.
-5. **Offline-First & Keamanan Data**:
+5. **Cadangan Online Data SA & Riwayat Insentif (SQLite v9 + Supabase)**:
+   - Pencadangan otomatis **Data SA** (`sa_history` ➔ `public.sa_customers`) dan **Riwayat Insentif** (`history` ➔ `public.incentive_records`) setelah sales memberikan persetujuan eksplisit (*consent*), lengkap dengan pemulihan otomatis saat ganti HP/instal ulang.
+   - Kartu **Pencapaian Bulan Ini** (offline) di Dashboard sales beserta **Simulasi** selisih aktivasi SA menuju tier insentif berikutnya.
+   - Layar **Data SA Tim (Read-Only)** untuk SPV, TSC, Admin, dan Superadmin (termasuk akses telepon & WhatsApp nomor HP pelanggan), serta kartu **Pencapaian Tim Bulan Ini** tanpa nominal rupiah (khusus Superadmin dapat melihat detail nominal).
+6. **Offline-First & Keamanan Data**:
    - Penyimpanan data SA & Visit lokal di perangkat (tanpa menyimpan nomor seri perangkat/ONT/SIM maupun NIK/KTP demi privasi pelanggan).
    - Akses tim berbasis Supabase dengan masa tenggang offline (*grace period*) 7 hari.
 
@@ -171,6 +175,35 @@ Fitur ini memungkinkan setiap sales memilih pelanggan hasil instalasi miliknya s
 
 ---
 
+## ☁️ Cadangan Online Data SA & Riwayat Insentif
+
+Fitur ini mencadangkan **Data SA** (pelanggan pasang baru yang dicatat sales di layar Data SA, tabel lokal `sa_history` ➔ `public.sa_customers`) dan **Riwayat Insentif** (hasil perhitungan kalkulator yang disimpan sales, tabel lokal `history` ➔ `public.incentive_records`) ke server Supabase secara *offline-first* (SQLite v9).
+
+### 1. Persetujuan Sales (*Explicit Consent*) Sebelum Pencadangan
+- Aplikasi **tidak pernah mengirim** data lama maupun baru ke server sebelum sales menyetujuinya secara eksplisit.
+- Saat terdapat data lokal dan status persetujuan masih `unset` (`backup_consent_v1`), aplikasi menampilkan dialog **"Cadangkan data ke server tim?"** dengan pilihan **Sinkronkan** atau **Nanti** (menunda pengingat selama minimal 7 hari).
+- Sales juga dapat mengatur saklar **Cadangan Online**, melihat status **"Tersinkron / Belum tersinkron (N)"**, serta menekan tombol **Cadangkan Sekarang** kapan saja melalui layar **Info Pengguna**. Mematikan saklar akan menghentikan pengiriman data berikutnya dari perangkat (data yang sudah tersimpan di server tetap ada untuk keperluan tim).
+- Saat sales mengganti HP atau menginstal ulang aplikasi (tabel lokal kosong), data milik sales tersebut otomatis dipulihkan (*restore*) dari server setelah login, berstatus `approved`, dan menyetujui pencadangan.
+
+### 2. Tabel Hak Akses Data SA & Riwayat Insentif
+
+| Role | Nilai DB | Data SA Milik Sendiri | Lihat Data SA Seluruh Tim (`Data SA Tim`) | Riwayat Insentif Milik Sendiri | Ringkasan Aktivasi Tim (`Pencapaian Tim Bulan Ini`) | Lihat Nominal Rupiah Insentif Sales Lain |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| **Sales** | `member` | Baca & Tulis | Tidak | Baca & Tulis | Tidak | Tidak |
+| **Supervisor** | `spv` | Baca & Tulis | **Ya (Read-Only + No. HP)** | Baca & Tulis | **Ya (Jumlah SA & Kategori, Tanpa Nominal)** | Tidak* |
+| **TSC** | `tsc` | Baca & Tulis | **Ya (Read-Only + No. HP)** | Baca & Tulis | **Ya (Jumlah SA & Kategori, Tanpa Nominal)** | Tidak* |
+| **Admin** | `admin` | Baca & Tulis | **Ya (Read-Only + No. HP)** | Baca & Tulis | **Ya (Jumlah SA & Kategori, Tanpa Nominal)** | Tidak* |
+| **Superadmin** | `superadmin` | Baca & Tulis | **Ya (Read-Only + No. HP)** | Baca & Tulis | **Ya (Jumlah SA & Kategori)** | **Ya (`is_superadmin_exact`)** |
+
+> \* **Catatan Asumsi & Konfirmasi Privasi Nominal Insentif**: Secara bawaan, SPV, TSC, dan Admin **tidak melihat nominal rupiah** insentif sales lain — mereka hanya memantau jumlah aktivasi (`total_sa` dan rincian `f0..p6`) melalui RPC `get_incentive_team_summary(p_month)`, sedangkan akses tabel `public.incentive_records` lintas-sales dibatasi hanya untuk `superadmin` persis (`public.is_superadmin_exact()`). Apabila Owner menghendaki agar SPV/TSC juga dapat melihat nominal rupiah insentif, cukup ubah satu policy `"inc select"` pada `public.incentive_records` menjadi `or public.can_view_all()`.
+
+### 3. Catatan Privasi & Keamanan
+- **Tanpa KTP / NIK**: Tidak ada kolom NIK/KTP pelanggan di SQLite lokal maupun Supabase.
+- **Visibilitas Nomor HP Pelanggan**: Nomor HP utama & alternatif pelanggan pada `public.sa_customers` dapat dilihat oleh **SPV**, **TSC**, **Admin**, dan **Superadmin** di layar **Data SA Tim (Read-Only)** untuk mendukung koordinasi dan *follow-up* lapangan (dilengkapi tombol cepat Telepon, WhatsApp, dan Navigasi Peta).
+- **Penghapusan Lunak (*Soft Delete*)**: Tidak ada policy `DELETE` untuk client (`authenticated`). Penghapusan riwayat di aplikasi menandai `deleted = 1` di SQLite v9 dan mengirim `deleted_at` ke Supabase.
+
+---
+
 ## 🔐 Sistem Login Tim & Gerbang Akses (*Team Access Gate*)
 
 Aplikasi menggunakan pola **Access Gate** dengan Supabase backend dan enkripsi lokal `flutter_secure_storage`.
@@ -215,8 +248,9 @@ select public.make_superadmin('email_anda@gmail.com');
      3. `2026-11-06_phase1_fix_rpc_security.sql`
      4. `2026-11-07_customer_master.sql`
      5. `2026-11-09_visit_form_responses.sql`
+     6. `2026-11-09_phase11_sa_incentive_sync.sql`
      Sebelumnya, pastikan constraint role lama bernama `team_members_role_check` (`select conname from pg_constraint where conrelid = 'public.team_members'::regclass;`), kalau tidak, role `spv`/`tsc` masih ditolak.
-   - Skema membuat tabel `team_members`, `app_config`, `visit_activities`, `customer_master`, dan `visit_form_responses`, trigger pendaftaran akun & pencocokan otomatis jawaban Google Form dua arah, fungsi `is_superadmin`, `can_view_all`, `is_approved_member`, `my_sales_name`, serta RPC `redeem_access_code`, `admin_update_member_status`, `admin_update_member_role`, `admin_update_access_code`, `get_visit_summary`, `list_master_sales_names`, `claim_sales_name`, `admin_set_member_sales_name`, `get_master_status`, `get_rvai_compliance`, `admin_set_member_form_email`, `get_unmatched_form_responses`, dan `make_superadmin`.
+   - Skema membuat tabel `team_members`, `app_config`, `visit_activities`, `customer_master`, `visit_form_responses`, `sa_customers`, dan `incentive_records`, trigger pendaftaran akun & pencocokan otomatis jawaban Google Form dua arah, fungsi `is_superadmin`, `is_superadmin_exact`, `can_view_all`, `is_approved_member`, `my_sales_name`, serta RPC `redeem_access_code`, `admin_update_member_status`, `admin_update_member_role`, `admin_update_access_code`, `get_visit_summary`, `list_master_sales_names`, `claim_sales_name`, `admin_set_member_sales_name`, `get_master_status`, `get_rvai_compliance`, `admin_set_member_form_email`, `get_unmatched_form_responses`, `list_sa_customers`, `get_incentive_team_summary`, dan `make_superadmin`.
 
 2. **Atur Kode Akses Tim Awal**:
    Jalankan query di SQL Editor Supabase:
