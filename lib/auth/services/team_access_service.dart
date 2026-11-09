@@ -7,6 +7,7 @@ import '../models/member_status.dart';
 import '../models/team_member_item.dart';
 import '../supabase_client.dart';
 import '../../data/local/database_helper.dart';
+import '../../data/models/visit_form_response.dart';
 import '../../data/services/visit_sync_service.dart';
 
 abstract class SecureStorageService {
@@ -90,7 +91,7 @@ class TeamAccessService {
     try {
       final response = await _client
           .from('team_members')
-          .select('status, role, sales_name, approved_at')
+          .select('status, role, sales_name, form_email, approved_at')
           .eq('user_id', userId)
           .maybeSingle()
           .timeout(serverTimeout);
@@ -105,6 +106,11 @@ class TeamAccessService {
             (rawSalesName != null && rawSalesName.isNotEmpty)
             ? rawSalesName
             : null;
+        final rawFormEmail = (response['form_email'] as String?)?.trim();
+        final serverFormEmail =
+            (rawFormEmail != null && rawFormEmail.isNotEmpty)
+            ? rawFormEmail
+            : null;
 
         final DateTime validUntil;
         if (serverStatus == MemberStatus.approved) {
@@ -117,6 +123,7 @@ class TeamAccessService {
           status: serverStatus,
           role: serverRole,
           salesName: serverSalesName,
+          formEmail: serverFormEmail,
           checkedAt: now,
           validUntil: validUntil,
         );
@@ -128,8 +135,9 @@ class TeamAccessService {
       debugPrint(
         'TeamAccessService: Server check failed or timed out: $e. Falling back to local cache.',
       );
-      // Graceful fallback jika kolom 'sales_name' atau 'role' belum ditambahkan di database Supabase
-      if (e.toString().contains('sales_name') ||
+      // Graceful fallback jika kolom 'form_email', 'sales_name', atau 'role' belum ditambahkan di database Supabase
+      if (e.toString().contains('form_email') ||
+          e.toString().contains('sales_name') ||
           e.toString().contains('role')) {
         try {
           final fallbackResponse = await _client
@@ -278,6 +286,51 @@ class TeamAccessService {
     } catch (e) {
       debugPrint('TeamAccessService: adminSetMemberSalesName error: $e');
       return 'error';
+    }
+  }
+
+  /// Mengatur atau mereset Email Form alias anggota tim (khusus Superadmin via RPC `admin_set_member_form_email`)
+  Future<String> adminSetMemberFormEmail({
+    required String targetUserId,
+    required String formEmail,
+  }) async {
+    try {
+      final result = await _client
+          .rpc(
+            'admin_set_member_form_email',
+            params: {
+              'target_user_id': targetUserId,
+              'p_form_email': formEmail.trim().toLowerCase(),
+            },
+          )
+          .timeout(serverTimeout);
+
+      return result.toString();
+    } catch (e) {
+      debugPrint('TeamAccessService: adminSetMemberFormEmail error: $e');
+      return 'error';
+    }
+  }
+
+  /// Mengambil daftar jawaban Google Form tanpa pasangan (khusus Superadmin via RPC `get_unmatched_form_responses`)
+  Future<List<UnmatchedFormResponseItem>> fetchUnmatchedFormResponses({
+    int limit = 50,
+  }) async {
+    if (_injectedClient == null && !AppSupabase.isInitialized) return const [];
+    try {
+      final res = await _client
+          .rpc('get_unmatched_form_responses', params: {'p_limit': limit})
+          .timeout(serverTimeout);
+      if (res is List) {
+        return res
+            .whereType<Map>()
+            .map((e) => UnmatchedFormResponseItem.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
+      }
+      return const [];
+    } catch (e) {
+      debugPrint('TeamAccessService: fetchUnmatchedFormResponses error: $e');
+      return const [];
     }
   }
 

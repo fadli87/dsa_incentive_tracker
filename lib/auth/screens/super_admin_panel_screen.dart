@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../data/models/master_customer.dart';
+import '../../data/models/visit_form_response.dart';
 import '../../providers/customer_master_provider.dart';
 import '../models/member_status.dart';
 import '../models/team_member_item.dart';
@@ -99,6 +100,7 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
             onPressed: () {
               ref.read(teamMembersProvider.notifier).refresh();
               ref.invalidate(masterStatusSummaryProvider);
+              ref.invalidate(unmatchedFormResponsesProvider);
             },
           ),
         ],
@@ -147,12 +149,14 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
         return RefreshIndicator(
           onRefresh: () async {
             ref.invalidate(masterStatusSummaryProvider);
+            ref.invalidate(unmatchedFormResponsesProvider);
             await ref.read(teamMembersProvider.notifier).refresh();
           },
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
               _buildMasterStatusCard(),
+              _buildUnmatchedFormResponsesCard(),
               // Summary Cards Row
               Row(
                 children: [
@@ -454,6 +458,121 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
     );
   }
 
+  Widget _buildUnmatchedFormResponsesCard() {
+    final unmatchedAsync = ref.watch(unmatchedFormResponsesProvider);
+    return unmatchedAsync.when(
+      data: (items) {
+        if (items.isEmpty) return const SizedBox.shrink();
+        return Card(
+          key: const Key('unmatched_form_responses_card'),
+          elevation: 1,
+          margin: const EdgeInsets.only(bottom: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: BorderSide(color: Colors.deepOrange.shade300),
+          ),
+          color: Colors.white,
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.link_off_rounded,
+                      size: 18,
+                      color: Colors.deepOrange.shade800,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Jawaban Form Tanpa Pasangan (${items.length})',
+                        style: const TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF001A40),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Jika email berbeda, atur Email Form anggota terkait.',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.deepOrange.shade900,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Divider(height: 1),
+                const SizedBox(height: 6),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 190),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: items.length,
+                    separatorBuilder: (_, _) => const Divider(height: 1),
+                    itemBuilder: (ctx, idx) {
+                      final r = items[idx];
+                      final dateLabel = r.visitDate ?? '-';
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    'ID: ${r.customerId} · ${r.category.toUpperCase()}',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF002B66),
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  dateLabel,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Email Form: ${r.responderEmail}',
+                              style: const TextStyle(fontSize: 11.5),
+                            ),
+                            Text(
+                              'Alasan: ${r.reasonDisplayLabel}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.deepOrange.shade800,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+
   Widget _masterMetricItem(String label, String value, Color valueColor) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -615,6 +734,31 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
                           ],
                         ),
                       ],
+                      if (member.formEmail != null &&
+                          member.formEmail!.trim().isNotEmpty) ...[
+                        const SizedBox(height: 3),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.alternate_email_rounded,
+                              size: 13,
+                              color: Colors.teal.shade700,
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                'Email Form: ${member.formEmail}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.teal.shade700,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -644,8 +788,10 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
                 ),
 
                 // Actions
-                Row(
-                  mainAxisSize: MainAxisSize.min,
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     if (canEditRoles) ...[
                       InkWell(
@@ -684,7 +830,43 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
                           ),
                         ),
                       ),
-                      const SizedBox(width: 6),
+                      InkWell(
+                        key: Key('btn_set_form_email_${member.userId}'),
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: () => _promptSetMemberFormEmail(member),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.teal.withValues(alpha: 0.06),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: Colors.teal.withValues(alpha: 0.25),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.alternate_email_rounded,
+                                size: 14,
+                                color: Colors.teal.shade800,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Atur Email Form',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.teal.shade800,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ],
                     if (!isMe && !member.isSuperadmin) ...[
                       if (canEditRoles) ...[
@@ -809,7 +991,6 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
                             ),
                           ),
                         ),
-                        const SizedBox(width: 6),
                       ],
                       if (member.isPending) ...[
                         IconButton.filled(
@@ -827,7 +1008,6 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
                             MemberStatus.approved,
                           ),
                         ),
-                        const SizedBox(width: 6),
                         IconButton.filled(
                           style: IconButton.styleFrom(
                             backgroundColor: Colors.red.shade600,
@@ -962,7 +1142,7 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
   }
 
   Future<void> _promptSetMemberSalesName(TeamMemberItem member) async {
-    final ctrl = TextEditingController(text: member.salesName ?? '');
+    var inputText = member.salesName ?? '';
     final displayName = member.name.isNotEmpty ? member.name : member.email;
 
     final submitted = await showDialog<String>(
@@ -979,8 +1159,9 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
               style: const TextStyle(fontSize: 12.5),
             ),
             const SizedBox(height: 12),
-            TextField(
-              controller: ctrl,
+            TextFormField(
+              initialValue: inputText,
+              onChanged: (v) => inputText = v,
               textCapitalization: TextCapitalization.characters,
               decoration: const InputDecoration(
                 labelText: 'Nama Sales (UPPERCASE)',
@@ -1008,13 +1189,12 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
               backgroundColor: const Color(0xFF002B66),
               foregroundColor: Colors.white,
             ),
-            onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+            onPressed: () => Navigator.pop(ctx, inputText.trim()),
             child: const Text('Simpan'),
           ),
         ],
       ),
     );
-    ctrl.dispose();
 
     if (submitted == null || !mounted) return;
 
@@ -1055,6 +1235,123 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Gagal mengatur nama sales: $res'),
+            backgroundColor: Colors.red,
+          ),
+        );
+    }
+  }
+
+  Future<void> _promptSetMemberFormEmail(TeamMemberItem member) async {
+    var inputText = member.formEmail ?? '';
+    final displayName = member.name.isNotEmpty ? member.name : member.email;
+
+    final submitted = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Atur Email Form'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Atur alamat email Google alternatif yang dipakai $displayName saat mengisi Google Form visit (bila berbeda dari email akun aplikasi ${member.email}). '
+              'Kosongkan lalu simpan untuk menghapus alias.',
+              style: const TextStyle(fontSize: 12.5),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              key: const Key('dialog_form_email_input'),
+              initialValue: inputText,
+              onChanged: (v) => inputText = v,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(
+                labelText: 'Email Google Form (Alias)',
+                hintText: 'contoh.sales@gmail.com (kosong = hapus)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, null),
+            child: const Text('Batal'),
+          ),
+          if (member.formEmail != null && member.formEmail!.isNotEmpty)
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, ''),
+              child: Text(
+                'Reset (Kosongkan)',
+                style: TextStyle(color: Colors.orange.shade800),
+              ),
+            ),
+          ElevatedButton(
+            key: const Key('dialog_form_email_save_btn'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF002B66),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, inputText.trim().toLowerCase()),
+            child: const Text('Simpan'),
+          ),
+        ],
+      ),
+    );
+
+    if (submitted == null || !mounted) return;
+
+    final res = await ref
+        .read(teamMembersProvider.notifier)
+        .setFormEmail(member.userId, submitted);
+    if (!mounted) return;
+
+    switch (res) {
+      case 'success':
+        ref.invalidate(unmatchedFormResponsesProvider);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              submitted.isEmpty
+                  ? 'Email Form untuk $displayName berhasil dihapus.'
+                  : 'Email Form untuk $displayName berhasil diatur!',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      case 'invalid_email':
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Format alamat email tidak valid.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      case 'already_used':
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Email tersebut sudah dipakai oleh akun anggota lain.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      case 'not_found':
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Anggota tim tidak ditemukan di server.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      case 'unauthorized':
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Akses ditolak: Hanya Superadmin yang dapat mengatur Email Form.',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      default:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal mengatur Email Form: $res'),
             backgroundColor: Colors.red,
           ),
         );

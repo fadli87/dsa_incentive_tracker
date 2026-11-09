@@ -8,6 +8,7 @@ class AccessCache {
   validUntil; // checkedAt + graceDuration (hanya relevan jika status == approved)
   final TeamRole role;
   final String? salesName;
+  final String? formEmail;
 
   const AccessCache({
     required this.status,
@@ -15,6 +16,7 @@ class AccessCache {
     required this.validUntil,
     this.role = TeamRole.member,
     this.salesName,
+    this.formEmail,
   });
 
   /// Cek apakah pengguna memiliki akses superadmin/admin
@@ -45,6 +47,7 @@ class AccessCache {
       'valid_until': validUntil.toIso8601String(),
       'role': role.toDbString(),
       if (salesName != null && salesName!.isNotEmpty) 'sales_name': salesName,
+      if (formEmail != null && formEmail!.isNotEmpty) 'form_email': formEmail,
     };
   }
 
@@ -59,6 +62,7 @@ class AccessCache {
           DateTime.now(),
       role: TeamRole.fromString(json['role'] as String?),
       salesName: _cleanSalesName(json['sales_name']),
+      formEmail: _cleanSalesName(json['form_email']),
     );
   }
 

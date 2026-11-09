@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../data/models/visit_form_response.dart';
 import '../models/member_status.dart';
 import '../models/team_member_item.dart';
 import '../services/team_access_service.dart';
@@ -205,9 +206,28 @@ class TeamMembersNotifier extends AsyncNotifier<List<TeamMemberItem>> {
     }
     return result;
   }
+
+  Future<String> setFormEmail(String targetUserId, String formEmail) async {
+    final service = ref.read(teamAccessServiceProvider);
+    final result = await service.adminSetMemberFormEmail(
+      targetUserId: targetUserId,
+      formEmail: formEmail,
+    );
+    if (result == 'success') {
+      await refresh();
+    }
+    return result;
+  }
 }
 
 final teamMembersProvider =
     AsyncNotifierProvider<TeamMembersNotifier, List<TeamMemberItem>>(
       () => TeamMembersNotifier(),
     );
+
+/// Provider daftar Jawaban Form Tanpa Pasangan untuk Panel SuperAdmin (`get_unmatched_form_responses`)
+final unmatchedFormResponsesProvider =
+    FutureProvider<List<UnmatchedFormResponseItem>>((ref) async {
+      final service = ref.watch(teamAccessServiceProvider);
+      return service.fetchUnmatchedFormResponses(limit: 50);
+    });

@@ -8,6 +8,7 @@ class TeamMemberItem {
   final MemberStatus status;
   final TeamRole role;
   final String? salesName;
+  final String? formEmail;
   final DateTime? createdAt;
   final DateTime? approvedAt;
 
@@ -18,6 +19,7 @@ class TeamMemberItem {
     required this.status,
     required this.role,
     this.salesName,
+    this.formEmail,
     this.createdAt,
     this.approvedAt,
   });
@@ -42,6 +44,7 @@ class TeamMemberItem {
       status: MemberStatus.fromString(json['status'] as String?),
       role: TeamRole.fromString(json['role'] as String?),
       salesName: _cleanNonEmpty(json['sales_name']),
+      formEmail: _cleanNonEmpty(json['form_email']),
       createdAt: DateTime.tryParse(json['created_at'] as String? ?? ''),
       approvedAt: DateTime.tryParse(json['approved_at'] as String? ?? ''),
     );
@@ -55,6 +58,7 @@ class TeamMemberItem {
       'status': status.toDbString(),
       'role': role.toDbString(),
       if (salesName != null && salesName!.isNotEmpty) 'sales_name': salesName,
+      if (formEmail != null && formEmail!.isNotEmpty) 'form_email': formEmail,
       'created_at': createdAt?.toIso8601String(),
       'approved_at': approvedAt?.toIso8601String(),
     };

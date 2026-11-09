@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:dsa_incentive_tracker/auth/models/access_cache.dart';
 import 'package:dsa_incentive_tracker/auth/models/member_status.dart';
 import 'package:dsa_incentive_tracker/auth/models/team_member_item.dart';
 import 'package:dsa_incentive_tracker/auth/providers/auth_providers.dart';
@@ -9,6 +10,7 @@ import 'package:dsa_incentive_tracker/auth/screens/super_admin_panel_screen.dart
 import 'package:dsa_incentive_tracker/data/models/master_customer.dart';
 import 'package:dsa_incentive_tracker/data/models/user_profile.dart';
 import 'package:dsa_incentive_tracker/data/models/visit_activity.dart';
+import 'package:dsa_incentive_tracker/data/models/visit_form_response.dart';
 import 'package:dsa_incentive_tracker/data/services/customer_master_service.dart';
 import 'package:dsa_incentive_tracker/data/services/visit_team_summary_service.dart';
 import 'package:dsa_incentive_tracker/providers/customer_master_provider.dart';
@@ -62,6 +64,18 @@ class _FakeVisitSummaryGateway implements VisitSummaryRemoteGateway {
   }) async {
     return memberVisitRows.where((r) => r['user_id'] == memberId).toList();
   }
+
+  @override
+  Future<Map<String, int>> fetchFormSubmittedCountsByMember({
+    required String fromDate,
+    required String toDate,
+  }) async => const {};
+
+  @override
+  Future<Map<String, dynamic>?> fetchFormResponseForMemberVisit({
+    required String memberId,
+    required String clientId,
+  }) async => null;
 }
 
 void main() {
@@ -331,17 +345,135 @@ void main() {
       },
     );
   });
+
+  group('Phase 9E — SuperAdmin Form Email & Unmatched Form Responses', () {
+    test('TeamMemberItem dan AccessCache kompatibel mundur terhadap JSON lama tanpa form_email', () {
+      final legacyMember = TeamMemberItem.fromJson({
+        'user_id': 'u-legacy',
+        'email': 'legacy@example.test',
+        'name': 'Sales Lama',
+        'status': 'approved',
+        'role': 'member',
+      });
+      expect(legacyMember.formEmail, isNull);
+
+      final withFormEmail = TeamMemberItem.fromJson({
+        'user_id': 'u-alias',
+        'email': 'utama@example.test',
+        'name': 'Sales Alias',
+        'status': 'approved',
+        'role': 'member',
+        'form_email': 'alias.form@gmail.com',
+      });
+      expect(withFormEmail.formEmail, 'alias.form@gmail.com');
+
+      final legacyCache = AccessCache.fromJson({
+        'status': 'approved',
+        'checked_at': '2026-11-09T01:00:00Z',
+        'valid_until': '2026-11-16T01:00:00Z',
+        'role': 'member',
+      });
+      expect(legacyCache.formEmail, isNull);
+    });
+
+    testWidgets(
+      'Kartu Jawaban Form Tanpa Pasangan dan tombol Atur Email Form tampil serta menangani status RPC',
+      (tester) async {
+        final fakeNotifier = _FakeTeamMembersNotifier(
+          initialMembers: [
+            const TeamMemberItem(
+              userId: 'member-1',
+              email: 'budi.app@example.test',
+              name: 'Budi Sales',
+              status: MemberStatus.approved,
+              role: TeamRole.member,
+              salesName: 'BUDI SANTOSO',
+              formEmail: 'budi.form@gmail.com',
+            ),
+          ],
+          nextFormEmailResponse: 'already_used',
+        );
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              canEditRolesProvider.overrideWithValue(true),
+              teamMembersProvider.overrideWith(() => fakeNotifier),
+              masterStatusSummaryProvider.overrideWith((ref) async => null),
+              unmatchedFormResponsesProvider.overrideWith(
+                (ref) async => const [
+                  UnmatchedFormResponseItem(
+                    id: 'unmatched-1',
+                    responderEmail: 'akun.asing@gmail.com',
+                    customerId: '32017788',
+                    category: 'rvai',
+                    visitDate: '2026-11-09',
+                    reason: 'email_tidak_cocok',
+                  ),
+                ],
+              ),
+            ],
+            child: const MaterialApp(home: SuperAdminPanelScreen()),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // 1. Kartu Jawaban Form Tanpa Pasangan tampil
+        expect(find.byKey(const Key('unmatched_form_responses_card')), findsOneWidget);
+        expect(find.text('Jawaban Form Tanpa Pasangan (1)'), findsOneWidget);
+        expect(find.text('Jika email berbeda, atur Email Form anggota terkait.'), findsOneWidget);
+        expect(find.text('Email Form: akun.asing@gmail.com'), findsOneWidget);
+        expect(find.text('Alasan: Email tidak cocok dengan akun sales'), findsOneWidget);
+
+        // 2. Kartu anggota menampilkan form_email yang sudah ada dan tombol Atur Email Form
+        expect(find.text('Email Form: budi.form@gmail.com'), findsOneWidget);
+        final setEmailBtn = find.byKey(const Key('btn_set_form_email_member-1'));
+        expect(setEmailBtn, findsOneWidget);
+
+        // 3. Klik Atur Email Form -> buka dialog -> uji penanganan status already_used
+        await tester.ensureVisible(setEmailBtn);
+        await tester.pumpAndSettle();
+        await tester.tap(setEmailBtn);
+        await tester.pumpAndSettle();
+
+        await tester.enterText(
+          find.byKey(const Key('dialog_form_email_input')),
+          'duplikat@gmail.com',
+        );
+        await tester.tap(find.byKey(const Key('dialog_form_email_save_btn')));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text('Email tersebut sudah dipakai oleh akun anggota lain.'),
+          findsOneWidget,
+        );
+      },
+    );
+  });
 }
 
 class _FakeTeamMembersNotifier extends TeamMembersNotifier {
+  final List<TeamMemberItem> initialMembers;
+  String nextFormEmailResponse;
+
+  _FakeTeamMembersNotifier({
+    this.initialMembers = const <TeamMemberItem>[],
+    this.nextFormEmailResponse = 'success',
+  });
+
   @override
   Future<List<TeamMemberItem>> build() async {
-    return const <TeamMemberItem>[];
+    return initialMembers;
   }
 
   @override
   Future<void> refresh() async {
-    state = const AsyncValue.data(<TeamMemberItem>[]);
+    state = AsyncValue.data(initialMembers);
+  }
+
+  @override
+  Future<String> setFormEmail(String targetUserId, String formEmail) async {
+    return nextFormEmailResponse;
   }
 }
 
