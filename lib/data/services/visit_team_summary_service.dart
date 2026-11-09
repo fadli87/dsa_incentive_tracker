@@ -1,7 +1,66 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../auth/supabase_client.dart';
+import '../models/incentive_record.dart';
 import '../models/visit_activity.dart';
 import '../models/visit_form_response.dart';
+
+/// Baris ringkasan pencapaian insentif per sales hasil RPC `get_incentive_team_summary(p_month)`.
+/// Sengaja TIDAK memuat kolom nominal rupiah apa pun untuk menjaga privasi penghasilan sales dari SPV/TSC/Admin.
+class TeamIncentiveSummaryRow {
+  final String memberId;
+  final String memberName;
+  final String memberPosition;
+  final int totalSa;
+  final int f0;
+  final int f50;
+  final int f100;
+  final int f125;
+  final int f200;
+  final int fwa;
+  final int p35;
+  final int p6;
+  final DateTime? updatedAt;
+
+  const TeamIncentiveSummaryRow({
+    required this.memberId,
+    required this.memberName,
+    required this.memberPosition,
+    required this.totalSa,
+    required this.f0,
+    required this.f50,
+    required this.f100,
+    required this.f125,
+    required this.f200,
+    required this.fwa,
+    required this.p35,
+    required this.p6,
+    this.updatedAt,
+  });
+
+  String get displayName =>
+      memberName.trim().isNotEmpty ? memberName : memberId;
+
+  factory TeamIncentiveSummaryRow.fromJson(Map<String, dynamic> row) {
+    return TeamIncentiveSummaryRow(
+      memberId: row['member_id']?.toString() ?? '',
+      memberName: row['member_name']?.toString() ?? '',
+      memberPosition:
+          (row['member_position'] ?? row['position'])?.toString() ?? '',
+      totalSa: (row['total_sa'] as num?)?.toInt() ?? 0,
+      f0: (row['f0'] as num?)?.toInt() ?? 0,
+      f50: (row['f50'] as num?)?.toInt() ?? 0,
+      f100: (row['f100'] as num?)?.toInt() ?? 0,
+      f125: (row['f125'] as num?)?.toInt() ?? 0,
+      f200: (row['f200'] as num?)?.toInt() ?? 0,
+      fwa: (row['fwa'] as num?)?.toInt() ?? 0,
+      p35: (row['p35'] as num?)?.toInt() ?? 0,
+      p6: (row['p6'] as num?)?.toInt() ?? 0,
+      updatedAt: row['updated_at'] != null
+          ? DateTime.tryParse(row['updated_at'].toString())
+          : null,
+    );
+  }
+}
 
 /// Model agregasi rekap visit per sales untuk SPV/TSC/Admin/Superadmin
 class SalesVisitSummary {
@@ -145,6 +204,17 @@ abstract class VisitSummaryRemoteGateway {
     required String memberId,
     required String clientId,
   }) async => null;
+
+  /// Mengambil ringkasan pencapaian aktivasi tim bulan berjalan (tanpa nominal rupiah) lewat RPC `get_incentive_team_summary`.
+  Future<List<Map<String, dynamic>>> callGetIncentiveTeamSummary({
+    required String monthDate,
+  }) async => const [];
+
+  /// Khusus Superadmin: mengambil baris `incentive_records` milik satu sales pada bulan tertentu (termasuk nominal rupiah).
+  Future<Map<String, dynamic>?> fetchSuperadminMemberIncentiveNominal({
+    required String memberId,
+    required String monthDate,
+  }) async => null;
 }
 
 class SupabaseVisitSummaryGateway implements VisitSummaryRemoteGateway {
@@ -266,6 +336,44 @@ class SupabaseVisitSummaryGateway implements VisitSummaryRemoteGateway {
         .map((e) => Map<String, dynamic>.from(e as Map))
         .toList();
   }
+
+  @override
+  Future<List<Map<String, dynamic>>> callGetIncentiveTeamSummary({
+    required String monthDate,
+  }) async {
+    final res = await _client
+        .rpc(
+          'get_incentive_team_summary',
+          params: {'p_month': monthDate},
+        )
+        .timeout(const Duration(seconds: 10));
+
+    return (res as List<dynamic>)
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
+  }
+
+  @override
+  Future<Map<String, dynamic>?> fetchSuperadminMemberIncentiveNominal({
+    required String memberId,
+    required String monthDate,
+  }) async {
+    final res = await _client
+        .from('incentive_records')
+        .select()
+        .eq('user_id', memberId)
+        .eq('period_month', monthDate)
+        .isFilter('deleted_at', null)
+        .order('updated_at', ascending: false)
+        .limit(1)
+        .timeout(const Duration(seconds: 10));
+
+    final list = res as List<dynamic>;
+    if (list.isNotEmpty && list.first is Map) {
+      return Map<String, dynamic>.from(list.first as Map);
+    }
+    return null;
+  }
 }
 
 /// Service Read-Only untuk Rekap Tim (SPV / TSC / Admin / Superadmin)
@@ -333,6 +441,37 @@ class VisitTeamSummaryService {
       toIndex: toIdx,
     );
     return rows.map((r) => VisitActivity.fromSupabaseJson(r)).toList();
+  }
+
+  static String formatMonthIso(DateTime date) {
+    final y = date.year.toString().padLeft(4, '0');
+    final m = date.month.toString().padLeft(2, '0');
+    return '$y-$m-01';
+  }
+
+  /// Mengambil ringkasan pencapaian aktivasi tim pada bulan `month` (TANPA nominal rupiah).
+  Future<List<TeamIncentiveSummaryRow>> fetchIncentiveTeamSummary(
+    DateTime month,
+  ) async {
+    final monthStr = formatMonthIso(month);
+    final rows = await _gateway.callGetIncentiveTeamSummary(
+      monthDate: monthStr,
+    );
+    return rows.map((r) => TeamIncentiveSummaryRow.fromJson(r)).toList();
+  }
+
+  /// Khusus Superadmin (`TeamRole.superadmin`): mengambil detail nominal insentif seorang sales.
+  Future<IncentiveRecord?> fetchMemberIncentiveNominalForSuperadmin({
+    required String memberId,
+    required DateTime month,
+  }) async {
+    final monthStr = formatMonthIso(month);
+    final map = await _gateway.fetchSuperadminMemberIncentiveNominal(
+      memberId: memberId,
+      monthDate: monthStr,
+    );
+    if (map == null) return null;
+    return IncentiveRecord.fromSupabaseJson(map);
   }
 }
 

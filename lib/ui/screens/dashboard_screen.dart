@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import '../../auth/providers/auth_providers.dart';
+import '../../core/utils/monthly_target_helper.dart';
+import '../../data/models/incentive_record.dart';
+import '../../providers/history_provider.dart';
 import '../../providers/user_info_provider.dart';
 import 'user_info_screen.dart';
 import 'update_notes_screen.dart';
@@ -24,6 +28,11 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(userInfoProvider);
     final canViewAll = ref.watch(canViewAllProvider);
+    final historyAsync = ref.watch(historyProvider);
+    final currentMonthRecord = historyAsync.maybeWhen(
+      data: (list) => selectCurrentMonthIncentiveRecord(list),
+      orElse: () => null,
+    );
 
     final String displayName = profileAsync.maybeWhen(
       data: (p) => p.name.trim().isNotEmpty ? p.name : 'Rekan Sales',
@@ -265,6 +274,16 @@ class DashboardScreen extends ConsumerWidget {
                         ),
                       ],
                     ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // ==========================================
+                  // 2b. KARTU PENCAPAIAN BULAN INI (OFFLINE LOKAL)
+                  // ==========================================
+                  _buildCurrentMonthAchievementCard(
+                    context,
+                    currentMonthRecord,
                   ),
 
                   const SizedBox(height: 20),
@@ -554,6 +573,238 @@ class DashboardScreen extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // ==========================================
+  // HELPER WIDGET KARTU PENCAPAIAN BULAN INI
+  // ==========================================
+  Widget _buildCurrentMonthAchievementCard(
+    BuildContext context,
+    IncentiveRecord? record,
+  ) {
+    final currencyFmt = NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    );
+
+    if (record == null) {
+      return Container(
+        key: const Key('monthly_achievement_empty_card'),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFF002B66).withValues(alpha: 0.12),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE3F2FD),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.trending_up_rounded,
+                color: Color(0xFF0056B3),
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Pencapaian Bulan Ini',
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF002B66),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Simpan perhitungan bulan ini di Kalkulator',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            TextButton(
+              key: const Key('btn_open_calculator_from_achievement'),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CalculatorScreen()),
+                );
+              },
+              child: const Text('Buka'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final sim = simulateNextTierGap(record);
+    final categories = <MapEntry<String, int>>[
+      MapEntry('F0', record.f0),
+      MapEntry('F50', record.f50),
+      MapEntry('F100', record.f100),
+      MapEntry('F125', record.f125),
+      MapEntry('F200', record.f200),
+      MapEntry('FWA', record.fwa),
+      MapEntry('P35', record.p35),
+      MapEntry('P6', record.p6),
+    ];
+
+    return Container(
+      key: const Key('monthly_achievement_card'),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.035),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+        border: Border.all(
+          color: const Color(0xFF002B66).withValues(alpha: 0.12),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.emoji_events_rounded,
+                size: 18,
+                color: Color(0xFFF15A24),
+              ),
+              const SizedBox(width: 6),
+              const Expanded(
+                child: Text(
+                  'Pencapaian Bulan Ini',
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF002B66),
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF002B66).withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '${record.position} · ${record.totalSa} SA',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF002B66),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            currencyFmt.format(record.grandTotal),
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFF002B66),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 4,
+            children: categories.map((e) {
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                  color: e.value > 0
+                      ? const Color(0xFFE3F2FD)
+                      : Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  '${e.key}: ${e.value}',
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight:
+                        e.value > 0 ? FontWeight.bold : FontWeight.normal,
+                    color: e.value > 0
+                        ? const Color(0xFF0056B3)
+                        : Colors.grey.shade600,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          if (sim != null) ...[
+            const SizedBox(height: 10),
+            Container(
+              key: const Key('monthly_achievement_simulation_box'),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.amber.shade50,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.amber.shade300),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade800,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Text(
+                      'Simulasi',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Kurang ${sim.missingSa} SA untuk naik ke tier berikutnya (${sim.nextTierLabel}) · Estimasi +${currencyFmt.format(sim.estimatedDeltaRupiah)} (${sim.primaryCategoryLabel})',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.amber.shade900,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

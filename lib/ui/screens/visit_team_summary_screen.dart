@@ -4,7 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../auth/models/member_status.dart';
+import '../../auth/providers/auth_providers.dart';
 import '../../core/utils/launcher_helper.dart';
+import '../../data/models/incentive_record.dart';
 import '../../data/models/visit_activity.dart';
 import '../../data/models/visit_form_response.dart';
 import '../../data/services/customer_master_service.dart';
@@ -39,6 +42,7 @@ class _VisitTeamSummaryScreenState extends ConsumerState<VisitTeamSummaryScreen>
   String? _errorMsg;
   List<SalesVisitSummary> _summaries = [];
   List<RvaiComplianceRow> _rvaiCompliance = [];
+  List<TeamIncentiveSummaryRow> _incentiveSummaries = [];
   bool _rvaiExpanded = false;
 
   @override
@@ -94,10 +98,15 @@ class _VisitTeamSummaryScreenState extends ConsumerState<VisitTeamSummaryScreen>
           toDate: _toDate,
         );
       } catch (_) {}
+      List<TeamIncentiveSummaryRow> incSummaries = const [];
+      try {
+        incSummaries = await service.fetchIncentiveTeamSummary(_fromDate);
+      } catch (_) {}
       if (!mounted) return;
       setState(() {
         _summaries = data;
         _rvaiCompliance = compliance;
+        _incentiveSummaries = incSummaries;
         _isLoading = false;
       });
     } catch (e) {
@@ -322,7 +331,9 @@ class _VisitTeamSummaryScreenState extends ConsumerState<VisitTeamSummaryScreen>
       );
     }
 
-    if (_summaries.isEmpty && _rvaiCompliance.isEmpty) {
+    if (_summaries.isEmpty &&
+        _rvaiCompliance.isEmpty &&
+        _incentiveSummaries.isEmpty) {
       return Center(
         child: Text(
           'Belum ada data aktivitas visit tim pada rentang tanggal ini.',
@@ -334,6 +345,7 @@ class _VisitTeamSummaryScreenState extends ConsumerState<VisitTeamSummaryScreen>
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        if (_incentiveSummaries.isNotEmpty) _buildIncentiveTeamSummaryCard(),
         if (_rvaiCompliance.isNotEmpty) _buildRvaiComplianceCard(),
         if (_summaries.isEmpty)
           Padding(
@@ -348,6 +360,218 @@ class _VisitTeamSummaryScreenState extends ConsumerState<VisitTeamSummaryScreen>
         else
           ..._summaries.map((item) => _buildSalesSummaryCard(item)),
       ],
+    );
+  }
+
+  Widget _buildIncentiveTeamSummaryCard() {
+    final isSuperadminExact =
+        ref.watch(currentRoleProvider) == TeamRole.superadmin;
+    final totalTeamSa = _incentiveSummaries.fold<int>(
+      0,
+      (sum, r) => sum + r.totalSa,
+    );
+
+    return Card(
+      key: const Key('team_incentive_summary_card'),
+      elevation: 1,
+      margin: const EdgeInsets.only(bottom: 16),
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: Colors.blue.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.emoji_events_rounded,
+                  size: 18,
+                  color: Color(0xFFF15A24),
+                ),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'Pencapaian Tim Bulan Ini',
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF002B66),
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'Total: $totalTeamSa SA',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue.shade900,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Ringkasan jumlah aktivasi per sales bulan berjalan (Read-Only, tanpa nominal rupiah).',
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+            ),
+            const SizedBox(height: 10),
+            const Divider(height: 1),
+            const SizedBox(height: 8),
+            ..._incentiveSummaries.map((row) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            row.displayName,
+                            style: const TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF001A40),
+                            ),
+                          ),
+                        ),
+                        if (row.memberPosition.isNotEmpty) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade200,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              row.memberPosition,
+                              style: const TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                        ],
+                        _statBadge(
+                          '${row.totalSa} SA',
+                          const Color(0xFF002B66),
+                          const Color(0xFFE3F2FD),
+                        ),
+                        if (isSuperadminExact) ...[
+                          const SizedBox(width: 6),
+                          OutlinedButton.icon(
+                            key: Key('btn_view_nominal_${row.memberId}'),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            onPressed: () => _showSuperadminNominalDialog(row),
+                            icon: const Icon(
+                              Icons.visibility_outlined,
+                              size: 13,
+                            ),
+                            label: const Text(
+                              'Nominal',
+                              style: TextStyle(fontSize: 10.5),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'F0:${row.f0} · F50:${row.f50} · F100:${row.f100} · F125:${row.f125} · F200:${row.f200} · FWA:${row.fwa} · P35:${row.p35} · P6:${row.p6}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showSuperadminNominalDialog(TeamIncentiveSummaryRow row) async {
+    final service = ref.read(visitTeamSummaryServiceProvider);
+    final IncentiveRecord? record =
+        await service.fetchMemberIncentiveNominalForSuperadmin(
+      memberId: row.memberId,
+      month: _fromDate,
+    );
+    if (!mounted) return;
+
+    final fmt = NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    );
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        key: const Key('superadmin_nominal_dialog'),
+        title: Text(
+          'Detail Nominal — ${row.displayName}',
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+        ),
+        content: record == null
+            ? const Text('Data rincian nominal tidak ditemukan.')
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Periode: ${record.periode} (${record.position})'),
+                  const Divider(),
+                  Text('Basic Fee: ${fmt.format(record.basicFee)}'),
+                  Text('Product Mix Base: ${fmt.format(record.pmBase)}'),
+                  Text(
+                    'Multiplier (${record.multRate}x): ${fmt.format(record.multBonus)}',
+                  ),
+                  Text('Progressive SA: ${fmt.format(record.progInc)}'),
+                  Text('Special Incentive: ${fmt.format(record.specialInc)}'),
+                  const Divider(),
+                  Text(
+                    'Grand Total: ${fmt.format(record.grandTotal)}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF002B66),
+                    ),
+                  ),
+                ],
+              ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Tutup'),
+          ),
+        ],
+      ),
     );
   }
 
