@@ -593,28 +593,50 @@ drop trigger if exists visit_activities_keep_form on public.visit_activities;
 create trigger visit_activities_keep_form before update on public.visit_activities
   for each row execute function public.visit_keep_form_submitted();
 
--- 27. Pencocokan otomatis saat jawaban masuk
+-- 27. Pencocokan otomatis dua arah saat jawaban masuk, saat visit disinkronkan, atau saat form_email diubah
 create or replace function public.match_visit_form_response()
 returns trigger language plpgsql security definer set search_path = public as $$
-declare v_user uuid; v_visit uuid;
+declare
+  v_user uuid;
+  v_visit uuid;
+  v_effective_date date;
 begin
-  select tm.user_id into v_user from public.team_members tm
+  select tm.user_id into v_user
+    from public.team_members tm
    where tm.status = 'approved'
-     and (lower(tm.email) = lower(new.responder_email) or lower(coalesce(tm.form_email,'')) = lower(new.responder_email))
-   order by (lower(tm.email) = lower(new.responder_email)) desc limit 1;
+     and (
+       lower(trim(tm.email)) = lower(trim(new.responder_email))
+       or lower(trim(coalesce(tm.form_email, ''))) = lower(trim(new.responder_email))
+     )
+   order by (lower(trim(tm.email)) = lower(trim(new.responder_email))) desc
+   limit 1;
+
   new.matched_user_id := v_user;
 
-  if v_user is not null and new.category is not null and new.visit_date is not null then
-    select v.id into v_visit from public.visit_activities v
-     where v.user_id = v_user and v.customer_id = new.customer_id and v.category = new.category
-       and v.deleted_at is null and v.planned_date between new.visit_date - 3 and new.visit_date + 3
-     order by abs(v.planned_date - new.visit_date), v.created_at limit 1;
+  v_effective_date := coalesce(
+    new.visit_date,
+    (coalesce(new.submitted_at, now()) at time zone 'Asia/Jakarta')::date
+  );
+
+  if v_user is not null and new.category is not null then
+    select v.id into v_visit
+      from public.visit_activities v
+     where v.user_id = v_user
+       and trim(v.customer_id) = trim(new.customer_id)
+       and v.category = new.category
+       and v.deleted_at is null
+       and v.planned_date between (v_effective_date - 7) and (v_effective_date + 7)
+     order by abs(v.planned_date - v_effective_date), v.created_at desc
+     limit 1;
     new.matched_visit_id := v_visit;
+  else
+    new.matched_visit_id := null;
   end if;
   return new;
 end; $$;
 drop trigger if exists vfr_match_before on public.visit_form_responses;
-create trigger vfr_match_before before insert on public.visit_form_responses
+drop trigger if exists trg_match_form_response_on_upsert on public.visit_form_responses;
+create trigger vfr_match_before before insert or update on public.visit_form_responses
   for each row execute function public.match_visit_form_response();
 
 create or replace function public.apply_visit_form_response()
@@ -625,13 +647,102 @@ begin
        set form_submitted = true,
            status = case when v.status = 'belum' then 'sudah_visit' else v.status end,
            visited_at = coalesce(v.visited_at, new.submitted_at)
-     where v.id = new.matched_visit_id;
+     where v.id = new.matched_visit_id
+       and (
+         v.form_submitted is distinct from true
+         or v.status = 'belum'
+         or v.visited_at is null
+       );
   end if;
   return new;
 end; $$;
 drop trigger if exists vfr_apply_after on public.visit_form_responses;
-create trigger vfr_apply_after after insert on public.visit_form_responses
+create trigger vfr_apply_after after insert or update on public.visit_form_responses
   for each row execute function public.apply_visit_form_response();
+
+create or replace function public.match_form_on_visit_upsert()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  v_form_id uuid;
+  v_submitted_at timestamptz;
+begin
+  if new.deleted_at is not null then return new; end if;
+  select r.id, r.submitted_at
+    into v_form_id, v_submitted_at
+    from public.visit_form_responses r
+   where trim(r.customer_id) = trim(new.customer_id)
+     and r.category = new.category
+     and (r.matched_visit_id is null or r.matched_visit_id = new.id)
+     and (
+       r.matched_user_id = new.user_id
+       or exists (
+         select 1 from public.team_members tm
+          where tm.user_id = new.user_id and tm.status = 'approved'
+            and (lower(trim(tm.email)) = lower(trim(r.responder_email))
+                 or lower(trim(coalesce(tm.form_email, ''))) = lower(trim(r.responder_email)))
+       )
+     )
+     and coalesce(r.visit_date, (coalesce(r.submitted_at, now()) at time zone 'Asia/Jakarta')::date)
+         between (new.planned_date - 7) and (new.planned_date + 7)
+   order by r.submitted_at desc limit 1;
+
+  if v_form_id is not null then
+    new.form_submitted := true;
+    if new.status = 'belum' then new.status := 'sudah_visit'; end if;
+    new.visited_at := coalesce(new.visited_at, v_submitted_at);
+  end if;
+  return new;
+end; $$;
+drop trigger if exists trg_match_visit_before_upsert on public.visit_activities;
+create trigger trg_match_visit_before_upsert before insert or update on public.visit_activities
+  for each row execute function public.match_form_on_visit_upsert();
+
+create or replace function public.link_form_after_visit_upsert()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if new.deleted_at is null and new.form_submitted = true then
+    update public.visit_form_responses r
+       set matched_user_id = new.user_id, matched_visit_id = new.id
+     where r.matched_visit_id is null
+       and trim(r.customer_id) = trim(new.customer_id)
+       and r.category = new.category
+       and (
+         r.matched_user_id = new.user_id
+         or exists (
+           select 1 from public.team_members tm
+            where tm.user_id = new.user_id and tm.status = 'approved'
+              and (lower(trim(tm.email)) = lower(trim(r.responder_email))
+                   or lower(trim(coalesce(tm.form_email, ''))) = lower(trim(r.responder_email)))
+         )
+       )
+       and coalesce(r.visit_date, (coalesce(r.submitted_at, now()) at time zone 'Asia/Jakarta')::date)
+           between (new.planned_date - 7) and (new.planned_date + 7);
+  end if;
+  return new;
+end; $$;
+drop trigger if exists trg_match_visit_on_insert_or_update on public.visit_activities;
+create trigger trg_match_visit_on_insert_or_update after insert or update on public.visit_activities
+  for each row execute function public.link_form_after_visit_upsert();
+
+create or replace function public.rematch_forms_on_team_member_change()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if new.status = 'approved' then
+    update public.visit_form_responses r
+       set responder_email = r.responder_email
+     where r.matched_visit_id is null
+       and (
+         lower(trim(r.responder_email)) = lower(trim(new.email))
+         or (coalesce(trim(new.form_email), '') <> ''
+             and lower(trim(r.responder_email)) = lower(trim(new.form_email)))
+       );
+  end if;
+  return new;
+end; $$;
+drop trigger if exists trg_rematch_forms_on_team_member_email_update on public.team_members;
+create trigger trg_rematch_forms_on_team_member_email_update
+  after insert or update of email, form_email, status on public.team_members
+  for each row execute function public.rematch_forms_on_team_member_change();
 
 -- 28. RPC: jawaban Form untuk sebuah visit (pemilik visit atau can_view_all, lewat RLS)
 create or replace function public.get_form_response_for_visit(p_visit_id uuid)

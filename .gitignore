@@ -64,5 +64,11 @@ private_data/
 *.kml
 .agents/
 
+# Android Keystore & Signing Credentials (NEVER commit to public repo)
+**/*.jks
+**/*.keystore
+android/key.properties
+!android/key.properties.example
+
 
 

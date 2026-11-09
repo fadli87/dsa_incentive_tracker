@@ -37,6 +37,23 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
+      - name: Configure Android Keystore (if configured in Secrets)
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ] && [ -n "$ANDROID_STORE_PASSWORD" ]; then
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+            cat <<EOF > android/key.properties
+          storePassword=$ANDROID_STORE_PASSWORD
+          keyPassword=${ANDROID_KEY_PASSWORD:-$ANDROID_STORE_PASSWORD}
+          keyAlias=${ANDROID_KEY_ALIAS:-upload}
+          storeFile=upload-keystore.jks
+          EOF
+          fi
+
       - name: Build APK Release
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

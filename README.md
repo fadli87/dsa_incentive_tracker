@@ -249,6 +249,7 @@ select public.make_superadmin('email_anda@gmail.com');
      4. `2026-11-07_customer_master.sql`
      5. `2026-11-09_visit_form_responses.sql`
      6. `2026-11-09_phase11_sa_incentive_sync.sql`
+     7. `2026-11-09_visit_form_responses_fix_matching.sql`
      Sebelumnya, pastikan constraint role lama bernama `team_members_role_check` (`select conname from pg_constraint where conrelid = 'public.team_members'::regclass;`), kalau tidak, role `spv`/`tsc` masih ditolak.
    - Skema membuat tabel `team_members`, `app_config`, `visit_activities`, `customer_master`, `visit_form_responses`, `sa_customers`, dan `incentive_records`, trigger pendaftaran akun & pencocokan otomatis jawaban Google Form dua arah, fungsi `is_superadmin`, `is_superadmin_exact`, `can_view_all`, `is_approved_member`, `my_sales_name`, serta RPC `redeem_access_code`, `admin_update_member_status`, `admin_update_member_role`, `admin_update_access_code`, `get_visit_summary`, `list_master_sales_names`, `claim_sales_name`, `admin_set_member_sales_name`, `get_master_status`, `get_rvai_compliance`, `admin_set_member_form_email`, `get_unmatched_form_responses`, `list_sa_customers`, `get_incentive_team_summary`, dan `make_superadmin`.
 

@@ -1,8 +1,35 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    FileInputStream(keystorePropertiesFile).use { keystoreProperties.load(it) }
+}
+
+val resolvedKeyAlias: String? =
+    keystoreProperties.getProperty("keyAlias") ?: System.getenv("ANDROID_KEY_ALIAS")
+val resolvedKeyPassword: String? =
+    keystoreProperties.getProperty("keyPassword") ?: System.getenv("ANDROID_KEY_PASSWORD")
+val resolvedStorePassword: String? =
+    keystoreProperties.getProperty("storePassword") ?: System.getenv("ANDROID_STORE_PASSWORD")
+val resolvedStoreFilePath: String? =
+    keystoreProperties.getProperty("storeFile") ?: System.getenv("ANDROID_KEYSTORE_PATH")
+val resolvedStoreFile = resolvedStoreFilePath?.let { path ->
+    val f = file(path)
+    if (f.exists()) f else rootProject.file(path)
+}
+val hasReleaseSigning = !resolvedKeyAlias.isNullOrBlank() &&
+    !resolvedKeyPassword.isNullOrBlank() &&
+    !resolvedStorePassword.isNullOrBlank() &&
+    resolvedStoreFile != null &&
+    resolvedStoreFile.exists()
 
 android {
     namespace = "com.xlsmart.dsa_incentive_tracker"
@@ -15,10 +42,7 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.xlsmart.dsa_incentive_tracker"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = 34
         versionCode = flutter.versionCode
@@ -26,19 +50,25 @@ android {
     }
 
     signingConfigs {
-        create("release") {
-            keyAlias = "upload"
-            keyPassword = "xlsmartdsa2026"
-            storeFile = file("${project.projectDir}/upload-keystore.jks")
-            storePassword = "xlsmartdsa2026"
-            enableV1Signing = true
-            enableV2Signing = true
+        if (hasReleaseSigning) {
+            create("release") {
+                keyAlias = resolvedKeyAlias
+                keyPassword = resolvedKeyPassword
+                storeFile = resolvedStoreFile
+                storePassword = resolvedStorePassword
+                enableV1Signing = true
+                enableV2Signing = true
+            }
         }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = if (hasReleaseSigning) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
             isMinifyEnabled = false
             isShrinkResources = false
         }
