@@ -1,6 +1,9 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../data/services/customer_master_import_service.dart';
+import '../../data/services/customer_master_service.dart';
 import '../../providers/customer_master_provider.dart';
 import '../models/member_status.dart';
 import '../models/team_member_item.dart';
@@ -323,9 +326,20 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
 
   Widget _buildMasterStatusCard() {
     final statusAsync = ref.watch(masterStatusSummaryProvider);
+    final isPureSuperadmin = ref.watch(canEditRolesProvider);
     return statusAsync.when(
-      data: (status) {
-        if (status == null) return const SizedBox.shrink();
+      data: (rawStatus) {
+        if (rawStatus == null && !isPureSuperadmin) {
+          return const SizedBox.shrink();
+        }
+        final status =
+            rawStatus ??
+            const MasterStatusSummary(
+              total: 0,
+              lastImport: null,
+              lastBatch: '',
+              withoutSales: 0,
+            );
         final isStale = status.isImportStale();
         final lastImportText = status.lastImport != null
             ? DateFormat('dd MMM yyyy HH:mm').format(status.lastImport!.toLocal())
@@ -446,6 +460,35 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
                     ),
                   ),
                 ],
+                if (isPureSuperadmin) ...[
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      key: const Key('btn_import_customer_master_kmz'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF002B66),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 10,
+                          horizontal: 14,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      icon: const Icon(Icons.upload_file_rounded, size: 18),
+                      label: const Text(
+                        'Impor dari KMZ/KML',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      onPressed: _onTapImportCustomerMaster,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -454,6 +497,437 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
       loading: () => const SizedBox.shrink(),
       error: (_, _) => const SizedBox.shrink(),
     );
+  }
+
+  Future<void> _onTapImportCustomerMaster() async {
+    if (!ref.read(canEditRolesProvider)) return;
+
+    Uint8List? fileBytes;
+    try {
+      final pickCallback = ref.read(pickMasterImportBytesProvider);
+      fileBytes = await pickCallback();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Gagal membuka pemilih file KMZ/KML.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (fileBytes == null || !mounted) return;
+
+    // Tampilkan dialog "Membaca file…" saat isolate bekerja
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => PopScope(
+        canPop: false,
+        child: const AlertDialog(
+          key: Key('master_import_reading_dialog'),
+          content: Row(
+            children: [
+              SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: Color(0xFF002B66),
+                ),
+              ),
+              SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  'Membaca file…',
+                  style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    MasterImportParseResult? parseResult;
+    Object? parseError;
+    try {
+      final importService = ref.read(customerMasterImportServiceProvider);
+      parseResult = await importService.parseFileBytesInIsolate(fileBytes);
+    } catch (e) {
+      parseError = e;
+    } finally {
+      // Lepas referensi bytes mentah dari memori segera setelah ekstraksi/parse selesai
+      fileBytes = null;
+    }
+
+    if (!mounted) return;
+    Navigator.of(context, rootNavigator: true).pop();
+
+    if (parseError != null) {
+      final msg = parseError is MasterImportException
+          ? parseError.message
+          : 'Gagal membaca file KMZ/KML. Pastikan format file valid.';
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          key: const Key('master_import_parse_error_dialog'),
+          title: const Text('Gagal Membaca File'),
+          content: Text(msg),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Tutup'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    if (parseResult == null) return;
+    await _showMasterImportPreviewDialog(parseResult);
+  }
+
+  Future<void> _showMasterImportPreviewDialog(
+    MasterImportParseResult parseResult,
+  ) async {
+    final stats = parseResult.stats;
+    final dateRangeText =
+        (stats.minInstallDate != null && stats.maxInstallDate != null)
+        ? '${stats.minInstallDate} s/d ${stats.maxInstallDate}'
+        : '-';
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        key: const Key('master_import_preview_dialog'),
+        title: const Row(
+          children: [
+            Icon(
+              Icons.analytics_outlined,
+              color: Color(0xFF002B66),
+              size: 22,
+            ),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Pratinjau Impor Master KCLP',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _previewStatRow('Batch ID', stats.batchId),
+              _previewStatRow('Total Placemark', '${stats.totalPlacemarks}'),
+              _previewStatRow('Jumlah KCLP', '${stats.cityMatched}'),
+              _previewStatRow('Baris Valid Unik', '${stats.validUnique}'),
+              _previewStatRow('Duplikat', '${stats.duplicates}'),
+              _previewStatRow('Tanpa Koordinat', '${stats.missingCoords}'),
+              _previewStatRow(
+                'Tanpa Tanggal Install',
+                '${stats.missingInstallDate}',
+              ),
+              _previewStatRow(
+                'Tanpa Nama Sales',
+                '${stats.missingSalesName}',
+              ),
+              _previewStatRow('Jumlah Sales Unik', '${stats.uniqueSales}'),
+              _previewStatRow('Rentang Tanggal Install', dateRangeText),
+              const SizedBox(height: 8),
+              const Text(
+                'Jumlah per TSC:',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF001A40),
+                ),
+              ),
+              const SizedBox(height: 4),
+              if (stats.perTsc.isEmpty)
+                const Text(
+                  '-',
+                  style: TextStyle(fontSize: 12, color: Colors.black54),
+                )
+              else
+                ...stats.perTsc.entries.map(
+                  (e) => Padding(
+                    padding: const EdgeInsets.only(bottom: 2),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            e.key,
+                            style: const TextStyle(
+                              fontSize: 11.5,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          '${e.value}',
+                          style: const TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF002B66),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: const Text(
+                  'Impor hanya menambah atau memperbarui. Pelanggan yang tidak ada di file ini tidak dihapus.',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    color: Color(0xFF1E3A8A),
+                    height: 1.35,
+                  ),
+                ),
+              ),
+              if (stats.validUnique == 0) ...[
+                const SizedBox(height: 10),
+                Container(
+                  key: const Key('master_import_empty_warning'),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.red.shade300),
+                  ),
+                  child: Text(
+                    'Tidak ada baris KCLP yang valid. Pastikan ini file yang benar.',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red.shade900,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            key: const Key('btn_cancel_master_import'),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            key: const Key('btn_confirm_master_import'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF002B66),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: stats.validUnique == 0
+                ? null
+                : () => Navigator.pop(ctx, true),
+            child: const Text('Impor Sekarang'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      await _executeMasterImportBatch(parseResult);
+    }
+  }
+
+  Widget _previewStatRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2.5),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF001A40),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _executeMasterImportBatch(
+    MasterImportParseResult parseResult,
+  ) async {
+    final importService = ref.read(customerMasterImportServiceProvider);
+    final total = parseResult.records.length;
+
+    while (mounted) {
+      final progressNotifier = ValueNotifier<(int, int)>((0, total));
+
+      // Tampilkan dialog progres tanpa tombol Batal
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => PopScope(
+          canPop: false,
+          child: AlertDialog(
+            key: const Key('master_import_progress_dialog'),
+            title: const Text(
+              'Mengimpor Master Pelanggan…',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+            ),
+            content: ValueListenableBuilder<(int, int)>(
+              valueListenable: progressNotifier,
+              builder: (context, progress, _) {
+                final done = progress.$1;
+                final max = progress.$2;
+                final fraction = max > 0 ? done / max : 0.0;
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    LinearProgressIndicator(
+                      value: fraction,
+                      backgroundColor: Colors.grey.shade200,
+                      color: const Color(0xFF002B66),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Mengirim $done / $max',
+                      key: const Key('master_import_progress_text'),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+      );
+
+      MasterImportResult? importResult;
+      Object? batchError;
+      try {
+        importResult = await importService.importRecords(
+          parseResult.records,
+          parseResult.stats.batchId,
+          onProgress: (done, max) {
+            progressNotifier.value = (done, max);
+          },
+        );
+      } catch (e) {
+        batchError = e;
+      } finally {
+        if (mounted) {
+          Navigator.of(context, rootNavigator: true).pop();
+        }
+        progressNotifier.dispose();
+      }
+
+      if (!mounted) return;
+
+      if (batchError != null) {
+        final errMsg = batchError is MasterImportBatchException
+            ? batchError.message
+            : 'Gagal mengirim data master ke server. Silakan coba lagi.';
+        final retry = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            key: const Key('master_import_error_dialog'),
+            title: const Text('Impor Belum Selesai'),
+            content: Text(errMsg),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Tutup'),
+              ),
+              ElevatedButton(
+                key: const Key('btn_retry_master_import'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF002B66),
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Coba Lagi'),
+              ),
+            ],
+          ),
+        );
+
+        if (retry == true && mounted) {
+          continue;
+        }
+        return;
+      }
+
+      if (importResult != null) {
+        ref.invalidate(masterStatusSummaryProvider);
+        final summaryText =
+            'Baru: ${importResult.insertedCount}, Diperbarui: ${importResult.updatedCount}, Ditolak: ${importResult.rejectedCount}';
+        await showDialog<void>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            key: const Key('master_import_result_dialog'),
+            title: const Row(
+              children: [
+                Icon(Icons.check_circle_rounded, color: Colors.green, size: 22),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Impor Master Selesai',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            content: Text(
+              summaryText,
+              style: const TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            actions: [
+              ElevatedButton(
+                key: const Key('btn_close_master_import_result'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF002B66),
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Selesai'),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
+    }
   }
 
   Widget _buildUnmatchedFormResponsesCard() {
