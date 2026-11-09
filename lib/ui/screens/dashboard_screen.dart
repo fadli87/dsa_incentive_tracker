@@ -13,6 +13,7 @@ import 'network_tools_screen.dart';
 import 'coverage_map_screen.dart';
 import 'visit_daily_screen.dart';
 import 'visit_team_summary_screen.dart';
+import 'sa_team_list_screen.dart';
 import '../../core/constants/app_constants.dart';
 import '../../ai/widgets/ai_coach_chat_sheet.dart';
 
@@ -403,6 +404,23 @@ class DashboardScreen extends ConsumerWidget {
                                 context,
                                 MaterialPageRoute(
                                     builder: (_) => const VisitTeamSummaryScreen()),
+                              );
+                            },
+                          ),
+
+                        // Data SA Tim (Tampil HANYA bila canViewAllProvider == true)
+                        if (canViewAll)
+                          _buildCircularMenuItem(
+                            icon: Icons.supervised_user_circle_rounded,
+                            iconColor: const Color(0xFF0369A1),
+                            gradientColors: const [Color(0xFFE0F2FE), Color(0xFFBAE6FD)],
+                            shadowColor: const Color(0xFF0284C7).withValues(alpha: 0.25),
+                            title: 'Data SA Tim',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const SaTeamListScreen()),
                               );
                             },
                           ),

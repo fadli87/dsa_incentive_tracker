@@ -142,6 +142,15 @@ final canViewAllProvider = Provider<bool>((ref) {
 });
 
 // ---------------------------------------------------------------------------
+// Provider untuk mengecek role pengguna aktif saat ini
+// ---------------------------------------------------------------------------
+final currentRoleProvider = Provider<TeamRole>((ref) {
+  final gateState = ref.watch(accessGateProvider);
+  if (gateState != GateState.approved) return TeamRole.member;
+  return ref.watch(accessGateProvider.notifier).currentRole;
+});
+
+// ---------------------------------------------------------------------------
 // Provider untuk mengecek apakah user aktif bisa mengubah role anggota tim (Superadmin)
 // ---------------------------------------------------------------------------
 final canEditRolesProvider = Provider<bool>((ref) {

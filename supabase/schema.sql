@@ -693,7 +693,7 @@ create table if not exists public.incentive_records (
   client_id uuid not null,
   periode text not null,
   period_month date,                       -- tanggal 1 bulan periode; null bila tak bisa ditentukan
-  position text not null default '',
+  "position" text not null default '',
   city text not null default '',
   basic_fee double precision not null default 0,
   total_sa integer not null default 0,
@@ -794,15 +794,16 @@ revoke execute on function public.list_sa_customers(text, uuid, int, int) from p
 grant execute on function public.list_sa_customers(text, uuid, int, int) to authenticated;
 
 -- 35. RPC: ringkasan pencapaian tim bulan tertentu (TANPA nominal rupiah)
+drop function if exists public.get_incentive_team_summary(date);
 create or replace function public.get_incentive_team_summary(p_month date)
-returns table (member_id uuid, member_name text, position text, total_sa integer,
+returns table (member_id uuid, member_name text, member_position text, total_sa integer,
                f0 integer, f50 integer, f100 integer, f125 integer, f200 integer,
                fwa integer, p35 integer, p6 integer, updated_at timestamptz)
 language plpgsql security definer set search_path = public stable as $$
 begin
   if not public.can_view_all() then raise exception 'unauthorized'; end if;
   return query
-    select distinct on (r.user_id) r.user_id, coalesce(tm.name, tm.email, ''), r.position, r.total_sa,
+    select distinct on (r.user_id) r.user_id, coalesce(tm.name, tm.email, ''), r."position", r.total_sa,
            r.f0, r.f50, r.f100, r.f125, r.f200, r.fwa, r.p35, r.p6, r.updated_at
     from public.incentive_records r
     left join public.team_members tm on tm.user_id = r.user_id

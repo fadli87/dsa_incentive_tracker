@@ -13,7 +13,7 @@ class SaNotifier extends AsyncNotifier<List<SaRecord>> {
 
   void _triggerBackgroundBackup() {
     final isApproved =
-        ref.read(accessGateProvider).valueOrNull == GateState.approved;
+        ref.read(accessGateProvider) == GateState.approved;
     unawaited(
       ref
           .read(backupSyncServiceProvider)

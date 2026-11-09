@@ -38,7 +38,7 @@ final backupPendingCountProvider = FutureProvider<int>((ref) async {
 
 /// Menjalankan sinkronisasi cadangan (`syncAll`) lalu me-refresh state provider terkait.
 Future<BackupSyncResult> runBackupSyncAndRefresh(WidgetRef ref) async {
-  final isApproved = ref.read(accessGateProvider).valueOrNull == GateState.approved;
+  final isApproved = ref.read(accessGateProvider) == GateState.approved;
   final service = ref.read(backupSyncServiceProvider);
   final res = await service.syncAll(isMemberApproved: isApproved);
   ref.invalidate(saProvider);
