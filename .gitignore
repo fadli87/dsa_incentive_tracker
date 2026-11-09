@@ -62,5 +62,7 @@ env.json
 private_data/
 *.kmz
 *.kml
+.agents/
+
 
 

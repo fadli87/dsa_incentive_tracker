@@ -134,3 +134,4 @@ begin
 end; $$;
 revoke execute on function public.get_rvai_compliance(date, date) from public, anon;
 grant execute on function public.get_rvai_compliance(date, date) to authenticated;
+

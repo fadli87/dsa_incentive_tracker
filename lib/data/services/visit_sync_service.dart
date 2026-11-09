@@ -126,8 +126,8 @@ class SupabaseVisitRemoteGateway implements VisitRemoteGateway {
         q = q.eq('user_id', uid);
       }
       final rows = await q.limit(1).timeout(const Duration(seconds: 10));
-      if (rows is List && rows.isNotEmpty && rows.first is Map) {
-        visitUuid = (rows.first as Map)['id']?.toString();
+      if (rows.isNotEmpty) {
+        visitUuid = rows.first['id']?.toString();
       }
     }
 

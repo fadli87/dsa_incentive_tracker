@@ -174,3 +174,4 @@ Deno.test("Upsert idempoten dengan fake store dan log tidak membocorkan email/ca
   assertTrue(!combinedLogs.includes("rahasia.sales@example.com"), "Log tidak boleh memuat email");
   assertTrue(!combinedLogs.includes("CATATAN RAHASIA PELANGGAN 999"), "Log tidak boleh memuat catatan");
 });
+

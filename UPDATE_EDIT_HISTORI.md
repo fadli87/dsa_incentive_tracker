@@ -1,6 +1,24 @@
-# Dokumentasi Update & Catatan Rilis: DSA XL Satu Handbook (Ver.1.2.0)
+# Dokumentasi Update & Catatan Rilis: DSA XL Satu Handbook (Ver.1.2.1)
 
-## 📌 Ringkasan Pembaruan Utama (Ver.1.2.0 - November 2026)
+## 📌 Ringkasan Pembaruan Utama (Ver.1.2.1 - November 2026)
+
+Pembaruan ini menggabungkan dua peningkatan besar pada modul Aktivitas Harian Visit: **Master Pelanggan KCLP ("Pelanggan Saya") & Saran RVAI Otomatis** serta **Integrasi Otomatis Jawaban Google Form ➔ Supabase**:
+
+### 1. 👥 Master Pelanggan KCLP ("Pelanggan Saya") & Saran RVAI (`CustomerMasterService`, SQLite v8)
+- **Daftar "Pelanggan Saya" Offline-First:** Sales yang sudah mengklaim nama sales (`claim_sales_name`) dapat memilih pelanggan hasil instalasi miliknya langsung dari cache lokal SQLite v8 (`customer_master_local`) dengan pencarian instan (Customer ID / alamat / paket) dan autofill koordinat GPS, alamat, serta paket.
+- **Saran RVAI Otomatis (H+7):** Kartu **Saran RVAI** di layar Aktivitas Harian otomatis menampilkan pelanggan yang jatuh tempo kunjungan RVAI (`install_date + 7 hari`, jendela *lookback* 30 hari) dan belum pernah dikunjungi, lengkap dengan aksi tambah 1-tap ke target hari ini.
+- **Importer KMZ Ber-Whitelist Privasi (`tools/import_customer_master.py`):** Skrip CLI Python bebas dependensi pihak ketiga untuk mem-parse KMZ KCLP manajemen dengan whitelist kolom ketat (membuang Serial Number ONT/SIM, WO ID, SO Number, Create/Close Time).
+- **Monitoring Master & Kepatuhan RVAI (`SuperAdminPanelScreen`, `VisitTeamSummaryScreen`):** Kartu **Data Master Pelanggan** di Panel SuperAdmin (dengan peringatan otomatis bila impor > 35 hari) serta kartu **Ringkasan Kepatuhan RVAI per Sales** di Rekap Tim untuk SPV/TSC/SuperAdmin.
+
+### 2. 🔄 Integrasi Otomatis Jawaban Google Form ➔ Supabase (`visit-form-webhook`, `VisitFormResponse`)
+- **Webhook & Trigger Pencocokan Dua Arah:** Jawaban Google Form otomatis dikirim melalui Apps Script (`tools/google_form/visit_form_to_supabase.gs`) ke Supabase Edge Function `visit-form-webhook` dan dicocokkan ke target visit sales untuk mengubah status menjadi **Sudah Visit** + **Form Terisi ✓** secara otomatis.
+- **Sinkronisasi Pull-Before-Push (`VisitSyncService.pullFormStatus`):** Penarikan status form dari server dijalankan sebelum push lokal sehingga status `form_submitted = true` dari server tidak pernah tertimpa antrean offline lokal.
+- **Filter "Belum isi Form" & Ringkasan Jawaban:** Chip filter cepat **Belum isi Form (N)** di layar Aktivitas Harian, kartu **Ringkasan Jawaban Google Form** di detail visit & Rekap Tim (read-only), serta tombol **Lihat Foto Bukti (Drive)** ber-validasi domain aman (`drive.google.com` / `docs.google.com`).
+- **Manajemen Alias `Email Form` & Jawaban Tanpa Pasangan:** Kartu **Jawaban Form Tanpa Pasangan** dan tombol **Atur Email Form** di Panel SuperAdmin (`admin_set_member_form_email`) yang otomatis mencocokkan ulang jawaban form lama saat alias email disimpan.
+
+---
+
+## 📌 Arsip Pembaruan Sebelumnya (Ver.1.2.0 - November 2026)
 
 Pembaruan ini menghadirkan modul **Aktivitas Harian Visit (RVAI / Dismantle / Unpaid)** yang 100% offline-first dengan sinkronisasi otomatis ke Supabase, pemetaan 3 layer interaktif, manajemen role **SPV & TSC** beserta layar **Rekap Tim (Read-Only)**, serta ekspor CSV ke Google My Maps:
 

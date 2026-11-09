@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../../data/models/master_customer.dart';
-import '../../data/models/visit_form_response.dart';
 import '../../providers/customer_master_provider.dart';
 import '../models/member_status.dart';
 import '../models/team_member_item.dart';
@@ -454,7 +452,7 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
         );
       },
       loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
     );
   }
 
@@ -569,7 +567,7 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
         );
       },
       loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
     );
   }
 

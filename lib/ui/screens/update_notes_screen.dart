@@ -19,9 +19,23 @@ class UpdateNotesScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildVersionCard(
-              version: 'Ver.1.2.0',
+              version: 'Ver.1.2.1',
               date: 'November 2026',
               isLatest: true,
+              changes: [
+                'Master Pelanggan KCLP ("Pelanggan Saya"): Pemilihan pelanggan langsung dari daftar instalasi milik sales sendiri (SQLite v8) dengan autofill Customer ID, alamat, paket, dan koordinat GPS.',
+                'Saran RVAI Otomatis (H+7): Rekomendasi otomatis pelanggan yang jatuh tempo kunjungan RVAI (7 hari pasca-instalasi) dan belum pernah dikunjungi, lengkap dengan tambah cepat ke target hari ini.',
+                'Klaim Nama Sales & Monitoring Kepatuhan RVAI: Klaim mandiri nama sales KMZ satu kali, kartu status Data Master Pelanggan di Panel Superadmin, dan Ringkasan Kepatuhan RVAI per Sales di Rekap Tim.',
+                'Integrasi Otomatis Google Form ➔ Supabase: Jawaban Google Form otomatis memperbarui status menjadi Sudah Visit & Form Terisi ✓ melalui Edge Function visit-form-webhook dan trigger pencocokan dua arah.',
+                'Filter "Belum isi Form" & Ringkasan Jawaban: Filter cepat target yang belum mengisi Google Form, tampilan detail jawaban form & foto bukti Google Drive di Aktivitas Harian maupun Rekap Tim (Read-Only).',
+                'Manajemen Email Form Alias di SuperAdmin: Pengaturan email Google alternatif per sales (Atur Email Form) dengan pencocokan ulang otomatis serta kartu pantauan Jawaban Form Tanpa Pasangan.',
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildVersionCard(
+              version: 'Ver.1.2.0',
+              date: 'November 2026',
+              isLatest: false,
               changes: [
                 'Aktivitas Harian Visit (RVAI / Dismantle / Unpaid): Modul perencanaan, pelacakan status (Belum Visit, Sudah Visit, Follow-up), dan navigasi target kunjungan harian 100% offline-first (SQLite v7).',
                 'Peta Visit 3 Layer & Integrasi Google Form: Visualisasi peta interaktif berlayer warna (RVAI hijau, Dismantle merah, Unpaid kuning), dukungan input lokasi GPS/Shareloc WhatsApp, dan prefill otomatis Google Form.',

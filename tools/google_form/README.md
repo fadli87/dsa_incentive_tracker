@@ -54,3 +54,4 @@ Skrip membaca jawaban berdasarkan judul pertanyaan (`item.getTitle()`). Pastikan
    - Jalankan fungsi **`resyncAll`**. Fungsi ini idempoten (aman dijalankan berulang kali karena memakai `response_key`) dan otomatis menyimpan posisi di `RESYNC_CURSOR_INDEX` bila jumlah respons sangat banyak.
 7. **Berbagi Akses Foto ke SPV & TSC**:
    - Buka folder Google Drive tempat file pertanyaan **`Foto Bukti Visit`** disimpan, lalu bagikan akses *Viewer (elihat saja)* kepada akun Google SPV dan TSC agar mereka dapat membuka foto bukti langsung dari aplikasi.
+

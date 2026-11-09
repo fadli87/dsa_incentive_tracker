@@ -70,6 +70,53 @@ VISIT_FORM_CATEGORY_ENTRY=entry.<ID_PERTANYAAN_KATEGORI>
 
 ---
 
+## 🔄 Integrasi Google Form ➔ Supabase (Otomatisasi Status & Hasil Visit)
+
+Ketika sales mengirim jawaban di Google Form, status visit di aplikasi otomatis berubah menjadi **`Sudah Visit`** + **`Form Terisi ✓`**, dan hasil jawaban beserta foto bukti Google Drive langsung dapat dilihat di aplikasi (baik oleh sales sendiri maupun oleh SPV/TSC/SuperAdmin di layar **Rekap Tim**).
+
+### 1. Arsitektur Alur Data
+1. Sales menekan tombol **Isi Google Form** dari detail target visit di aplikasi (membuka form dengan prefill Customer ID & Kategori).
+2. Saat form dikirim, trigger Apps Script **`On form submit`** ([`tools/google_form/visit_form_to_supabase.gs`](tools/google_form/visit_form_to_supabase.gs)) mengirim payload JSON ber-header `X-Form-Webhook-Secret` ke Supabase Edge Function **`visit-form-webhook`** ([`supabase/functions/visit-form-webhook/index.ts`](supabase/functions/visit-form-webhook/index.ts)).
+3. Edge Function memverifikasi secret dengan *constant-time comparison*, menormalisasi kategori & jawaban per seksi (`VISIT RVAI`, `DISMANTLE`, `UNPAID`), membangun URL foto Google Drive (`https://drive.google.com/open?id=...`), lalu melakukan **upsert idempoten** (`onConflict: 'form_response_id'`) ke tabel `public.visit_form_responses`.
+4. Trigger database dua arah (`trg_match_form_response_on_upsert` & `trg_match_visit_on_insert_or_update`) mencocokkan jawaban berdasarkan `(email sales / form_email alias, customer_id, category)` ke baris `public.visit_activities` pada tanggal yang sama (atau ±7 hari terdekat), lalu mengisi `form_submitted = true` dan `status = 'visited'`.
+5. Saat aplikasi melakukan sinkronisasi (`VisitSyncService.syncAll`), aplikasi menarik status form dari server **sebelum** melakukan push lokal (`pullFormStatus` + `applyPulledFormStatus`) sehingga status `form_submitted = true` dari server tidak pernah tertimpa oleh antrean offline lokal.
+
+### 2. Deploy Edge Function `visit-form-webhook`
+Panduan lengkap tersedia di [`supabase/functions/visit-form-webhook/README.md`](supabase/functions/visit-form-webhook/README.md):
+```bash
+# 1. Buat secret acak minimal 32 karakter hex dan simpan ke Supabase Secrets
+supabase secrets set VISIT_FORM_WEBHOOK_SECRET="<SECRET_ACAK_MINIMAL_32_KARAKTER>"
+
+# 2. Deploy Edge Function dengan --no-verify-jwt (karena Google Apps Script memakai X-Form-Webhook-Secret)
+supabase functions deploy visit-form-webhook --no-verify-jwt
+
+# 3. Jalankan unit test Deno lokal kapan saja
+deno test supabase/functions/visit-form-webhook/index_test.ts
+```
+
+### 3. Pasang Trigger Google Apps Script & Backfill (`resyncAll`)
+Panduan langkah demi langkah tersedia di [`tools/google_form/README.md`](tools/google_form/README.md):
+1. Di Google Form (mode editor), buka **Setelan (Settings) ➔ Jawaban (Responses)** dan pastikan **Kumpulkan alamat email (Collect email addresses)** diatur ke **`Terverifikasi (Verified)`**.
+   > **PERINGATAN KEAMANAN**: Jangan gunakan mode *Input responden (Responder input)* karena pengguna dapat mengetik alamat email orang lain dan memalsukan status visit sales lain.
+2. Tempel isi [`tools/google_form/visit_form_to_supabase.gs`](tools/google_form/visit_form_to_supabase.gs) ke editor **Extensions ➔ Apps Script**.
+3. Isi 3 Script Properties di **Project Settings (⚙️) ➔ Script Properties**: `FORM_ID`, `WEBHOOK_URL`, dan `WEBHOOK_SECRET` *(jangan pernah menulis nilai asli di file `.gs` atau meng-commit-nya ke Git)*.
+4. Jalankan fungsi `installTrigger()` sekali untuk mendaftarkan trigger otomatis `On form submit`.
+5. Untuk mengirim ulang jawaban lama (atau bila sempat ada gangguan jaringan), jalankan fungsi `resyncAll()` dari editor Apps Script — sifatnya 100% idempoten dan tidak menggandakan data.
+
+### 4. Pencocokan Email Sales & Alias `Email Form` (SuperAdmin)
+- Secara bawaan, jawaban Google Form dicocokkan ke akun sales yang `team_members.email`-nya sama dengan email Google pengisi form.
+- Bila seorang sales mengisi Google Form menggunakan akun Google pribadi yang berbeda dari email login aplikasi:
+  1. Jawaban form tetap tersimpan aman dan muncul di kartu **`Jawaban Form Tanpa Pasangan`** pada **Panel SuperAdmin**.
+  2. SuperAdmin cukup membuka **Panel SuperAdmin ➔ Tab Anggota Tim**, lalu menekan tombol **`Atur Email Form`** pada kartu sales terkait dan memasukkan alamat email Google tersebut (`admin_set_member_form_email`).
+  3. Begitu disimpan, trigger database (`trg_rematch_forms_on_team_member_email_update`) **secara otomatis mencocokkan ulang** seluruh jawaban form lama dari email tersebut ke target visit sales yang bersangkutan!
+
+### 5. Berbagi Akses Folder Foto Bukti Google Drive ke SPV & TSC
+Pertanyaan upload foto pada Google Form menyimpan file ke folder Google Drive milik pembuat form. Agar **SPV** dan **TSC** dapat membuka tombol **`Lihat Foto Bukti (Drive)`** dari layar Rekap Tim:
+1. Buka Google Drive akun pemilik Google Form ➔ cari folder **`Laporan Kunjungan ... (File responses)`**.
+2. Klik kanan folder tersebut ➔ **Bagikan (Share)** ➔ tambahkan alamat email Google para **SPV** dan **TSC** sebagai **Pelihat (Viewer)**.
+
+---
+
 ## 👥 Master Pelanggan KCLP ("Pelanggan Saya") & Saran RVAI
 
 Fitur ini memungkinkan setiap sales memilih pelanggan hasil instalasi miliknya sendiri tanpa mengetik ulang alamat, paket, dan koordinat, sekaligus menampilkan daftar **Saran RVAI** secara otomatis.
@@ -167,8 +214,9 @@ select public.make_superadmin('email_anda@gmail.com');
      2. `2026-11-06_visit_activities.sql`
      3. `2026-11-06_phase1_fix_rpc_security.sql`
      4. `2026-11-07_customer_master.sql`
+     5. `2026-11-09_visit_form_responses.sql`
      Sebelumnya, pastikan constraint role lama bernama `team_members_role_check` (`select conname from pg_constraint where conrelid = 'public.team_members'::regclass;`), kalau tidak, role `spv`/`tsc` masih ditolak.
-   - Skema membuat tabel `team_members`, `app_config`, `visit_activities`, dan `customer_master`, trigger pendaftaran akun, fungsi `is_superadmin`, `can_view_all`, `is_approved_member`, `my_sales_name`, serta RPC `redeem_access_code`, `admin_update_member_status`, `admin_update_member_role`, `admin_update_access_code`, `get_visit_summary`, `list_master_sales_names`, `claim_sales_name`, `admin_set_member_sales_name`, `get_master_status`, `get_rvai_compliance`, dan `make_superadmin`.
+   - Skema membuat tabel `team_members`, `app_config`, `visit_activities`, `customer_master`, dan `visit_form_responses`, trigger pendaftaran akun & pencocokan otomatis jawaban Google Form dua arah, fungsi `is_superadmin`, `can_view_all`, `is_approved_member`, `my_sales_name`, serta RPC `redeem_access_code`, `admin_update_member_status`, `admin_update_member_role`, `admin_update_access_code`, `get_visit_summary`, `list_master_sales_names`, `claim_sales_name`, `admin_set_member_sales_name`, `get_master_status`, `get_rvai_compliance`, `admin_set_member_form_email`, `get_unmatched_form_responses`, dan `make_superadmin`.
 
 2. **Atur Kode Akses Tim Awal**:
    Jalankan query di SQL Editor Supabase:

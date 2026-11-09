@@ -184,20 +184,19 @@ class CustomerMasterService {
 
   final DatabaseHelper _db;
   final CustomerMasterRemoteGateway _gateway;
-  final bool? _isConfiguredOverride;
+  final bool? isConfiguredOverride;
 
   CustomerMasterService({
     DatabaseHelper? databaseHelper,
     SupabaseClient? supabaseClient,
     CustomerMasterRemoteGateway? remoteGateway,
-    bool? isConfiguredOverride,
+    this.isConfiguredOverride,
   }) : _db = databaseHelper ?? DatabaseHelper.instance,
        _gateway =
-           remoteGateway ?? SupabaseCustomerMasterGateway(supabaseClient),
-       _isConfiguredOverride = isConfiguredOverride;
+           remoteGateway ?? SupabaseCustomerMasterGateway(supabaseClient);
 
   bool get _isConfigured {
-    if (_isConfiguredOverride != null) return _isConfiguredOverride;
+    if (isConfiguredOverride != null) return isConfiguredOverride!;
     return SupabaseConfig.isConfigured && AppSupabase.isInitialized;
   }
 

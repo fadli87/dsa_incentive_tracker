@@ -215,8 +215,8 @@ class SupabaseVisitSummaryGateway implements VisitSummaryRemoteGateway {
         .timeout(const Duration(seconds: 10));
 
     String? visitUuid;
-    if (rows is List && rows.isNotEmpty && rows.first is Map) {
-      visitUuid = (rows.first as Map)['id']?.toString();
+    if (rows.isNotEmpty) {
+      visitUuid = rows.first['id']?.toString();
     }
     if (visitUuid == null || visitUuid.isEmpty) return null;
 
