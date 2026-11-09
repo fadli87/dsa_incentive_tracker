@@ -7,6 +7,7 @@ class TeamMemberItem {
   final String name;
   final MemberStatus status;
   final TeamRole role;
+  final String? salesName;
   final DateTime? createdAt;
   final DateTime? approvedAt;
 
@@ -16,6 +17,7 @@ class TeamMemberItem {
     required this.name,
     required this.status,
     required this.role,
+    this.salesName,
     this.createdAt,
     this.approvedAt,
   });
@@ -26,6 +28,12 @@ class TeamMemberItem {
   bool get isPending => status == MemberStatus.pending;
   bool get isRevoked => status == MemberStatus.revoked;
 
+  static String? _cleanNonEmpty(dynamic raw) {
+    if (raw == null) return null;
+    final trimmed = raw.toString().trim();
+    return trimmed.isEmpty ? null : trimmed;
+  }
+
   factory TeamMemberItem.fromJson(Map<String, dynamic> json) {
     return TeamMemberItem(
       userId: json['user_id'] as String? ?? '',
@@ -33,6 +41,7 @@ class TeamMemberItem {
       name: json['name'] as String? ?? '',
       status: MemberStatus.fromString(json['status'] as String?),
       role: TeamRole.fromString(json['role'] as String?),
+      salesName: _cleanNonEmpty(json['sales_name']),
       createdAt: DateTime.tryParse(json['created_at'] as String? ?? ''),
       approvedAt: DateTime.tryParse(json['approved_at'] as String? ?? ''),
     );
@@ -45,6 +54,7 @@ class TeamMemberItem {
       'name': name,
       'status': status.toDbString(),
       'role': role.toDbString(),
+      if (salesName != null && salesName!.isNotEmpty) 'sales_name': salesName,
       'created_at': createdAt?.toIso8601String(),
       'approved_at': approvedAt?.toIso8601String(),
     };

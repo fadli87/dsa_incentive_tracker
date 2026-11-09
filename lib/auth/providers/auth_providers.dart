@@ -41,10 +41,12 @@ enum GateState {
 class AccessGateNotifier extends StateNotifier<GateState> {
   final TeamAccessService _accessService;
   TeamRole _currentRole = TeamRole.member;
+  String? _currentSalesName;
 
   AccessGateNotifier(this._accessService) : super(GateState.loading);
 
   TeamRole get currentRole => _currentRole;
+  String? get currentSalesName => _currentSalesName;
   bool get isSuperadmin => _currentRole.isSuperadmin;
   bool get canViewAll => _currentRole.canViewAll;
   bool get canEditRoles => _currentRole.canEditRoles;
@@ -53,6 +55,7 @@ class AccessGateNotifier extends StateNotifier<GateState> {
   Future<void> onAuthStateChanged(AuthState? authState) async {
     if (authState == null || authState.session == null) {
       _currentRole = TeamRole.member;
+      _currentSalesName = null;
       state = GateState.noSession;
       return;
     }
@@ -75,6 +78,7 @@ class AccessGateNotifier extends StateNotifier<GateState> {
 
     final cache = await _accessService.resolveAccess(userId);
     _currentRole = cache.role;
+    _currentSalesName = cache.salesName;
 
     state = switch (cache.status) {
       MemberStatus.approved when !cache.isExpired => GateState.approved,
@@ -82,6 +86,12 @@ class AccessGateNotifier extends StateNotifier<GateState> {
       MemberStatus.revoked => GateState.revoked,
       _ => GateState.needsOnlineVerification,
     };
+  }
+
+  /// Dipanggil setelah user berhasil mengklaim nama sales agar state lokal langsung terupdate
+  void setClaimedSalesName(String salesName) {
+    final trimmed = salesName.trim().toUpperCase();
+    _currentSalesName = trimmed.isEmpty ? null : trimmed;
   }
 
   /// Dipanggil setelah user berhasil redeem kode akses
@@ -96,6 +106,7 @@ class AccessGateNotifier extends StateNotifier<GateState> {
   void setState(GateState s) {
     if (s == GateState.noSession) {
       _currentRole = TeamRole.member;
+      _currentSalesName = null;
     }
     state = s;
   }
@@ -104,11 +115,12 @@ class AccessGateNotifier extends StateNotifier<GateState> {
 // ---------------------------------------------------------------------------
 // Provider untuk AccessGateNotifier
 // ---------------------------------------------------------------------------
-final accessGateProvider =
-    StateNotifierProvider<AccessGateNotifier, GateState>((ref) {
-  final service = ref.watch(teamAccessServiceProvider);
-  return AccessGateNotifier(service);
-});
+final accessGateProvider = StateNotifierProvider<AccessGateNotifier, GateState>(
+  (ref) {
+    final service = ref.watch(teamAccessServiceProvider);
+    return AccessGateNotifier(service);
+  },
+);
 
 // ---------------------------------------------------------------------------
 // Provider untuk mengecek apakah user aktif adalah Superadmin
@@ -155,7 +167,10 @@ class TeamMembersNotifier extends AsyncNotifier<List<TeamMemberItem>> {
     });
   }
 
-  Future<String> updateStatus(String targetUserId, MemberStatus newStatus) async {
+  Future<String> updateStatus(
+    String targetUserId,
+    MemberStatus newStatus,
+  ) async {
     final service = ref.read(teamAccessServiceProvider);
     final result = await service.updateMemberStatus(
       targetUserId: targetUserId,
@@ -178,9 +193,21 @@ class TeamMembersNotifier extends AsyncNotifier<List<TeamMemberItem>> {
     }
     return result;
   }
+
+  Future<String> setSalesName(String targetUserId, String salesName) async {
+    final service = ref.read(teamAccessServiceProvider);
+    final result = await service.adminSetMemberSalesName(
+      targetUserId: targetUserId,
+      salesName: salesName,
+    );
+    if (result == 'success') {
+      await refresh();
+    }
+    return result;
+  }
 }
 
 final teamMembersProvider =
     AsyncNotifierProvider<TeamMembersNotifier, List<TeamMemberItem>>(
-  () => TeamMembersNotifier(),
-);
+      () => TeamMembersNotifier(),
+    );

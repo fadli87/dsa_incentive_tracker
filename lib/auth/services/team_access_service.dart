@@ -90,7 +90,7 @@ class TeamAccessService {
     try {
       final response = await _client
           .from('team_members')
-          .select('status, role, approved_at')
+          .select('status, role, sales_name, approved_at')
           .eq('user_id', userId)
           .maybeSingle()
           .timeout(serverTimeout);
@@ -100,6 +100,11 @@ class TeamAccessService {
           response['status'] as String?,
         );
         final serverRole = TeamRole.fromString(response['role'] as String?);
+        final rawSalesName = (response['sales_name'] as String?)?.trim();
+        final serverSalesName =
+            (rawSalesName != null && rawSalesName.isNotEmpty)
+            ? rawSalesName
+            : null;
 
         final DateTime validUntil;
         if (serverStatus == MemberStatus.approved) {
@@ -111,6 +116,7 @@ class TeamAccessService {
         final freshCache = AccessCache(
           status: serverStatus,
           role: serverRole,
+          salesName: serverSalesName,
           checkedAt: now,
           validUntil: validUntil,
         );
@@ -122,8 +128,9 @@ class TeamAccessService {
       debugPrint(
         'TeamAccessService: Server check failed or timed out: $e. Falling back to local cache.',
       );
-      // Graceful fallback jika kolom 'role' belum ditambahkan di database Supabase oleh user
-      if (e.toString().contains('role')) {
+      // Graceful fallback jika kolom 'sales_name' atau 'role' belum ditambahkan di database Supabase
+      if (e.toString().contains('sales_name') ||
+          e.toString().contains('role')) {
         try {
           final fallbackResponse = await _client
               .from('team_members')
@@ -168,6 +175,7 @@ class TeamAccessService {
         return AccessCache(
           status: MemberStatus.unknown,
           role: cached.role,
+          salesName: cached.salesName,
           checkedAt: cached.checkedAt,
           validUntil: cached.validUntil,
         );
@@ -246,6 +254,29 @@ class TeamAccessService {
       return result.toString();
     } catch (e) {
       debugPrint('TeamAccessService: updateMemberRole error: $e');
+      return 'error';
+    }
+  }
+
+  /// Mengatur atau mereset Nama Sales anggota tim (khusus Superadmin via RPC security definer)
+  Future<String> adminSetMemberSalesName({
+    required String targetUserId,
+    required String salesName,
+  }) async {
+    try {
+      final result = await _client
+          .rpc(
+            'admin_set_member_sales_name',
+            params: {
+              'target_user_id': targetUserId,
+              'p_sales_name': salesName.trim(),
+            },
+          )
+          .timeout(serverTimeout);
+
+      return result.toString();
+    } catch (e) {
+      debugPrint('TeamAccessService: adminSetMemberSalesName error: $e');
       return 'error';
     }
   }
@@ -367,6 +398,7 @@ class TeamAccessService {
       }
       try {
         await DatabaseHelper.instance.clearAllLocalVisits();
+        await DatabaseHelper.instance.clearAllMasterCustomers();
       } catch (dbErr) {
         debugPrint(
           'TeamAccessService: clearAllLocalVisits on signOut error: $dbErr',

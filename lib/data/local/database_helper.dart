@@ -5,6 +5,7 @@ import 'package:path/path.dart';
 import '../../ai/models/coach_log_entry.dart';
 import '../../auth/supabase_client.dart';
 import '../models/incentive_record.dart';
+import '../models/master_customer.dart';
 import '../models/sa_record.dart';
 import '../models/user_profile.dart';
 import '../models/visit_activity.dart';
@@ -27,6 +28,7 @@ class DatabaseHelper {
   final List<SaRecord> _webSaRecords = [];
   final List<CoachLogEntry> _webCoachLogs = [];
   final List<VisitActivity> _webVisits = [];
+  final List<MasterCustomer> _webMasterCustomers = [];
   UserProfile _webUserProfile = const UserProfile(
     name: '',
     salesCode: '',
@@ -83,7 +85,7 @@ class DatabaseHelper {
     try {
       return await openDatabase(
         path,
-        version: 7,
+        version: 8,
         onCreate: _createDB,
         onUpgrade: _onUpgrade,
         onOpen: _ensureVisitColumns,
@@ -99,7 +101,7 @@ class DatabaseHelper {
         }
         return await openDatabase(
           join(fallbackDir.path, filePath),
-          version: 7,
+          version: 8,
           onCreate: _createDB,
           onUpgrade: _onUpgrade,
           onOpen: _ensureVisitColumns,
@@ -174,6 +176,33 @@ class DatabaseHelper {
     ''');
 
     await _createVisitTable(db);
+    await _createCustomerMasterLocalTable(db);
+  }
+
+  Future<void> _createCustomerMasterLocalTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS customer_master_local (
+        customer_id TEXT PRIMARY KEY,
+        install_date TEXT,
+        address TEXT NOT NULL DEFAULT '',
+        package_name TEXT NOT NULL DEFAULT '',
+        latitude REAL,
+        longitude REAL,
+        sales_name TEXT NOT NULL DEFAULT '',
+        spv_name TEXT NOT NULL DEFAULT '',
+        tsc_name TEXT NOT NULL DEFAULT '',
+        owner_user_id TEXT NOT NULL DEFAULT '',
+        synced_at TEXT NOT NULL
+      )
+    ''');
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS customer_master_local_owner_install_idx
+        ON customer_master_local (owner_user_id, install_date)
+    ''');
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS customer_master_local_owner_sales_idx
+        ON customer_master_local (owner_user_id, sales_name)
+    ''');
   }
 
   Future<void> _createVisitTable(Database db) async {
@@ -322,6 +351,11 @@ class DatabaseHelper {
     if (oldVersion < 7) {
       try {
         await _createVisitTable(db);
+      } catch (_) {}
+    }
+    if (oldVersion < 8) {
+      try {
+        await _createCustomerMasterLocalTable(db);
       } catch (_) {}
     }
   }
@@ -589,6 +623,7 @@ class DatabaseHelper {
   @visibleForTesting
   void clearInMemoryVisits() {
     _webVisits.clear();
+    _webMasterCustomers.clear();
     currentUserIdResolver = null;
   }
 
@@ -951,5 +986,240 @@ class DatabaseHelper {
       map,
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
+  }
+
+  /// Mengambil kumpulan `customer_id` yang sudah memiliki visit `rvai` aktif (`deleted = 0`).
+  Future<Set<String>> getActiveRvaiCustomerIds({String? ownerUserId}) async {
+    final owner = ownerUserId?.trim() ?? '';
+    if (_isInMemory) {
+      return _webVisits
+          .where((v) {
+            if (v.deleted) return false;
+            if (v.category != VisitCategory.rvai) return false;
+            if (owner.isNotEmpty &&
+                v.ownerUserId.isNotEmpty &&
+                v.ownerUserId != owner) {
+              return false;
+            }
+            return true;
+          })
+          .map((v) => v.customerId.trim())
+          .where((id) => id.isNotEmpty)
+          .toSet();
+    }
+
+    final db = (await instance.database)!;
+    final where = owner.isEmpty
+        ? "deleted = 0 AND category = 'rvai'"
+        : "deleted = 0 AND category = 'rvai' AND (owner_user_id = ? OR owner_user_id = '')";
+    final rows = await db.query(
+      'visit_activities',
+      columns: ['customer_id'],
+      where: where,
+      whereArgs: owner.isEmpty ? null : [owner],
+    );
+    return rows
+        .map((r) => (r['customer_id'] as String? ?? '').trim())
+        .where((id) => id.isNotEmpty)
+        .toSet();
+  }
+
+  // --- Customer Master Local Cache CRUD (SQLite v8) ---
+
+  Future<void> clearAllMasterCustomers() async {
+    if (_isInMemory) {
+      _webMasterCustomers.clear();
+      return;
+    }
+    final db = await instance.database;
+    if (db == null) return;
+    await db.delete('customer_master_local');
+  }
+
+  /// Mengganti seluruh isi `customer_master_local` milik `ownerUserId` secara atomik
+  /// dalam satu transaksi (dan menghapus sisa data pemilik lain bila ada).
+  Future<void> replaceMasterCustomersForOwner(
+    String ownerUserId,
+    List<MasterCustomer> customers,
+  ) async {
+    final owner = ownerUserId.trim();
+    if (_isInMemory) {
+      _webMasterCustomers.clear();
+      for (final c in customers) {
+        _webMasterCustomers.add(c.copyWith(ownerUserId: owner));
+      }
+      return;
+    }
+
+    final db = (await instance.database)!;
+    await db.transaction((txn) async {
+      await txn.delete('customer_master_local');
+      if (customers.isNotEmpty) {
+        final batch = txn.batch();
+        for (final c in customers) {
+          batch.insert(
+            'customer_master_local',
+            c.copyWith(ownerUserId: owner).toMap(),
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+        }
+        await batch.commit(noResult: true);
+      }
+    });
+  }
+
+  Future<int> countMasterCustomers({String? ownerUserId}) async {
+    final owner = ownerUserId?.trim() ?? '';
+    if (_isInMemory) {
+      if (owner.isEmpty) return _webMasterCustomers.length;
+      return _webMasterCustomers
+          .where((c) => c.ownerUserId.isEmpty || c.ownerUserId == owner)
+          .length;
+    }
+
+    final db = (await instance.database)!;
+    final rows = owner.isEmpty
+        ? await db.rawQuery('SELECT COUNT(*) as cnt FROM customer_master_local')
+        : await db.rawQuery(
+            "SELECT COUNT(*) as cnt FROM customer_master_local WHERE owner_user_id = ? OR owner_user_id = ''",
+            [owner],
+          );
+    if (rows.isEmpty) return 0;
+    return (rows.first['cnt'] as num?)?.toInt() ?? 0;
+  }
+
+  Future<MasterCustomer?> getMasterCustomerById(
+    String customerId, {
+    String? ownerUserId,
+  }) async {
+    final cid = customerId.trim();
+    if (cid.isEmpty) return null;
+    final owner = ownerUserId?.trim() ?? '';
+
+    if (_isInMemory) {
+      for (final c in _webMasterCustomers) {
+        if (c.customerId == cid) {
+          if (owner.isEmpty ||
+              c.ownerUserId.isEmpty ||
+              c.ownerUserId == owner) {
+            return c;
+          }
+        }
+      }
+      return null;
+    }
+
+    final db = (await instance.database)!;
+    final where = owner.isEmpty
+        ? 'customer_id = ?'
+        : "customer_id = ? AND (owner_user_id = ? OR owner_user_id = '')";
+    final whereArgs = owner.isEmpty ? [cid] : [cid, owner];
+    final rows = await db.query(
+      'customer_master_local',
+      where: where,
+      whereArgs: whereArgs,
+      limit: 1,
+    );
+    if (rows.isEmpty) return null;
+    return MasterCustomer.fromMap(rows.first);
+  }
+
+  /// Mencari pelanggan lokal berdasarkan `customer_id LIKE` atau `address LIKE`,
+  /// diurutkan `install_date DESC, customer_id ASC`, dibatasi `limit` (default 50).
+  Future<List<MasterCustomer>> searchMasterCustomers(
+    String query, {
+    String? ownerUserId,
+    int limit = 50,
+  }) async {
+    final q = query.trim().toLowerCase();
+    final owner = ownerUserId?.trim() ?? '';
+
+    if (_isInMemory) {
+      final filtered = _webMasterCustomers.where((c) {
+        if (owner.isNotEmpty &&
+            c.ownerUserId.isNotEmpty &&
+            c.ownerUserId != owner) {
+          return false;
+        }
+        if (q.isEmpty) return true;
+        return c.customerId.toLowerCase().contains(q) ||
+            c.address.toLowerCase().contains(q) ||
+            c.packageName.toLowerCase().contains(q) ||
+            c.salesName.toLowerCase().contains(q);
+      }).toList();
+
+      filtered.sort((a, b) {
+        final da = a.installDateString ?? '';
+        final dbStr = b.installDateString ?? '';
+        final cmp = dbStr.compareTo(da); // install_date DESC
+        if (cmp != 0) return cmp;
+        return a.customerId.compareTo(b.customerId);
+      });
+      return filtered.take(limit).toList();
+    }
+
+    final db = (await instance.database)!;
+    final likeArg = '%${query.trim()}%';
+    final String where;
+    final List<Object?> whereArgs;
+
+    if (q.isEmpty) {
+      where = owner.isEmpty
+          ? '1 = 1'
+          : "(owner_user_id = ? OR owner_user_id = '')";
+      whereArgs = owner.isEmpty ? [] : [owner];
+    } else {
+      where = owner.isEmpty
+          ? '(customer_id LIKE ? OR address LIKE ?)'
+          : "(owner_user_id = ? OR owner_user_id = '') AND (customer_id LIKE ? OR address LIKE ?)";
+      whereArgs = owner.isEmpty
+          ? [likeArg, likeArg]
+          : [owner, likeArg, likeArg];
+    }
+
+    final rows = await db.query(
+      'customer_master_local',
+      where: where,
+      whereArgs: whereArgs,
+      orderBy: 'install_date DESC, customer_id ASC',
+      limit: limit,
+    );
+    return rows.map((r) => MasterCustomer.fromMap(r)).toList();
+  }
+
+  Future<List<MasterCustomer>> getAllMasterCustomers({
+    String? ownerUserId,
+  }) async {
+    final owner = ownerUserId?.trim() ?? '';
+    if (_isInMemory) {
+      final list = _webMasterCustomers.where((c) {
+        if (owner.isNotEmpty &&
+            c.ownerUserId.isNotEmpty &&
+            c.ownerUserId != owner) {
+          return false;
+        }
+        return true;
+      }).toList();
+      list.sort((a, b) {
+        final da = a.installDateString ?? '9999-99-99';
+        final dbStr = b.installDateString ?? '9999-99-99';
+        final cmp = da.compareTo(dbStr);
+        if (cmp != 0) return cmp;
+        return a.customerId.compareTo(b.customerId);
+      });
+      return list;
+    }
+
+    final db = (await instance.database)!;
+    final where = owner.isEmpty
+        ? null
+        : "(owner_user_id = ? OR owner_user_id = '')";
+    final rows = await db.query(
+      'customer_master_local',
+      where: where,
+      whereArgs: owner.isEmpty ? null : [owner],
+      orderBy: 'install_date ASC, customer_id ASC',
+    );
+    return rows.map((r) => MasterCustomer.fromMap(r)).toList();
   }
 }

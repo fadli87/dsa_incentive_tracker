@@ -241,6 +241,110 @@ void main() {
         'updated_at': '2026-11-06T03:00:00Z',
       });
       expect(visitId, greaterThan(0));
+
+      // Jalankan migrasi 7 -> 8 dan pastikan seluruh tabel lama (termasuk visit_activities) tetap utuh
+      await db.runUpgradeForTest(ffiDb, 7, 8);
+      final visitRowsAfterV8 = await ffiDb.query('visit_activities');
+      expect(visitRowsAfterV8.length, 1);
+      expect(visitRowsAfterV8.first['customer_id'], '88990011');
+      expect((await ffiDb.query('history')).length, 1);
+      expect((await ffiDb.query('sa_history')).length, 1);
+      expect((await ffiDb.query('user_profile')).length, 1);
+      expect((await ffiDb.query('coach_log')).length, 1);
+
+      // Pastikan tabel customer_master_local terbentuk pada versi 8
+      await ffiDb.insert('customer_master_local', {
+        'customer_id': '1009988',
+        'install_date': '2026-10-20',
+        'address': 'JL. MERDEKA CILACAP',
+        'package_name': 'XL SATU FWA',
+        'latitude': -7.71,
+        'longitude': 109.01,
+        'sales_name': 'BUDI SANTOSO',
+        'spv_name': 'EKO YUNIANTO',
+        'tsc_name': 'PIPIEN MALVIANA',
+        'owner_user_id': 'user-1',
+        'synced_at': '2026-11-07T01:00:00Z',
+      });
+      final masterRows = await ffiDb.query('customer_master_local');
+      expect(masterRows.length, 1);
+      expect(masterRows.first['customer_id'], '1009988');
+    });
+
+    test('Migrasi SQLite langsung 6 -> 8 membuat visit_activities dan customer_master_local tanpa menghapus data lama', () async {
+      final ffiDb = await databaseFactoryFfi.openDatabase(
+        inMemoryDatabasePath,
+        options: OpenDatabaseOptions(
+          version: 6,
+          onCreate: (sqDb, _) async {
+            await sqDb.execute('''
+              CREATE TABLE history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                periode TEXT NOT NULL,
+                position TEXT NOT NULL DEFAULT 'Elite',
+                city TEXT NOT NULL DEFAULT 'KAB. CILACAP',
+                basic_fee REAL NOT NULL DEFAULT 0.0,
+                total_sa INTEGER NOT NULL,
+                pm_base REAL NOT NULL,
+                mult_rate REAL NOT NULL,
+                mult_bonus REAL NOT NULL,
+                prog_inc REAL NOT NULL,
+                special_inc REAL NOT NULL,
+                monthly_subtotal REAL NOT NULL DEFAULT 0.0,
+                grand_total REAL NOT NULL,
+                f0 INTEGER NOT NULL DEFAULT 0,
+                f50 INTEGER NOT NULL DEFAULT 0,
+                f100 INTEGER NOT NULL DEFAULT 0,
+                f125 INTEGER NOT NULL DEFAULT 0,
+                f200 INTEGER NOT NULL DEFAULT 0,
+                fwa INTEGER NOT NULL DEFAULT 0,
+                p35 INTEGER NOT NULL DEFAULT 0,
+                p6 INTEGER NOT NULL DEFAULT 0
+              )
+            ''');
+            await sqDb.execute('''
+              CREATE TABLE sa_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id_pelanggan TEXT NOT NULL,
+                nama TEXT NOT NULL,
+                no_hp_utama TEXT NOT NULL DEFAULT '',
+                no_hp_alternatif TEXT NOT NULL DEFAULT '',
+                alamat TEXT NOT NULL,
+                latitude REAL,
+                longitude REAL,
+                paket TEXT NOT NULL,
+                tanggal_pasang TEXT NOT NULL
+              )
+            ''');
+          },
+        ),
+      );
+      addTearDown(() async => await ffiDb.close());
+
+      await ffiDb.insert('sa_history', {
+        'id_pelanggan': '77665544',
+        'nama': 'Pelanggan V6',
+        'alamat': 'Jl. Cilacap Tengah',
+        'paket': 'XL Satu',
+        'tanggal_pasang': '2026-10-01',
+      });
+
+      await db.runUpgradeForTest(ffiDb, 6, 8);
+
+      final saAfter = await ffiDb.query('sa_history');
+      expect(saAfter.length, 1);
+      expect(saAfter.first['id_pelanggan'], '77665544');
+
+      await ffiDb.insert('customer_master_local', {
+        'customer_id': '77665544',
+        'install_date': '2026-10-01',
+        'address': 'JL. CILACAP TENGAH',
+        'package_name': 'XL SATU',
+        'sales_name': 'REKAN SALES',
+        'owner_user_id': 'u-1',
+        'synced_at': '2026-11-07T00:00:00Z',
+      });
+      expect((await ffiDb.query('customer_master_local')).length, 1);
     });
 
     test('VisitCategory & VisitStatus enum fromString aman terhadap nilai tak dikenal', () {

@@ -10,7 +10,8 @@ class SuperAdminPanelScreen extends ConsumerStatefulWidget {
   const SuperAdminPanelScreen({super.key});
 
   @override
-  ConsumerState<SuperAdminPanelScreen> createState() => _SuperAdminPanelScreenState();
+  ConsumerState<SuperAdminPanelScreen> createState() =>
+      _SuperAdminPanelScreenState();
 }
 
 class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
@@ -55,11 +56,19 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
           children: const [
             Row(
               children: [
-                Icon(Icons.admin_panel_settings_rounded, color: Colors.amberAccent, size: 20),
+                Icon(
+                  Icons.admin_panel_settings_rounded,
+                  color: Colors.amberAccent,
+                  size: 20,
+                ),
                 SizedBox(width: 8),
                 Text(
                   'PANEL SUPERADMIN',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.8),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.8,
+                  ),
                 ),
               ],
             ),
@@ -90,10 +99,7 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [
-          _buildMembersTab(membersAsync),
-          _buildAccessCodeTab(),
-        ],
+        children: [_buildMembersTab(membersAsync), _buildAccessCodeTab()],
       ),
     );
   }
@@ -117,7 +123,8 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
         // Filter list
         final query = _searchCtrl.text.trim().toLowerCase();
         final filtered = members.where((m) {
-          final matchesQuery = query.isEmpty ||
+          final matchesQuery =
+              query.isEmpty ||
               m.name.toLowerCase().contains(query) ||
               m.email.toLowerCase().contains(query);
 
@@ -156,7 +163,10 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
                 onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(
                   hintText: 'Cari nama atau email sales...',
-                  prefixIcon: const Icon(Icons.search, color: Color(0xFF002B66)),
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    color: Color(0xFF002B66),
+                  ),
                   suffixIcon: _searchCtrl.text.isNotEmpty
                       ? IconButton(
                           icon: const Icon(Icons.clear, size: 18),
@@ -168,7 +178,10 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
                       : null,
                   filled: true,
                   fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                  contentPadding: const EdgeInsets.symmetric(
+                    vertical: 0,
+                    horizontal: 16,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -201,17 +214,26 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
                   alignment: Alignment.center,
                   child: Column(
                     children: [
-                      Icon(Icons.person_search_rounded, size: 56, color: Colors.grey.shade400),
+                      Icon(
+                        Icons.person_search_rounded,
+                        size: 56,
+                        color: Colors.grey.shade400,
+                      ),
                       const SizedBox(height: 12),
                       Text(
                         'Tidak ada anggota yang cocok dengan filter.',
-                        style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 13,
+                        ),
                       ),
                     ],
                   ),
                 )
               else
-                ...filtered.map((member) => _buildMemberCard(member, currentUserId)),
+                ...filtered.map(
+                  (member) => _buildMemberCard(member, currentUserId),
+                ),
             ],
           ),
         );
@@ -236,7 +258,8 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
               ElevatedButton.icon(
                 icon: const Icon(Icons.refresh),
                 label: const Text('Coba Lagi'),
-                onPressed: () => ref.read(teamMembersProvider.notifier).refresh(),
+                onPressed: () =>
+                    ref.read(teamMembersProvider.notifier).refresh(),
               ),
             ],
           ),
@@ -265,12 +288,20 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
           children: [
             Text(
               '$count',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
             ),
             const SizedBox(height: 2),
             Text(
               title,
-              style: TextStyle(fontSize: 10, color: Colors.grey.shade600, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontSize: 10,
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
         ),
@@ -323,7 +354,9 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
                   child: Text(
                     member.name.isNotEmpty ? member.name[0].toUpperCase() : '?',
                     style: TextStyle(
-                      color: member.isSuperadmin ? Colors.amber.shade900 : const Color(0xFF002B66),
+                      color: member.isSuperadmin
+                          ? Colors.amber.shade900
+                          : const Color(0xFF002B66),
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
                     ),
@@ -340,7 +373,9 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
                         children: [
                           Expanded(
                             child: Text(
-                              member.name.isNotEmpty ? member.name : '(Nama belum diisi)',
+                              member.name.isNotEmpty
+                                  ? member.name
+                                  : '(Nama belum diisi)',
                               style: const TextStyle(
                                 fontSize: 14.5,
                                 fontWeight: FontWeight.bold,
@@ -352,7 +387,10 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
                           if (isMe)
                             Container(
                               margin: const EdgeInsets.only(left: 6),
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.blue.shade100,
                                 borderRadius: BorderRadius.circular(4),
@@ -371,9 +409,37 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
                       const SizedBox(height: 2),
                       Text(
                         member.email,
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
                         overflow: TextOverflow.ellipsis,
                       ),
+                      if (member.salesName != null &&
+                          member.salesName!.trim().isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.assignment_ind_outlined,
+                              size: 13,
+                              color: Colors.indigo.shade700,
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                'Sales KMZ: ${member.salesName}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.indigo.shade700,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -403,10 +469,49 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
                 ),
 
                 // Actions
-                if (!isMe && !member.isSuperadmin)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (canEditRoles) ...[
+                      InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: () => _promptSetMemberSalesName(member),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.indigo.withValues(alpha: 0.06),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: Colors.indigo.withValues(alpha: 0.25),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.badge_outlined,
+                                size: 14,
+                                color: Colors.indigo.shade800,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Atur Nama Sales',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.indigo.shade800,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                    ],
+                    if (!isMe && !member.isSuperadmin) ...[
                       if (canEditRoles) ...[
                         PopupMenuButton<TeamRole>(
                           tooltip: 'Ubah Role',
@@ -487,18 +592,29 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
                             ),
                           ],
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF002B66).withValues(alpha: 0.06),
+                              color: const Color(
+                                0xFF002B66,
+                              ).withValues(alpha: 0.06),
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
-                                color: const Color(0xFF002B66).withValues(alpha: 0.25),
+                                color: const Color(
+                                  0xFF002B66,
+                                ).withValues(alpha: 0.25),
                               ),
                             ),
                             child: const Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.manage_accounts_rounded, size: 14, color: Color(0xFF002B66)),
+                                Icon(
+                                  Icons.manage_accounts_rounded,
+                                  size: 14,
+                                  color: Color(0xFF002B66),
+                                ),
                                 SizedBox(width: 4),
                                 Text(
                                   'Ubah Role',
@@ -509,7 +625,11 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
                                   ),
                                 ),
                                 SizedBox(width: 2),
-                                Icon(Icons.arrow_drop_down, size: 16, color: Color(0xFF002B66)),
+                                Icon(
+                                  Icons.arrow_drop_down,
+                                  size: 16,
+                                  color: Color(0xFF002B66),
+                                ),
                               ],
                             ),
                           ),
@@ -518,47 +638,87 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
                       ],
                       if (member.isPending) ...[
                         IconButton.filled(
-                          style: IconButton.styleFrom(backgroundColor: Colors.green.shade600),
-                          icon: const Icon(Icons.check, size: 16, color: Colors.white),
+                          style: IconButton.styleFrom(
+                            backgroundColor: Colors.green.shade600,
+                          ),
+                          icon: const Icon(
+                            Icons.check,
+                            size: 16,
+                            color: Colors.white,
+                          ),
                           tooltip: 'Setujui Akses',
-                          onPressed: () => _confirmChangeStatus(member, MemberStatus.approved),
+                          onPressed: () => _confirmChangeStatus(
+                            member,
+                            MemberStatus.approved,
+                          ),
                         ),
                         const SizedBox(width: 6),
                         IconButton.filled(
-                          style: IconButton.styleFrom(backgroundColor: Colors.red.shade600),
-                          icon: const Icon(Icons.close, size: 16, color: Colors.white),
+                          style: IconButton.styleFrom(
+                            backgroundColor: Colors.red.shade600,
+                          ),
+                          icon: const Icon(
+                            Icons.close,
+                            size: 16,
+                            color: Colors.white,
+                          ),
                           tooltip: 'Tolak / Cabut Akses',
-                          onPressed: () => _confirmChangeStatus(member, MemberStatus.revoked),
+                          onPressed: () => _confirmChangeStatus(
+                            member,
+                            MemberStatus.revoked,
+                          ),
                         ),
                       ] else if (member.isApproved) ...[
                         OutlinedButton.icon(
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.red.shade700,
                             side: BorderSide(color: Colors.red.shade300),
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
                             minimumSize: Size.zero,
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
                           icon: const Icon(Icons.block, size: 14),
-                          label: const Text('Cabut Akses', style: TextStyle(fontSize: 11)),
-                          onPressed: () => _confirmChangeStatus(member, MemberStatus.revoked),
+                          label: const Text(
+                            'Cabut Akses',
+                            style: TextStyle(fontSize: 11),
+                          ),
+                          onPressed: () => _confirmChangeStatus(
+                            member,
+                            MemberStatus.revoked,
+                          ),
                         ),
                       ] else if (member.isRevoked) ...[
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green.shade700,
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
                             minimumSize: Size.zero,
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
-                          icon: const Icon(Icons.check_circle_outline, size: 14),
-                          label: const Text('Pulihkan Akses', style: TextStyle(fontSize: 11)),
-                          onPressed: () => _confirmChangeStatus(member, MemberStatus.approved),
+                          icon: const Icon(
+                            Icons.check_circle_outline,
+                            size: 14,
+                          ),
+                          label: const Text(
+                            'Pulihkan Akses',
+                            style: TextStyle(fontSize: 11),
+                          ),
+                          onPressed: () => _confirmChangeStatus(
+                            member,
+                            MemberStatus.approved,
+                          ),
                         ),
                       ],
                     ],
-                  ),
+                  ],
+                ),
               ],
             ),
           ],
@@ -570,35 +730,35 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
   Widget _roleBadge(TeamRole role) {
     final (label, color, bg, icon) = switch (role) {
       TeamRole.superadmin => (
-          'SUPERADMIN',
-          Colors.amber.shade900,
-          Colors.amber.shade100,
-          Icons.shield,
-        ),
+        'SUPERADMIN',
+        Colors.amber.shade900,
+        Colors.amber.shade100,
+        Icons.shield,
+      ),
       TeamRole.admin => (
-          'ADMIN',
-          Colors.deepOrange.shade900,
-          Colors.deepOrange.shade50,
-          Icons.admin_panel_settings,
-        ),
+        'ADMIN',
+        Colors.deepOrange.shade900,
+        Colors.deepOrange.shade50,
+        Icons.admin_panel_settings,
+      ),
       TeamRole.spv => (
-          'SPV',
-          Colors.indigo.shade800,
-          Colors.indigo.shade50,
-          Icons.supervisor_account,
-        ),
+        'SPV',
+        Colors.indigo.shade800,
+        Colors.indigo.shade50,
+        Icons.supervisor_account,
+      ),
       TeamRole.tsc => (
-          'TSC',
-          Colors.teal.shade800,
-          Colors.teal.shade50,
-          Icons.manage_accounts,
-        ),
+        'TSC',
+        Colors.teal.shade800,
+        Colors.teal.shade50,
+        Icons.manage_accounts,
+      ),
       TeamRole.member => (
-          'SALES',
-          const Color(0xFF002B66),
-          const Color(0xFFE8EEF7),
-          Icons.badge_outlined,
-        ),
+        'SALES',
+        const Color(0xFF002B66),
+        const Color(0xFFE8EEF7),
+        Icons.badge_outlined,
+      ),
     };
 
     return Container(
@@ -626,11 +786,113 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
     );
   }
 
-  Future<void> _changeMemberRole(TeamMemberItem member, TeamRole newRole) async {
-    final res = await ref.read(teamMembersProvider.notifier).updateRole(
-          member.userId,
-          newRole,
+  Future<void> _promptSetMemberSalesName(TeamMemberItem member) async {
+    final ctrl = TextEditingController(text: member.salesName ?? '');
+    final displayName = member.name.isNotEmpty ? member.name : member.email;
+
+    final submitted = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Atur Nama Sales (KMZ)'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Atur nama sales sesuai kolom Sales Name pada file KMZ untuk $displayName. '
+              'Kosongkan kolom lalu simpan untuk mereset klaim nama sales.',
+              style: const TextStyle(fontSize: 12.5),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: ctrl,
+              textCapitalization: TextCapitalization.characters,
+              decoration: const InputDecoration(
+                labelText: 'Nama Sales (UPPERCASE)',
+                hintText: 'Contoh: BUDI SANTOSO (kosong = reset)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, null),
+            child: const Text('Batal'),
+          ),
+          if (member.salesName != null && member.salesName!.isNotEmpty)
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, ''),
+              child: Text(
+                'Reset (Kosongkan)',
+                style: TextStyle(color: Colors.orange.shade800),
+              ),
+            ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF002B66),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+            child: const Text('Simpan'),
+          ),
+        ],
+      ),
+    );
+    ctrl.dispose();
+
+    if (submitted == null || !mounted) return;
+
+    final res = await ref
+        .read(teamMembersProvider.notifier)
+        .setSalesName(member.userId, submitted);
+    if (!mounted) return;
+
+    switch (res) {
+      case 'success':
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              submitted.isEmpty
+                  ? 'Nama sales untuk $displayName berhasil direset.'
+                  : 'Nama sales untuk $displayName berhasil diatur!',
+            ),
+            backgroundColor: Colors.green,
+          ),
         );
+      case 'already_claimed':
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Nama sales tersebut sudah diklaim oleh akun lain.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      case 'unauthorized':
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Akses ditolak: Hanya Superadmin yang dapat mengatur nama sales.',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      default:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal mengatur nama sales: $res'),
+            backgroundColor: Colors.red,
+          ),
+        );
+    }
+  }
+
+  Future<void> _changeMemberRole(
+    TeamMemberItem member,
+    TeamRole newRole,
+  ) async {
+    final res = await ref
+        .read(teamMembersProvider.notifier)
+        .updateRole(member.userId, newRole);
     if (!mounted) return;
 
     final displayName = member.name.isNotEmpty ? member.name : member.email;
@@ -638,14 +900,18 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
       case 'success':
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Role $displayName berhasil diubah menjadi ${newRole.displayLabel}!'),
+            content: Text(
+              'Role $displayName berhasil diubah menjadi ${newRole.displayLabel}!',
+            ),
             backgroundColor: Colors.green,
           ),
         );
       case 'unauthorized':
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Akses ditolak: Hanya Superadmin yang dapat mengubah role anggota.'),
+            content: Text(
+              'Akses ditolak: Hanya Superadmin yang dapat mengubah role anggota.',
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -673,7 +939,9 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
       default:
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Gagal mengubah role anggota. Periksa koneksi internet Anda.'),
+            content: Text(
+              'Gagal mengubah role anggota. Periksa koneksi internet Anda.',
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -682,10 +950,26 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
 
   Widget _statusBadge(MemberStatus status) {
     final (label, color, bg) = switch (status) {
-      MemberStatus.approved => ('Aktif (Approved)', Colors.green.shade800, Colors.green.shade50),
-      MemberStatus.pending => ('Menunggu Kode', Colors.orange.shade900, Colors.orange.shade50),
-      MemberStatus.revoked => ('Akses Dicabut', Colors.red.shade900, Colors.red.shade50),
-      MemberStatus.unknown => ('Tidak Diketahui', Colors.grey.shade700, Colors.grey.shade100),
+      MemberStatus.approved => (
+        'Aktif (Approved)',
+        Colors.green.shade800,
+        Colors.green.shade50,
+      ),
+      MemberStatus.pending => (
+        'Menunggu Kode',
+        Colors.orange.shade900,
+        Colors.orange.shade50,
+      ),
+      MemberStatus.revoked => (
+        'Akses Dicabut',
+        Colors.red.shade900,
+        Colors.red.shade50,
+      ),
+      MemberStatus.unknown => (
+        'Tidak Diketahui',
+        Colors.grey.shade700,
+        Colors.grey.shade100,
+      ),
     };
 
     return Container(
@@ -697,14 +981,25 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
       ),
       child: Text(
         label,
-        style: TextStyle(color: color, fontSize: 10.5, fontWeight: FontWeight.bold),
+        style: TextStyle(
+          color: color,
+          fontSize: 10.5,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
 
-  Future<void> _confirmChangeStatus(TeamMemberItem member, MemberStatus newStatus) async {
-    final actionName = newStatus == MemberStatus.approved ? 'Menyetujui' : 'Mencabut';
-    final actionColor = newStatus == MemberStatus.approved ? Colors.green.shade700 : Colors.red.shade700;
+  Future<void> _confirmChangeStatus(
+    TeamMemberItem member,
+    MemberStatus newStatus,
+  ) async {
+    final actionName = newStatus == MemberStatus.approved
+        ? 'Menyetujui'
+        : 'Mencabut';
+    final actionColor = newStatus == MemberStatus.approved
+        ? Colors.green.shade700
+        : Colors.red.shade700;
 
     final confirm = await showDialog<bool>(
       context: context,
@@ -721,16 +1016,23 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
             child: const Text('Batal'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: actionColor, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: actionColor,
+              foregroundColor: Colors.white,
+            ),
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text(newStatus == MemberStatus.approved ? 'Setujui' : 'Cabut Akses'),
+            child: Text(
+              newStatus == MemberStatus.approved ? 'Setujui' : 'Cabut Akses',
+            ),
           ),
         ],
       ),
     );
 
     if (confirm == true && mounted) {
-      final res = await ref.read(teamMembersProvider.notifier).updateStatus(member.userId, newStatus);
+      final res = await ref
+          .read(teamMembersProvider.notifier)
+          .updateStatus(member.userId, newStatus);
       if (mounted) {
         if (res == 'success' || res == 'approved') {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -771,7 +1073,11 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.security_rounded, color: Colors.amber.shade900, size: 24),
+                Icon(
+                  Icons.security_rounded,
+                  color: Colors.amber.shade900,
+                  size: 24,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -807,7 +1113,9 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
           // Form Card
           Card(
             elevation: 1,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
             color: Colors.white,
             child: Padding(
               padding: const EdgeInsets.all(18),
@@ -835,9 +1143,12 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
                       prefixIcon: const Icon(Icons.vpn_key_outlined),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscureNewCode ? Icons.visibility_off : Icons.visibility,
+                          _obscureNewCode
+                              ? Icons.visibility_off
+                              : Icons.visibility,
                         ),
-                        onPressed: () => setState(() => _obscureNewCode = !_obscureNewCode),
+                        onPressed: () =>
+                            setState(() => _obscureNewCode = !_obscureNewCode),
                       ),
                       filled: true,
                       fillColor: const Color(0xFFF8FAFC),
@@ -856,9 +1167,13 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
                       prefixIcon: const Icon(Icons.lock_reset_outlined),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscureConfirmCode ? Icons.visibility_off : Icons.visibility,
+                          _obscureConfirmCode
+                              ? Icons.visibility_off
+                              : Icons.visibility,
                         ),
-                        onPressed: () => setState(() => _obscureConfirmCode = !_obscureConfirmCode),
+                        onPressed: () => setState(
+                          () => _obscureConfirmCode = !_obscureConfirmCode,
+                        ),
                       ),
                       filled: true,
                       fillColor: const Color(0xFFF8FAFC),
@@ -875,17 +1190,24 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF002B66),
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                       icon: _isUpdatingCode
                           ? const SizedBox(
                               width: 18,
                               height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
                             )
                           : const Icon(Icons.check_circle_outline),
                       label: Text(
-                        _isUpdatingCode ? 'Menyimpan...' : 'Perbarui Kode Akses Tim',
+                        _isUpdatingCode
+                            ? 'Menyimpan...'
+                            : 'Perbarui Kode Akses Tim',
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       onPressed: _isUpdatingCode ? null : _submitNewAccessCode,
