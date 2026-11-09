@@ -1,6 +1,23 @@
-# Dokumentasi Update & Catatan Rilis: DSA XL Satu Handbook (Ver.1.2.2)
+# Dokumentasi Update & Catatan Rilis: DSA XL Satu Handbook (Ver.1.2.3)
 
-## 📌 Ringkasan Pembaruan Utama (Ver.1.2.2 - November 2026)
+## 📌 Ringkasan Pembaruan Utama (Ver.1.2.3 - November 2026)
+
+Pembaruan ini menghadirkan fitur **Impor Master Pelanggan KCLP dari Dalam Aplikasi (Khusus SuperAdmin)** langsung dari file KMZ atau KML manajemen tanpa memerlukan terminal atau script Python:
+
+### 1. 📂 Impor KMZ/KML Langsung di Panel SuperAdmin (`CustomerMasterImportService`, isolate compute)
+- **Tombol Impor Khusus SuperAdmin Murni:** Tombol **"Impor dari KMZ/KML"** hanya tampil untuk Superadmin (`canEditRolesProvider` / `is_superadmin_exact`) di Panel SuperAdmin. Role `admin`, `spv`, `tsc`, dan `member` tidak dapat melihat tombol ini maupun menjalankan RPC di server.
+- **Ekstraksi KMZ & Streaming Parser XML di Background Isolate:** Menggunakan `compute` dan event streaming `parseEvents` dari paket `xml` sehingga UI tetap responsif saat memproses file KML besar (didukung hingga 50 MB).
+- **Proteksi Privasi & Whitelist Kolom Ketat:** Kolom sensitif seperti **Serial Number (Wifi/ONT/SIM CARD 1)**, **WO ID**, **SO Number**, **Create Time**, dan **Close Time** dibuang di perangkat sebelum data dikirim ke Supabase.
+- **Hanya Membaca Bytes di Memori:** File KMZ/KML tidak pernah disalin atau disimpan secara permanen di media penyimpanan perangkat (`readAsBytes` langsung di memori).
+
+### 2. 📊 Pratinjau Agregat & Pengiriman Batch Idempoten (`admin_import_customer_master`)
+- **Dialog Pratinjau Angka Saja:** Menampilkan statistik batch tanpa membocorkan nama atau alamat pelanggan (Total Placemark, Jumlah KCLP, Baris Valid Unik, Duplikat, Tanpa Koordinat, Tanpa Tanggal Install, Tanpa Nama Sales, Jumlah Sales Unik, Rentang Tanggal Install, dan Jumlah per TSC). Bila valid unik = 0, tombol impor dinonaktifkan otomatis.
+- **Pengiriman Batch 500 Baris & Penanganan Error Ramah:** Dikirim per 500 baris ke RPC Supabase dengan dialog progres `LinearProgressIndicator` tanpa tombol batal. Jika gagal di tengah jalan karena gangguan koneksi, muncul pesan ramah `"x dari y baris tersimpan"` beserta tombol **Coba Lagi**.
+- **Opsi Backup CLI Python Tetap Utuh:** Script CLI `tools/import_customer_master.py` tetap dipertahankan sebagai opsi backup untuk pengimporan via terminal lokal.
+
+---
+
+## 📌 Arsip Pembaruan Sebelumnya (Ver.1.2.2 - November 2026)
 
 Pembaruan ini menghadirkan **Cadangan Online Data SA (Pelanggan) & Riwayat Insentif ke Supabase (SQLite v9)**, layar **Data SA Tim (Read-Only)** untuk SPV/TSC/Admin/Superadmin, serta **Kartu Pencapaian Bulan Ini & Simulasi Tier Berikutnya**:
 

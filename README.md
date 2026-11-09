@@ -150,25 +150,35 @@ Fitur ini memungkinkan setiap sales memilih pelanggan hasil instalasi miliknya s
 - Sales cukup mencentang pelanggan yang ingin dikunjungi lalu menekan **Tambahkan ke target hari ini**.
 - Untuk kategori **Dismantle** dan **Unpaid**, tidak ada saran otomatis — sales memilih pelanggan melalui tombol **Pilih dari Pelanggan Saya** (atau mengetik 6+ digit Customer ID untuk memunculkan banner autofill) lalu memilih kategori di form.
 
-### 4. SOP Impor KMZ Rutin (Khusus Owner di Laptop Lokal)
+### 4. Dua Cara Impor File KMZ/KML Master Pelanggan
+
 > **PERINGATAN KEAMANAN**: Jangan pernah meng-commit file `.kmz`, `.kml`, `.csv`, `.sql` hasil ekspor pelanggan, folder `private_data/`, maupun `SUPABASE_SERVICE_ROLE_KEY` ke repositori Git! Folder `private_data/` serta ekstensi `*.kmz` dan `*.kml` sudah dimasukkan ke `.gitignore`.
 
+#### Opsi 1 — Langsung dari Dalam Aplikasi (Panel SuperAdmin, Direkomendasikan)
+1. Login ke aplikasi menggunakan akun ber-role **Superadmin**.
+2. Masuk ke **Info Pengguna** ➔ **Panel Kontrol Superadmin**.
+3. Pada kartu **Data Master Pelanggan**, ketuk tombol **`Impor dari KMZ/KML`**.
+4. Pilih file `.kmz` atau `.kml` instalasi manajemen dari penyimpanan perangkat Anda (maksimum 50 MB).
+5. Aplikasi akan mengekstrak dan mem-parse file di background isolate, lalu menampilkan dialog **Pratinjau Impor Master KCLP** (jumlah placemark, baris KCLP valid, duplikat, tanpa koordinat, rincian per TSC, dsb.) tanpa membocorkan data pribadi pelanggan.
+6. Ketuk **`Impor Sekarang`**. Data dikirim bertahap per 500 baris ke RPC `admin_import_customer_master` di Supabase. Bila terjadi gangguan jaringan, aplikasi menampilkan jumlah baris yang sudah tersimpan dan menyediakan tombol **Coba Lagi**.
+
+#### Opsi 2 — Impor Lewat CLI Python (Backup / Alternatif di Terminal Lokal)
 1. Simpan file KMZ terbaru dari manajemen ke dalam folder lokal `private_data/` (misal `private_data/kclp_2026_11.kmz`).
 2. Jalankan **`--dry-run`** terlebih dahulu untuk memeriksa ringkasan (jumlah pelanggan KCLP, duplikat, tanpa koordinat, jumlah per TSC):
    ```bash
    python tools/import_customer_master.py private_data/kclp_2026_11.kmz --city KCLP --batch 2026-11-07 --dry-run
    ```
-3. **Opsi A — Langsung Upsert ke Supabase REST API** (memerlukan variabel environment `SUPABASE_URL` dan `SUPABASE_SERVICE_ROLE_KEY` di terminal lokal):
+3. **Upsert ke Supabase REST API** (memerlukan variabel environment `SUPABASE_URL` dan `SUPABASE_SERVICE_ROLE_KEY` di terminal lokal):
    ```powershell
    $env:SUPABASE_URL="https://xyz.supabase.co"
    $env:SUPABASE_SERVICE_ROLE_KEY="eyJ..."
    python tools/import_customer_master.py private_data/kclp_2026_11.kmz --city KCLP --batch 2026-11-07 --upsert --report-missing
    ```
-4. **Opsi B — Menghasilkan File SQL Tanpa Service Key** (untuk ditempel manual ke Supabase SQL Editor per 500 baris):
+4. **Atau Hasilkan File SQL Tanpa Service Key**:
    ```bash
    python tools/import_customer_master.py private_data/kclp_2026_11.kmz --city KCLP --batch 2026-11-07 --sql-out private_data/customer_master.sql
    ```
-5. Jalankan unit test importer kapan saja dengan:
+5. Jalankan unit test importer Python kapan saja dengan:
    ```bash
    python -m unittest tools/test_import_customer_master.py
    ```

@@ -83,3 +83,4 @@ begin
 end; $$;
 revoke execute on function public.admin_import_customer_master(text, jsonb) from public, anon;
 grant execute on function public.admin_import_customer_master(text, jsonb) to authenticated;
+

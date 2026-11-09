@@ -328,18 +328,8 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
     final statusAsync = ref.watch(masterStatusSummaryProvider);
     final isPureSuperadmin = ref.watch(canEditRolesProvider);
     return statusAsync.when(
-      data: (rawStatus) {
-        if (rawStatus == null && !isPureSuperadmin) {
-          return const SizedBox.shrink();
-        }
-        final status =
-            rawStatus ??
-            const MasterStatusSummary(
-              total: 0,
-              lastImport: null,
-              lastBatch: '',
-              withSales: 0,
-            );
+      data: (status) {
+        if (status == null) return const SizedBox.shrink();
         final isStale = status.isImportStale();
         final lastImportText = status.lastImport != null
             ? DateFormat('dd MMM yyyy HH:mm').format(status.lastImport!.toLocal())

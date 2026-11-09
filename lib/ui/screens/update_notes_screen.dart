@@ -19,9 +19,22 @@ class UpdateNotesScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildVersionCard(
-              version: 'Ver.1.2.2',
+              version: 'Ver.1.2.3',
               date: 'November 2026',
               isLatest: true,
+              changes: [
+                'Impor Master Pelanggan KCLP di Aplikasi: Superadmin kini dapat mengimpor file KMZ/KML instalasi manajemen langsung dari Panel Superadmin tanpa perlu terminal atau script Python.',
+                'Background Isolate & Streaming Parser XML: Ekstraksi KMZ dan pembacaan KML dijalankan di latar belakang (isolate) dengan batas hingga 50 MB tanpa membuat UI macet.',
+                'Proteksi Privasi Tingkat Tinggi: Kolom rahasia seperti Serial Number ONT/SIM, WO ID, SO Number, Create Time, dan Close Time dibuang di HP sebelum data dikirim ke server.',
+                'Dialog Pratinjau Agregat: Menampilkan angka statistik batch lengkap (jumlah KCLP, duplikat, rincian per TSC, rentang tanggal) tanpa membocorkan nama atau alamat pelanggan.',
+                'Batching 500 Baris & Penanganan Gangguan Jaringan: Pengiriman bertahap per 500 baris dengan indikator progres dan opsi Coba Lagi yang melaporkan jumlah baris yang sudah tersimpan.',
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildVersionCard(
+              version: 'Ver.1.2.2',
+              date: 'November 2026',
+              isLatest: false,
               changes: [
                 'Cadangan Online Data SA & Riwayat Insentif (SQLite v9): Pencadangan otomatis data pelanggan (sa_customers) dan riwayat insentif (incentive_records) ke Supabase setelah persetujuan sales, lengkap dengan fitur restore saat ganti HP.',
                 'Pengaturan Cadangan Online & Indikator Sinkron: Saklar kontrol cadangan online di Info Pengguna serta indikator status Tersinkron / Belum tersinkron (N) di layar Data SA dan Histori.',
@@ -252,7 +265,10 @@ class UpdateNotesScreen extends StatelessWidget {
                     if (isLatest) ...[
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFF002B66),
                           borderRadius: BorderRadius.circular(10),
@@ -272,40 +288,39 @@ class UpdateNotesScreen extends StatelessWidget {
                 ),
                 Text(
                   date,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade600,
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                 ),
               ],
             ),
             const Divider(height: 24),
-            ...changes.map((change) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '• ',
+            ...changes.map(
+              (change) => Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '• ',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Color(0xFFF15A24),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        change,
                         style: TextStyle(
-                          fontSize: 16,
-                          color: Color(0xFFF15A24),
-                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: Colors.grey.shade800,
+                          height: 1.4,
                         ),
                       ),
-                      Expanded(
-                        child: Text(
-                          change,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey.shade800,
-                            height: 1.4,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                )),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),

@@ -210,3 +210,4 @@ create trigger trg_rematch_forms_on_team_member_email_update
 update public.visit_form_responses
    set responder_email = responder_email
  where matched_visit_id is null;
+
