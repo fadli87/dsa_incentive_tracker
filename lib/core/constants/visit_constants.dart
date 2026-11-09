@@ -62,7 +62,7 @@ List<RvaiSuggestionItem> computeRvaiSuggestions({
     final dueDate = installDateOnly.add(Duration(days: dueDays));
     final daysPastDue = todayDateOnly.difference(dueDate).inDays;
 
-    if (daysPastDue >= 0 && daysPastDue <= lookbackDays) {
+    if (daysPastDue >= 0 && daysPastDue < lookbackDays) {
       suggestions.add(
         RvaiSuggestionItem(
           customer: customer,

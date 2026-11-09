@@ -4,12 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../auth/providers/auth_providers.dart';
 import '../../core/config/visit_form_config.dart';
+import '../../core/constants/visit_constants.dart';
 import '../../core/utils/launcher_helper.dart';
 import '../../data/local/database_helper.dart';
 import '../../data/models/visit_activity.dart';
 import '../../data/services/visit_csv_export_service.dart';
+import '../../providers/customer_master_provider.dart';
 import '../../providers/visit_provider.dart';
+import 'claim_sales_name_screen.dart';
 import 'visit_form_screen.dart';
 import 'visit_map_screen.dart';
 
@@ -23,6 +27,9 @@ class VisitDailyScreen extends ConsumerStatefulWidget {
 class _VisitDailyScreenState extends ConsumerState<VisitDailyScreen>
     with WidgetsBindingObserver {
   StreamSubscription<List<ConnectivityResult>>? _connSub;
+  final Set<String> _selectedRvaiIds = {};
+  bool _rvaiExpanded = true;
+  bool _needsSalesNameClaim = false;
 
   @override
   void initState() {
@@ -32,6 +39,8 @@ class _VisitDailyScreenState extends ConsumerState<VisitDailyScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         ref.read(visitProvider.notifier).syncNow();
+        ref.read(masterSyncProvider.notifier).syncIfNeeded();
+        _checkIfShouldPromptSalesNameClaim();
       }
     });
     // Trigger sync saat koneksi kembali
@@ -40,9 +49,32 @@ class _VisitDailyScreenState extends ConsumerState<VisitDailyScreen>
         final isOnline = results.any((r) => r != ConnectivityResult.none);
         if (isOnline && mounted) {
           ref.read(visitProvider.notifier).syncNow();
+          ref.read(masterSyncProvider.notifier).syncIfNeeded();
         }
       });
     } catch (_) {}
+  }
+
+  Future<void> _checkIfShouldPromptSalesNameClaim() async {
+    final gateState = ref.read(accessGateProvider);
+    final isApproved = gateState == GateState.approved;
+    final canViewAll = ref.read(canViewAllProvider);
+    final salesName = ref.read(mySalesNameProvider);
+    if (!isApproved || canViewAll || (salesName != null && salesName.isNotEmpty)) {
+      if (_needsSalesNameClaim && mounted) {
+        setState(() => _needsSalesNameClaim = false);
+      }
+      return;
+    }
+    final options = await ref.read(customerMasterServiceProvider).fetchSalesNames();
+    if (!mounted) return;
+    final shouldPrompt = ClaimSalesNameScreen.shouldPromptClaim(
+      isApproved: isApproved,
+      canViewAll: canViewAll,
+      currentSalesName: ref.read(mySalesNameProvider),
+      hasMasterOptions: options.isNotEmpty,
+    );
+    setState(() => _needsSalesNameClaim = shouldPrompt);
   }
 
   @override
@@ -56,6 +88,7 @@ class _VisitDailyScreenState extends ConsumerState<VisitDailyScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && mounted) {
       ref.read(visitProvider.notifier).syncNow();
+      ref.read(masterSyncProvider.notifier).syncIfNeeded();
     }
   }
 
@@ -143,6 +176,90 @@ class _VisitDailyScreenState extends ConsumerState<VisitDailyScreen>
     }
   }
 
+  Future<void> _onRefreshMasterPressed() async {
+    final res = await ref.read(masterSyncProvider.notifier).syncNow();
+    if (!mounted) return;
+    if (res.skippedByGuard) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Mode offline lokal aktif. Tidak dapat mengunduh Master Pelanggan.'),
+        ),
+      );
+    } else if (res.hasError) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Gagal memperbarui data Master Pelanggan. Periksa koneksi internet.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Data Pelanggan Saya berhasil diperbarui (${res.syncedCount} pelanggan).'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+
+  Future<void> _addSelectedRvaiSuggestions(
+    List<RvaiSuggestionItem> allSuggestions,
+  ) async {
+    final picked = allSuggestions
+        .where((s) => _selectedRvaiIds.contains(s.customer.customerId))
+        .toList();
+    if (picked.isEmpty) return;
+
+    final todayStr = formatVisitDate(DateTime.now());
+    final nowIso = DateTime.now().toUtc().toIso8601String();
+    final notifier = ref.read(visitProvider.notifier);
+
+    int addedCount = 0;
+    for (final item in picked) {
+      final c = item.customer;
+      final isDup = await notifier.hasDuplicate(
+        customerId: c.customerId,
+        category: VisitCategory.rvai,
+        plannedDate: todayStr,
+      );
+      if (isDup) continue;
+
+      final activity = VisitActivity(
+        clientId: '',
+        customerId: c.customerId,
+        customerName: '',
+        category: VisitCategory.rvai,
+        status: VisitStatus.belum,
+        address: c.address,
+        packageName: c.packageName,
+        latitude: c.latitude,
+        longitude: c.longitude,
+        plannedDate: todayStr,
+        note: '',
+        updatedAt: nowIso,
+      );
+      await notifier.addVisit(activity);
+      addedCount++;
+    }
+
+    if (!mounted) return;
+    setState(() => _selectedRvaiIds.clear());
+    ref.read(visitSelectedDateProvider.notifier).state = todayStr;
+    await ref.read(masterSyncProvider.notifier).refreshLocalCount();
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          addedCount > 0
+              ? '$addedCount target RVAI berhasil ditambahkan ke hari ini!'
+              : 'Target RVAI yang dipilih sudah tercatat pada hari ini.',
+        ),
+        backgroundColor: addedCount > 0 ? Colors.green : Colors.orange,
+      ),
+    );
+  }
+
   Future<void> _onExportCsvPressed(String selectedDateStr) async {
     try {
       final allVisits = await DatabaseHelper.instance.getVisitsByDate(selectedDateStr);
@@ -181,6 +298,8 @@ class _VisitDailyScreenState extends ConsumerState<VisitDailyScreen>
     final pendingAsync = ref.watch(pendingVisitCountProvider);
     final isSyncing = ref.watch(visitIsSyncingProvider);
     final pendingCount = pendingAsync.valueOrNull ?? 0;
+    final rvaiSuggestionsAsync = ref.watch(rvaiSuggestionsProvider);
+    final rvaiSuggestions = rvaiSuggestionsAsync.valueOrNull ?? const [];
 
     final counts = countsAsync.valueOrNull ??
         const {
@@ -245,13 +364,48 @@ class _VisitDailyScreenState extends ConsumerState<VisitDailyScreen>
           ),
           PopupMenuButton<String>(
             tooltip: 'Menu Lainnya',
-            onSelected: (value) {
+            onSelected: (value) async {
               if (value == 'export_csv') {
                 _onExportCsvPressed(selectedDateStr);
+              } else if (value == 'refresh_master') {
+                _onRefreshMasterPressed();
+              } else if (value == 'claim_sales') {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const ClaimSalesNameScreen(),
+                  ),
+                );
+                if (mounted) {
+                  _checkIfShouldPromptSalesNameClaim();
+                }
               }
             },
-            itemBuilder: (_) => const [
-              PopupMenuItem<String>(
+            itemBuilder: (_) => [
+              const PopupMenuItem<String>(
+                value: 'refresh_master',
+                child: Row(
+                  children: [
+                    Icon(Icons.people_alt_outlined, size: 18, color: Color(0xFF002B66)),
+                    SizedBox(width: 8),
+                    Text('Perbarui Data Pelanggan'),
+                  ],
+                ),
+              ),
+              if (!ref.read(canViewAllProvider) &&
+                  (ref.read(mySalesNameProvider) == null ||
+                      ref.read(mySalesNameProvider)!.isEmpty))
+                const PopupMenuItem<String>(
+                  value: 'claim_sales',
+                  child: Row(
+                    children: [
+                      Icon(Icons.badge_outlined, size: 18, color: Color(0xFF002B66)),
+                      SizedBox(width: 8),
+                      Text('Klaim Nama Sales'),
+                    ],
+                  ),
+                ),
+              const PopupMenuItem<String>(
                 value: 'export_csv',
                 child: Row(
                   children: [
@@ -463,6 +617,52 @@ class _VisitDailyScreenState extends ConsumerState<VisitDailyScreen>
             ),
           ),
 
+          // Banner Klaim Nama Sales bila akun sales belum klaim
+          if (_needsSalesNameClaim)
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.indigo.shade50,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.indigo.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.badge_outlined, size: 18, color: Colors.indigo.shade800),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Hubungkan nama sales Anda untuk menampilkan Pelanggan Saya & Saran RVAI.',
+                      style: TextStyle(fontSize: 11.5, color: Colors.indigo.shade900),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ClaimSalesNameScreen(),
+                        ),
+                      );
+                      if (mounted) {
+                        _checkIfShouldPromptSalesNameClaim();
+                      }
+                    },
+                    child: const Text(
+                      'Pilih Nama',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          // Kartu / Section Saran RVAI (N) bila ada pelanggan jatuh tempo
+          if (rvaiSuggestions.isNotEmpty)
+            _buildRvaiSuggestionsSection(rvaiSuggestions),
+
           // Daftar Kartu Visit
           Expanded(
             child: visitsAsync.when(
@@ -652,6 +852,185 @@ class _VisitDailyScreenState extends ConsumerState<VisitDailyScreen>
               error: (e, _) => Center(child: Text('Gagal memuat data: $e')),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRvaiSuggestionsSection(List<RvaiSuggestionItem> suggestions) {
+    final validSelectedCount = suggestions
+        .where((s) => _selectedRvaiIds.contains(s.customer.customerId))
+        .length;
+
+    return Container(
+      key: const Key('rvai_suggestions_card'),
+      margin: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.green.shade400, width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.green.withValues(alpha: 0.08),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          InkWell(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+            onTap: () => setState(() => _rvaiExpanded = !_rvaiExpanded),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.tips_and_updates_rounded,
+                    size: 18,
+                    color: Colors.green.shade800,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Saran RVAI (${suggestions.length})',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13.5,
+                        color: Colors.green.shade900,
+                      ),
+                    ),
+                  ),
+                  if (_rvaiExpanded)
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          if (validSelectedCount == suggestions.length) {
+                            _selectedRvaiIds.clear();
+                          } else {
+                            for (final s in suggestions) {
+                              _selectedRvaiIds.add(s.customer.customerId);
+                            }
+                          }
+                        });
+                      },
+                      child: Text(
+                        validSelectedCount == suggestions.length
+                            ? 'Batal Semua'
+                            : 'Pilih Semua',
+                        style: const TextStyle(fontSize: 11.5),
+                      ),
+                    ),
+                  Icon(
+                    _rvaiExpanded
+                        ? Icons.expand_less_rounded
+                        : Icons.expand_more_rounded,
+                    color: Colors.green.shade800,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (_rvaiExpanded) ...[
+            const Divider(height: 1),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 195),
+              child: ListView.separated(
+                shrinkWrap: true,
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                itemCount: suggestions.length,
+                separatorBuilder: (_, _) => const Divider(height: 1),
+                itemBuilder: (ctx, idx) {
+                  final item = suggestions[idx];
+                  final cid = item.customer.customerId;
+                  final isChecked = _selectedRvaiIds.contains(cid);
+                  return CheckboxListTile(
+                    key: Key('rvai_suggestion_tile_$cid'),
+                    value: isChecked,
+                    dense: true,
+                    activeColor: Colors.green.shade700,
+                    controlAffinity: ListTileControlAffinity.leading,
+                    onChanged: (val) {
+                      setState(() {
+                        if (val == true) {
+                          _selectedRvaiIds.add(cid);
+                        } else {
+                          _selectedRvaiIds.remove(cid);
+                        }
+                      });
+                    },
+                    title: Row(
+                      children: [
+                        Text(
+                          'ID: $cid',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12.5,
+                            color: Color(0xFF002B66),
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          item.dueLabel,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.orange.shade900,
+                          ),
+                        ),
+                      ],
+                    ),
+                    subtitle: Text(
+                      item.customer.address.isNotEmpty
+                          ? item.customer.address
+                          : '(Alamat belum tersedia)',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
+              child: SizedBox(
+                height: 38,
+                child: ElevatedButton.icon(
+                  key: const Key('rvai_add_selected_btn'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green.shade700,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  onPressed: validSelectedCount == 0
+                      ? null
+                      : () => _addSelectedRvaiSuggestions(suggestions),
+                  icon: const Icon(Icons.playlist_add_check_rounded, size: 18),
+                  label: Text(
+                    validSelectedCount > 0
+                        ? 'Tambahkan ke target hari ini ($validSelectedCount)'
+                        : 'Tambahkan ke target hari ini',
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
