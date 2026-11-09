@@ -3,11 +3,27 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../core/constants/app_constants.dart';
 import '../../data/models/incentive_record.dart';
+import '../../providers/backup_provider.dart';
 import '../../providers/history_provider.dart';
 import 'edit_history_screen.dart';
 
-class HistoryScreen extends ConsumerWidget {
+class HistoryScreen extends ConsumerStatefulWidget {
   const HistoryScreen({super.key});
+
+  @override
+  ConsumerState<HistoryScreen> createState() => _HistoryScreenState();
+}
+
+class _HistoryScreenState extends ConsumerState<HistoryScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        showBackupConsentDialogIfNeeded(context, ref);
+      }
+    });
+  }
 
   String _fmt(num val) {
     return NumberFormat.currency(
@@ -132,8 +148,10 @@ class HistoryScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final historyState = ref.watch(historyProvider);
+    final pendingIncAsync = ref.watch(historyPendingSyncCountProvider);
+    final pendingIncCount = pendingIncAsync.valueOrNull ?? 0;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7FB),
@@ -144,6 +162,36 @@ class HistoryScreen extends ConsumerWidget {
           'Histori Pencapaian',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
+        actions: [
+          Container(
+            key: const Key('history_sync_status_badge'),
+            margin: const EdgeInsets.only(right: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: (pendingIncCount == 0 ? Colors.teal : Colors.orange)
+                  .withValues(alpha: 0.25),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: (pendingIncCount == 0
+                        ? Colors.tealAccent
+                        : Colors.amberAccent)
+                    .withValues(alpha: 0.6),
+              ),
+            ),
+            child: Text(
+              pendingIncCount == 0
+                  ? 'Tersinkron'
+                  : 'Belum tersinkron ($pendingIncCount)',
+              style: TextStyle(
+                fontSize: 10.5,
+                fontWeight: FontWeight.bold,
+                color: pendingIncCount == 0
+                    ? Colors.tealAccent
+                    : Colors.amberAccent,
+              ),
+            ),
+          ),
+        ],
       ),
       body: historyState.when(
         data: (records) {

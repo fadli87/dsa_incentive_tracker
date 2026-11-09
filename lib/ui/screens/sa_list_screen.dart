@@ -3,13 +3,29 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import '../../providers/backup_provider.dart';
 import '../../providers/sa_provider.dart';
 import '../../core/utils/launcher_helper.dart';
 import '../../data/models/sa_record.dart';
 import 'sa_form_screen.dart';
 
-class SaListScreen extends ConsumerWidget {
+class SaListScreen extends ConsumerStatefulWidget {
   const SaListScreen({super.key});
+
+  @override
+  ConsumerState<SaListScreen> createState() => _SaListScreenState();
+}
+
+class _SaListScreenState extends ConsumerState<SaListScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        showBackupConsentDialogIfNeeded(context, ref);
+      }
+    });
+  }
 
   void _showLocationDialog(BuildContext context, SaRecord record) {
     if (!record.hasLocation) return;
@@ -101,8 +117,10 @@ class SaListScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final saState = ref.watch(saProvider);
+    final pendingSaAsync = ref.watch(saPendingSyncCountProvider);
+    final pendingSaCount = pendingSaAsync.valueOrNull ?? 0;
 
     return Scaffold(
       appBar: AppBar(
@@ -122,6 +140,34 @@ class SaListScreen extends ConsumerWidget {
           ],
         ),
         actions: [
+          Container(
+            key: const Key('sa_sync_status_badge'),
+            margin: const EdgeInsets.only(right: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: (pendingSaCount == 0 ? Colors.teal : Colors.orange)
+                  .withValues(alpha: 0.25),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: (pendingSaCount == 0
+                        ? Colors.tealAccent
+                        : Colors.amberAccent)
+                    .withValues(alpha: 0.6),
+              ),
+            ),
+            child: Text(
+              pendingSaCount == 0
+                  ? 'Tersinkron'
+                  : 'Belum tersinkron ($pendingSaCount)',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: pendingSaCount == 0
+                    ? Colors.tealAccent
+                    : Colors.amberAccent,
+              ),
+            ),
+          ),
           Container(
             margin: const EdgeInsets.only(right: 12),
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

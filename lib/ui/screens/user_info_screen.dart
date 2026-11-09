@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../../auth/screens/change_password_screen.dart';
 import '../../auth/screens/super_admin_panel_screen.dart';
 import '../../auth/supabase_client.dart';
+import '../../data/services/backup_sync_service.dart';
+import '../../providers/backup_provider.dart';
 import '../../providers/user_info_provider.dart';
 import '../../providers/visit_provider.dart';
 
@@ -19,6 +22,7 @@ class _UserInfoScreenState extends ConsumerState<UserInfoScreen> {
   late final TextEditingController _nameCtrl;
   late final TextEditingController _salesCodeCtrl;
   bool _isInit = false;
+  bool _isSyncingBackup = false;
 
   @override
   void initState() {
@@ -407,6 +411,11 @@ class _UserInfoScreenState extends ConsumerState<UserInfoScreen> {
                   },
                 ),
 
+                const SizedBox(height: 20),
+
+                // Bagian Cadangan Online (Fase 11C)
+                _buildBackupOnlineCard(),
+
                 if (isSuperadmin) ...[
                   const SizedBox(height: 24),
                   Container(
@@ -639,6 +648,181 @@ class _UserInfoScreenState extends ConsumerState<UserInfoScreen> {
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(child: Text('Error: $err')),
+      ),
+    );
+  }
+
+  Widget _buildBackupOnlineCard() {
+    final consentAsync = ref.watch(backupConsentStatusProvider);
+    final pendingAsync = ref.watch(backupPendingCountProvider);
+    final lastSyncAsync = ref.watch(backupLastSyncAtProvider);
+
+    final consent = consentAsync.valueOrNull ?? BackupConsentStatus.unset;
+    final isEnabled = consent == BackupConsentStatus.granted;
+    final pendingCount = pendingAsync.valueOrNull ?? 0;
+    final lastSync = lastSyncAsync.valueOrNull;
+    final lastSyncLabel = lastSync != null
+        ? DateFormat('dd MMM yyyy, HH:mm').format(lastSync.toLocal())
+        : 'Belum pernah';
+
+    return Card(
+      key: const Key('card_backup_online'),
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      color: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.cloud_sync_outlined,
+                  color: Color(0xFF002B66),
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'CADANGAN ONLINE',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF002B66),
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+                Switch(
+                  key: const Key('backup_consent_switch'),
+                  value: isEnabled,
+                  activeThumbColor: const Color(0xFF002B66),
+                  onChanged: (val) async {
+                    final service = ref.read(backupSyncServiceProvider);
+                    if (val) {
+                      await service.setConsentGranted();
+                      ref.invalidate(backupConsentStatusProvider);
+                      if (mounted) {
+                        setState(() => _isSyncingBackup = true);
+                      }
+                      await runBackupSyncAndRefresh(ref);
+                      if (mounted) {
+                        setState(() => _isSyncingBackup = false);
+                      }
+                    } else {
+                      await service.setConsentDeclined();
+                      ref.invalidate(backupConsentStatusProvider);
+                    }
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Mematikan saklar menghentikan pengiriman berikutnya dari perangkat ini. Data yang sudah tersimpan di server tetap ada.',
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.grey.shade700,
+                height: 1.35,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Waktu sinkron terakhir: $lastSyncLabel',
+                  style: TextStyle(fontSize: 11.5, color: Colors.grey.shade800),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: pendingCount == 0
+                        ? Colors.green.shade50
+                        : Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: pendingCount == 0
+                          ? Colors.green.shade200
+                          : Colors.orange.shade200,
+                    ),
+                  ),
+                  child: Text(
+                    pendingCount == 0
+                        ? 'Tersinkron'
+                        : 'Belum tersinkron ($pendingCount)',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: pendingCount == 0
+                          ? Colors.green.shade800
+                          : Colors.orange.shade900,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                key: const Key('btn_backup_sync_now'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF002B66),
+                  side: const BorderSide(color: Color(0xFF002B66)),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                icon: _isSyncingBackup
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.sync_rounded, size: 17),
+                label: const Text(
+                  'Cadangkan Sekarang',
+                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+                ),
+                onPressed: _isSyncingBackup
+                    ? null
+                    : () async {
+                        final service = ref.read(backupSyncServiceProvider);
+                        final status = await service.getConsentStatus();
+                        if (status != BackupConsentStatus.granted) {
+                          if (!mounted) return;
+                          await showBackupConsentDialogIfNeeded(context, ref);
+                          return;
+                        }
+                        if (mounted) {
+                          setState(() => _isSyncingBackup = true);
+                        }
+                        final res = await runBackupSyncAndRefresh(ref);
+                        if (!mounted) return;
+                        setState(() => _isSyncingBackup = false);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              res.hasError
+                                  ? 'Sinkronisasi belum berhasil (periksa koneksi).'
+                                  : 'Cadangan online berhasil diperbarui!',
+                            ),
+                            backgroundColor: res.hasError
+                                ? Colors.orange.shade800
+                                : Colors.green,
+                          ),
+                        );
+                      },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
