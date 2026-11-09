@@ -16,11 +16,12 @@ Aplikasi komprehensif untuk Direct Sales Agency (DSA) XL Satu — mencakup kalku
 3. **AURA AI Coach & Diagnostik Jaringan**:
    - RF Diagnostic & eNodeB / Cell ID separator.
    - Panduan pitching & objection handling penjualan XL Satu.
-4. **Aktivitas Harian Visit (RVAI / Dismantle / Unpaid)**:
-   - Pencatatan target kunjungan harian (**RVAI** hijau, **Dismantle** merah, **Unpaid** kuning) 100% *offline-first* (SQLite v7) dengan sinkronisasi otomatis ke Supabase saat terhubung internet.
+4. **Aktivitas Harian Visit (RVAI / Dismantle / Unpaid) & Master Pelanggan KCLP ("Pelanggan Saya")**:
+   - Pencatatan target kunjungan harian (**RVAI** hijau, **Dismantle** merah, **Unpaid** kuning) 100% *offline-first* (SQLite v8) dengan sinkronisasi otomatis ke Supabase saat terhubung internet.
+   - Integrasi **Master Pelanggan KCLP ("Pelanggan Saya")**: pilih pelanggan langsung dari daftar milik sales sendiri (autofill Customer ID, alamat, paket, dan koordinat) serta **Saran RVAI otomatis** (H+7 setelah tanggal install).
    - Input titik koordinat via GPS saat ini, tempel tautan Google Maps / Shareloc WhatsApp, atau input manual.
    - Peta Visit 3 Layer (`flutter_map`), navigasi 1-tap ke Google Maps, prefill otomatis Google Form pelaporan, serta **Ekspor CSV per kategori** untuk Google My Maps.
-   - Layar **Rekap Tim (Read-Only)** khusus untuk role **SPV**, **TSC**, **Admin**, dan **Superadmin**.
+   - Layar **Rekap Tim (Read-Only)** beserta **Ringkasan Kepatuhan RVAI per Sales** khusus untuk role **SPV**, **TSC**, **Admin**, dan **Superadmin**.
 5. **Offline-First & Keamanan Data**:
    - Penyimpanan data SA & Visit lokal di perangkat (tanpa menyimpan nomor seri perangkat/ONT/SIM maupun NIK/KTP demi privasi pelanggan).
    - Akses tim berbasis Supabase dengan masa tenggang offline (*grace period*) 7 hari.
@@ -69,6 +70,60 @@ VISIT_FORM_CATEGORY_ENTRY=entry.<ID_PERTANYAAN_KATEGORI>
 
 ---
 
+## 👥 Master Pelanggan KCLP ("Pelanggan Saya") & Saran RVAI
+
+Fitur ini memungkinkan setiap sales memilih pelanggan hasil instalasi miliknya sendiri tanpa mengetik ulang alamat, paket, dan koordinat, sekaligus menampilkan daftar **Saran RVAI** secara otomatis.
+
+### 1. Sumber Data & Privasi (Whitelist Kolom)
+- Data berasal dari file KMZ/KML instalasi bulanan/mingguan manajemen (khusus kota **`KCLP`** / Cilacap).
+- Skrip impor [`tools/import_customer_master.py`](tools/import_customer_master.py) menerapkan **whitelist ketat**: hanya membaca `Customer ID`, `City Code Homepass`, `Install Date`, `Homepass Address`, `Product Name`, `Latitude`, `Longitude`, `Sales Name`, `SPV Name`, dan `TSC Name`.
+- Kolom sensitif seperti **`Serial Number (Wifi/ONT/SIM CARD 1)`**, **`WO ID`**, **`SO Number`**, **`Create Time`**, dan **`Close Time`** **dibuang sepenuhnya** dan tidak pernah disimpan di Supabase maupun SQLite lokal.
+- Di Supabase (`public.customer_master`), kebijakan RLS memastikan:
+  - Role `member` (Sales) **hanya** dapat mengunduh baris pelanggan yang `sales_name`-nya sama dengan `team_members.sales_name` miliknya.
+  - Role `spv`, `tsc`, `admin`, dan `superadmin` (`can_view_all()`) dapat melihat seluruh baris untuk keperluan monitoring.
+  - Tidak ada kebijakan `INSERT`/`UPDATE`/`DELETE` untuk client aplikasi (100% *read-only* dari sisi aplikasi).
+
+### 2. Klaim Nama Sales & Pengaturan oleh SuperAdmin
+- Saat sales yang sudah `approved` membuka **Aktivitas Harian** dan belum memiliki `sales_name`, aplikasi menampilkan banner **Klaim Nama Sales Anda** yang membuka daftar nama sales dari data master (`list_master_sales_names`).
+- Klaim bersifat **satu kali** (`claim_sales_name`) dan nama yang sudah diklaim akun lain tidak dapat diambil ulang.
+- Bila seorang sales salah memilih nama atau namanya berubah, **Superadmin** dapat mengatur atau meresetnya melalui **Panel SuperAdmin ➔ Tab Anggota Tim ➔ tombol `Atur Nama Sales`** (`admin_set_member_sales_name`).
+
+### 3. Aturan Saran RVAI Otomatis
+- Konstanta aturan RVAI didefinisikan terpusat di [`lib/core/constants/visit_constants.dart`](lib/core/constants/visit_constants.dart):
+  - `VisitConstants.rvaiDueDays = 7` (pelanggan jatuh tempo kunjungan RVAI pada **H+7** sejak `install_date`).
+  - `VisitConstants.rvaiLookbackDays = 30` (jendela *lookback* maksimal **30 hari** sejak tanggal jatuh tempo agar instalasi lama tidak membanjiri daftar saran).
+- Pelanggan muncul di kartu **Saran RVAI (N)** pada layar Aktivitas Harian apabila:
+  1. Memiliki `install_date` yang valid,
+  2. `dueDate = install_date + 7 hari <= hari ini`, dan `hari ini - dueDate < 30 hari`, serta
+  3. Belum pernah memiliki catatan visit berkategori `rvai` (yang tidak dihapus) di `visit_activities`.
+- Sales cukup mencentang pelanggan yang ingin dikunjungi lalu menekan **Tambahkan ke target hari ini**.
+- Untuk kategori **Dismantle** dan **Unpaid**, tidak ada saran otomatis — sales memilih pelanggan melalui tombol **Pilih dari Pelanggan Saya** (atau mengetik 6+ digit Customer ID untuk memunculkan banner autofill) lalu memilih kategori di form.
+
+### 4. SOP Impor KMZ Rutin (Khusus Owner di Laptop Lokal)
+> **PERINGATAN KEAMANAN**: Jangan pernah meng-commit file `.kmz`, `.kml`, `.csv`, `.sql` hasil ekspor pelanggan, folder `private_data/`, maupun `SUPABASE_SERVICE_ROLE_KEY` ke repositori Git! Folder `private_data/` serta ekstensi `*.kmz` dan `*.kml` sudah dimasukkan ke `.gitignore`.
+
+1. Simpan file KMZ terbaru dari manajemen ke dalam folder lokal `private_data/` (misal `private_data/kclp_2026_11.kmz`).
+2. Jalankan **`--dry-run`** terlebih dahulu untuk memeriksa ringkasan (jumlah pelanggan KCLP, duplikat, tanpa koordinat, jumlah per TSC):
+   ```bash
+   python tools/import_customer_master.py private_data/kclp_2026_11.kmz --city KCLP --batch 2026-11-07 --dry-run
+   ```
+3. **Opsi A — Langsung Upsert ke Supabase REST API** (memerlukan variabel environment `SUPABASE_URL` dan `SUPABASE_SERVICE_ROLE_KEY` di terminal lokal):
+   ```powershell
+   $env:SUPABASE_URL="https://xyz.supabase.co"
+   $env:SUPABASE_SERVICE_ROLE_KEY="eyJ..."
+   python tools/import_customer_master.py private_data/kclp_2026_11.kmz --city KCLP --batch 2026-11-07 --upsert --report-missing
+   ```
+4. **Opsi B — Menghasilkan File SQL Tanpa Service Key** (untuk ditempel manual ke Supabase SQL Editor per 500 baris):
+   ```bash
+   python tools/import_customer_master.py private_data/kclp_2026_11.kmz --city KCLP --batch 2026-11-07 --sql-out private_data/customer_master.sql
+   ```
+5. Jalankan unit test importer kapan saja dengan:
+   ```bash
+   python -m unittest tools/test_import_customer_master.py
+   ```
+
+---
+
 ## 🔐 Sistem Login Tim & Gerbang Akses (*Team Access Gate*)
 
 Aplikasi menggunakan pola **Access Gate** dengan Supabase backend dan enkripsi lokal `flutter_secure_storage`.
@@ -107,8 +162,13 @@ select public.make_superadmin('email_anda@gmail.com');
 
 1. **Jalankan Skema Database**:
    - **Project baru**: buka SQL Editor di project Supabase Anda, lalu salin dan jalankan seluruh isi file [`supabase/schema.sql`](supabase/schema.sql). File ini sudah memuat semua perbaikan.
-   - **Project yang sudah berjalan**: jalankan file di [`supabase/migrations/`](supabase/migrations) **berurutan**: `2026-11-06_phase0_harden_make_superadmin.sql`, `2026-11-06_visit_activities.sql`, lalu `2026-11-06_phase1_fix_rpc_security.sql`. Sebelumnya, pastikan constraint role lama bernama `team_members_role_check` (`select conname from pg_constraint where conrelid = 'public.team_members'::regclass;`), kalau tidak, role `spv`/`tsc` masih ditolak.
-   - Skema membuat tabel `team_members`, `app_config`, dan `visit_activities`, trigger pendaftaran akun, fungsi `is_superadmin`, `can_view_all`, `is_approved_member`, serta RPC `redeem_access_code`, `admin_update_member_status`, `admin_update_member_role`, `admin_update_access_code`, `get_visit_summary`, dan `make_superadmin`.
+   - **Project yang sudah berjalan**: jalankan file di [`supabase/migrations/`](supabase/migrations) **berurutan**:
+     1. `2026-11-06_phase0_harden_make_superadmin.sql`
+     2. `2026-11-06_visit_activities.sql`
+     3. `2026-11-06_phase1_fix_rpc_security.sql`
+     4. `2026-11-07_customer_master.sql`
+     Sebelumnya, pastikan constraint role lama bernama `team_members_role_check` (`select conname from pg_constraint where conrelid = 'public.team_members'::regclass;`), kalau tidak, role `spv`/`tsc` masih ditolak.
+   - Skema membuat tabel `team_members`, `app_config`, `visit_activities`, dan `customer_master`, trigger pendaftaran akun, fungsi `is_superadmin`, `can_view_all`, `is_approved_member`, `my_sales_name`, serta RPC `redeem_access_code`, `admin_update_member_status`, `admin_update_member_role`, `admin_update_access_code`, `get_visit_summary`, `list_master_sales_names`, `claim_sales_name`, `admin_set_member_sales_name`, `get_master_status`, `get_rvai_compliance`, dan `make_superadmin`.
 
 2. **Atur Kode Akses Tim Awal**:
    Jalankan query di SQL Editor Supabase:
