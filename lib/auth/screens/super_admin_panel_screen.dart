@@ -2,8 +2,8 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../data/models/master_customer.dart';
 import '../../data/services/customer_master_import_service.dart';
-import '../../data/services/customer_master_service.dart';
 import '../../providers/customer_master_provider.dart';
 import '../models/member_status.dart';
 import '../models/team_member_item.dart';
@@ -338,7 +338,7 @@ class _SuperAdminPanelScreenState extends ConsumerState<SuperAdminPanelScreen>
               total: 0,
               lastImport: null,
               lastBatch: '',
-              withoutSales: 0,
+              withSales: 0,
             );
         final isStale = status.isImportStale();
         final lastImportText = status.lastImport != null

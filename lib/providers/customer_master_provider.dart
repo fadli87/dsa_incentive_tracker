@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -30,20 +29,12 @@ final pickMasterImportBytesProvider = Provider<PickMasterImportBytesCallback>((
   ref,
 ) {
   return () async {
-    final result = await FilePicker.platform.pickFiles(
+    final picked = await FilePicker.pickFile(
       type: FileType.custom,
       allowedExtensions: const ['kmz', 'kml'],
-      withData: true,
     );
-    if (result == null || result.files.isEmpty) return null;
-    final picked = result.files.single;
-    if (picked.bytes != null) {
-      return picked.bytes;
-    }
-    if (picked.path != null && picked.path!.isNotEmpty) {
-      return File(picked.path!).readAsBytes();
-    }
-    return null;
+    if (picked == null) return null;
+    return picked.readAsBytes();
   };
 });
 

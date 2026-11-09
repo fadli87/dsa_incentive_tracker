@@ -121,10 +121,7 @@ class MasterImportParseResult {
   final List<MasterImportRecord> records;
   final MasterImportStats stats;
 
-  const MasterImportParseResult({
-    required this.records,
-    required this.stats,
-  });
+  const MasterImportParseResult({required this.records, required this.stats});
 }
 
 /// Hasil akhir pengiriman seluruh batch ke RPC `admin_import_customer_master`.
@@ -285,8 +282,7 @@ Uint8List extractKmlFromKmz(Uint8List bytes) {
   }
 
   // Periksa magic header ZIP ('PK' -> 0x50, 0x4B)
-  final bool isZip =
-      bytes.length >= 4 && bytes[0] == 0x50 && bytes[1] == 0x4B;
+  final bool isZip = bytes.length >= 4 && bytes[0] == 0x50 && bytes[1] == 0x4B;
   if (isZip) {
     Archive archive;
     try {
@@ -407,8 +403,7 @@ MasterImportParseResult parseKmlBytes(
         }
       } else if (event is XmlEndElementEvent) {
         final local = _localTagName(event.name).toLowerCase();
-        if (inPlacemark &&
-            (local == 'description' || local == 'coordinates')) {
+        if (inPlacemark && (local == 'description' || local == 'coordinates')) {
           currentField = null;
         } else if (local == 'placemark' && inPlacemark) {
           inPlacemark = false;
@@ -417,8 +412,9 @@ MasterImportParseResult parseKmlBytes(
           final whitelisted = parseWhitelistedHtmlDescription(
             descBuf.toString(),
           );
-          final cityCode =
-              (whitelisted['City Code Homepass'] ?? '').trim().toUpperCase();
+          final cityCode = (whitelisted['City Code Homepass'] ?? '')
+              .trim()
+              .toUpperCase();
           if (cityCode != targetCityNorm) {
             continue;
           }
@@ -482,9 +478,7 @@ MasterImportParseResult parseKmlBytes(
   }
 
   if (!sawAnyElement) {
-    throw const MasterImportException(
-      'File bukan dokumen XML/KML yang valid.',
-    );
+    throw const MasterImportException('File bukan dokumen XML/KML yang valid.');
   }
 
   final sortedRecords = dedupMap.values.toList()
@@ -536,10 +530,7 @@ MasterImportParseResult parseKmlBytes(
     batchId: effectiveBatchId,
   );
 
-  return MasterImportParseResult(
-    records: sortedRecords,
-    stats: stats,
-  );
+  return MasterImportParseResult(records: sortedRecords, stats: stats);
 }
 
 class _IsolateParseArgs {
@@ -586,10 +577,7 @@ class SupabaseCustomerMasterImportGateway
     final res = await _client
         .rpc(
           'admin_import_customer_master',
-          params: {
-            'p_batch_id': batchId,
-            'p_rows': rows,
-          },
+          params: {'p_batch_id': batchId, 'p_rows': rows},
         )
         .timeout(const Duration(seconds: 30));
 
@@ -610,10 +598,12 @@ class SupabaseCustomerMasterImportGateway
 /// Layanan Impor Master Pelanggan KCLP (Khusus SuperAdmin).
 class CustomerMasterImportService {
   final CustomerMasterImportRemoteGateway _gateway;
+  final bool _useIsolate;
 
   CustomerMasterImportService({
     SupabaseClient? supabaseClient,
     CustomerMasterImportRemoteGateway? remoteGateway,
+    this._useIsolate = true,
   }) : _gateway =
            remoteGateway ?? SupabaseCustomerMasterImportGateway(supabaseClient);
 
@@ -629,14 +619,15 @@ class CustomerMasterImportService {
         'Ukuran file melebihi batas maksimum 50 MB.',
       );
     }
-    return compute(
-      _extractAndParseInIsolate,
-      _IsolateParseArgs(
-        rawBytes: fileBytes,
-        targetCity: targetCity,
-        batchId: batchId,
-      ),
+    final args = _IsolateParseArgs(
+      rawBytes: fileBytes,
+      targetCity: targetCity,
+      batchId: batchId,
     );
+    if (!_useIsolate) {
+      return _extractAndParseInIsolate(args);
+    }
+    return compute(_extractAndParseInIsolate, args);
   }
 
   /// Mengirim `records` per 500 baris ke RPC `admin_import_customer_master`.
@@ -689,7 +680,8 @@ class CustomerMasterImportService {
         final errLower = e.toString().toLowerCase();
         String reason = 'Gangguan koneksi atau server menolak permintaan.';
         if (errLower.contains('unauthorized') || errLower.contains('42501')) {
-          reason = 'Akses ditolak: hanya Superadmin murni yang diizinkan mengimpor.';
+          reason =
+              'Akses ditolak: hanya Superadmin murni yang diizinkan mengimpor.';
         } else if (errLower.contains('socketexception') ||
             errLower.contains('failed host lookup') ||
             errLower.contains('timeout')) {
