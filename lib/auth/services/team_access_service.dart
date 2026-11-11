@@ -452,6 +452,7 @@ class TeamAccessService {
       try {
         await DatabaseHelper.instance.clearAllLocalVisits();
         await DatabaseHelper.instance.clearAllMasterCustomers();
+        await DatabaseHelper.instance.clearAllCustomerMapPoints();
       } catch (dbErr) {
         debugPrint(
           'TeamAccessService: clearAllLocalVisits on signOut error: $dbErr',

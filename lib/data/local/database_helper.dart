@@ -5,6 +5,7 @@ import 'package:path/path.dart';
 import 'package:uuid/uuid.dart';
 import '../../ai/models/coach_log_entry.dart';
 import '../../auth/supabase_client.dart';
+import '../models/customer_map_point.dart';
 import '../models/incentive_record.dart';
 import '../models/master_customer.dart';
 import '../models/sa_record.dart';
@@ -30,6 +31,7 @@ class DatabaseHelper {
   final List<CoachLogEntry> _webCoachLogs = [];
   final List<VisitActivity> _webVisits = [];
   final List<MasterCustomer> _webMasterCustomers = [];
+  final List<CustomerMapPoint> _webCustomerMapPoints = [];
   UserProfile _webUserProfile = const UserProfile(
     name: '',
     salesCode: '',
@@ -86,7 +88,7 @@ class DatabaseHelper {
     try {
       return await openDatabase(
         path,
-        version: 9,
+        version: 10,
         onCreate: _createDB,
         onUpgrade: _onUpgrade,
         onOpen: _ensureVisitColumns,
@@ -102,7 +104,7 @@ class DatabaseHelper {
         }
         return await openDatabase(
           join(fallbackDir.path, filePath),
-          version: 9,
+          version: 10,
           onCreate: _createDB,
           onUpgrade: _onUpgrade,
           onOpen: _ensureVisitColumns,
@@ -187,6 +189,33 @@ class DatabaseHelper {
 
     await _createVisitTable(db);
     await _createCustomerMasterLocalTable(db);
+    await _createCustomerMapPointsLocalTable(db);
+  }
+
+  
+  Future<void> _createCustomerMapPointsLocalTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS customer_map_points_local (
+        customer_id TEXT PRIMARY KEY,
+        latitude REAL NOT NULL,
+        longitude REAL NOT NULL,
+        install_date TEXT,
+        address TEXT NOT NULL DEFAULT '',
+        package_name TEXT NOT NULL DEFAULT '',
+        sales_name TEXT NOT NULL DEFAULT '',
+        spv_name TEXT NOT NULL DEFAULT '',
+        tsc_name TEXT NOT NULL DEFAULT '',
+        synced_at TEXT NOT NULL
+      )
+    ''');
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS customer_map_points_local_sales_idx
+        ON customer_map_points_local (sales_name)
+    ''');
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS customer_map_points_local_install_idx
+        ON customer_map_points_local (install_date)
+    ''');
   }
 
   Future<void> _createCustomerMasterLocalTable(Database db) async {
@@ -370,6 +399,11 @@ class DatabaseHelper {
     }
     if (oldVersion < 9) {
       await _upgradeToV9(db);
+    }
+    if (oldVersion < 10) {
+      try {
+        await _createCustomerMapPointsLocalTable(db);
+      } catch (_) {}
     }
   }
 
@@ -1014,6 +1048,7 @@ class DatabaseHelper {
   void clearInMemoryVisits() {
     _webVisits.clear();
     _webMasterCustomers.clear();
+    _webCustomerMapPoints.clear();
     currentUserIdResolver = null;
   }
 
@@ -1675,5 +1710,65 @@ class DatabaseHelper {
       orderBy: 'install_date ASC, customer_id ASC',
     );
     return rows.map((r) => MasterCustomer.fromMap(r)).toList();
+  }
+
+  // --- Customer Map Points Local Cache CRUD (SQLite v10, Phase 13) ---
+
+  Future<void> clearAllCustomerMapPoints() async {
+    if (_isInMemory) {
+      _webCustomerMapPoints.clear();
+      return;
+    }
+    final db = await instance.database;
+    if (db == null) return;
+    await db.delete('customer_map_points_local');
+  }
+
+  Future<void> replaceCustomerMapPoints(List<CustomerMapPoint> points) async {
+    if (_isInMemory) {
+      _webCustomerMapPoints.clear();
+      _webCustomerMapPoints.addAll(points);
+      return;
+    }
+
+    final db = (await instance.database)!;
+    await db.transaction((txn) async {
+      await txn.delete('customer_map_points_local');
+      if (points.isNotEmpty) {
+        final batch = txn.batch();
+        for (final p in points) {
+          batch.insert(
+            'customer_map_points_local',
+            p.toMap(),
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+        }
+        await batch.commit(noResult: true);
+      }
+    });
+  }
+
+  Future<int> countCustomerMapPoints() async {
+    if (_isInMemory) {
+      return _webCustomerMapPoints.length;
+    }
+    final db = (await instance.database)!;
+    final rows = await db.rawQuery(
+      'SELECT COUNT(*) as cnt FROM customer_map_points_local',
+    );
+    if (rows.isEmpty) return 0;
+    return (rows.first['cnt'] as num?)?.toInt() ?? 0;
+  }
+
+  Future<List<CustomerMapPoint>> getAllCustomerMapPoints() async {
+    if (_isInMemory) {
+      return List<CustomerMapPoint>.from(_webCustomerMapPoints);
+    }
+    final db = (await instance.database)!;
+    final rows = await db.query(
+      'customer_map_points_local',
+      orderBy: 'customer_id ASC',
+    );
+    return rows.map((r) => CustomerMapPoint.fromMap(r)).toList();
   }
 }
