@@ -15,6 +15,7 @@ class CoverageMapState {
   final bool showTowers;
   final bool showHomepass;
   final bool showInstalledSa;
+  final bool showMasterCustomers;
   final String searchQuery;
   final bool isLoading;
   final BtsTower? matchedServingTower;
@@ -32,6 +33,7 @@ class CoverageMapState {
     this.showTowers = true,
     this.showHomepass = true,
     this.showInstalledSa = true,
+    this.showMasterCustomers = true,
     this.searchQuery = '',
     this.isLoading = false,
     this.matchedServingTower,
@@ -50,6 +52,7 @@ class CoverageMapState {
     bool? showTowers,
     bool? showHomepass,
     bool? showInstalledSa,
+    bool? showMasterCustomers,
     String? searchQuery,
     bool? isLoading,
     BtsTower? matchedServingTower,
@@ -68,6 +71,7 @@ class CoverageMapState {
         showTowers: showTowers ?? this.showTowers,
         showHomepass: showHomepass ?? this.showHomepass,
         showInstalledSa: showInstalledSa ?? this.showInstalledSa,
+        showMasterCustomers: showMasterCustomers ?? this.showMasterCustomers,
         searchQuery: searchQuery ?? this.searchQuery,
         isLoading: isLoading ?? this.isLoading,
         matchedServingTower: clearServingTower
@@ -206,6 +210,10 @@ class CoverageMapNotifier extends Notifier<CoverageMapState> {
 
   void toggleInstalledSa(bool value) {
     state = state.copyWith(showInstalledSa: value);
+  }
+
+  void toggleMasterCustomers(bool value) {
+    state = state.copyWith(showMasterCustomers: value);
   }
 
   void setSearchQuery(String query) {
