@@ -3,8 +3,8 @@ class AppConstants {
   AppConstants._();
 
   static const String appName = 'DSA XL Satu Handbook';
-  static const String appVersion = 'v1.2.3';
-  static const String appVersionDisplay = 'Ver.1.2.3';
+  static const String appVersion = 'v1.2.4';
+  static const String appVersionDisplay = 'Ver.1.2.4';
 
   static const List<String> _indonesianMonths = [
     'Januari',

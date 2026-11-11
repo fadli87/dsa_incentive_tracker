@@ -1,6 +1,38 @@
-# Dokumentasi Update & Catatan Rilis: DSA XL Satu Handbook (Ver.1.2.3)
+# Dokumentasi Update & Catatan Rilis: DSA XL Satu Handbook (Ver.1.2.4)
 
-## 📌 Ringkasan Pembaruan Utama (Ver.1.2.3 - November 2026)
+## 📌 Ringkasan Pembaruan Utama (Ver.1.2.4 - November 2026)
+
+Pembaruan ini menghadirkan layer **Pelanggan Terpasang** di Peta Coverage yang bersumber langsung dari data mentah KMZ KCLP instalasi manajemen, dapat diakses oleh seluruh pengguna yang disetujui (termasuk sales/member), dengan visualisasi ikon rumah dan pewarnaan bergulir per bulan instalasi:
+
+### 1. 🏠 Layer "Pelanggan Terpasang" di Peta Coverage (`customer_map_points`, SQLite v10)
+- **Sumber Data Mentah KMZ KCLP:** Menampilkan titik koordinat pelanggan yang diimpor dari file KMZ KCLP (tabel `customer_master`) secara otomatis melalui trigger database ke tabel `public.customer_map_points`.
+- **Akses Read-Only untuk Semua Anggota Tim:** Kebijakan RLS mengizinkan seluruh pengguna berstatus `approved` (`member`, `spv`, `tsc`, `admin`, `superadmin`) untuk melihat seluruh titik pelanggan terpasang di peta.
+- **Pemisahan Tegas dari RVAI:** Layer ini berdiri mandiri dan tidak mengubah RLS `customer_master`, tidak mempengaruhi "Pelanggan Saya", dan tidak memicu saran RVAI.
+- **Privasi Terjaga (9 Kolom Whitelist):** Hanya menyertakan `customer_id`, `latitude`, `longitude`, `install_date`, `address`, `package_name`, `sales_name`, `spv_name`, dan `tsc_name`. Nama pelanggan dan nomor HP tidak pernah disertakan.
+
+### 2. 🎨 Ikon Rumah (Glyph) Berwarna Bergulir Per Bulan Pasang
+- **Pewarnaan Relatif terhadap Bulan Berjalan (WIB):**
+  - **Merah (`#E53935`):** Pemasangan bulan ini (0 bulan).
+  - **Biru Tua (`#1E3A8A`):** Pemasangan bulan lalu (1 bulan lalu).
+  - **Pink (`#EC407A`):** Pemasangan 2 bulan lalu.
+  - **Cokelat (`#6D4C41`):** Pemasangan 3 bulan lalu.
+  - **Abu-abu (`#757575`):** Pemasangan lebih lama (> 3 bulan) atau tanpa tanggal.
+- **Handling Pergantian Tahun:** Menghitung selisih bulan kalender secara akurat (misal: Januari 2027 melihat Desember 2026 sebagai 1 bulan lalu).
+
+### 3. ⚡ Rendering Kanvas Berkinerja Tinggi & Viewport Culling (60 FPS)
+- **Single CustomPainter di Layer Peta:** Menggambar siluet rumah secara langsung pada kanvas dengan batasan ukuran dinamis (8–20 px sesuai level zoom) dan *viewport culling* (`camera.visibleBounds.contains(point)`) sehingga tidak membebani memori maupun GPU.
+
+### 4. 🔍 Filter Sales & SPV, Inspector Sheet, dan Perbaikan Legenda Homepass
+- **Filter Fleksibel:** Pengguna dapat menyaring titik berdasarkan Nama Sales, Nama SPV, maupun mengaktifkan/menonaktifkan kategori bulan pasang tertentu.
+- **Inspector Sheet (Radius 35m):** Mengetuk ikon rumah membuka lembar detail informasi lengkap beserta tombol **Salin ID**, **Salin Koordinat**, dan **Navigasi Google Maps** (tanpa tombol visit/RVAI).
+- **Koreksi Legenda Homepass:** Memperbaiki teks legenda yang sebelumnya menyesatkan agar sesuai teknologi aktual:
+  - **Ungu:** Area FTTH (kabel fiber optik) — menghapus teks lama "Existing Homeconnect".
+  - **Orange:** FWA Outdoor — menghapus teks lama "Prospek Prioritas (P3/A/B)".
+  - **Hijau:** FWA Indoor/Outdoor — menghapus teks lama "Prospek Reguler (P4/C/D)".
+
+---
+
+## 📌 Arsip Pembaruan Sebelumnya (Ver.1.2.3 - November 2026)
 
 Pembaruan ini menghadirkan fitur **Impor Master Pelanggan KCLP dari Dalam Aplikasi (Khusus SuperAdmin)** langsung dari file KMZ atau KML manajemen tanpa memerlukan terminal atau script Python:
 

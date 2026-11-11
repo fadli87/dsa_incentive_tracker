@@ -121,6 +121,30 @@ Pertanyaan upload foto pada Google Form menyimpan file ke folder Google Drive mi
 
 ---
 
+## 🗺️ Layer "Pelanggan Terpasang" di Peta Coverage (Data Mentah KMZ KCLP)
+
+Fitur ini memetakan seluruh titik pelanggan hasil instalasi yang bersumber dari data mentah KMZ KCLP instalasi manajemen ke dalam **Peta Coverage**, dapat dilihat oleh seluruh pengguna aktif (`member`, `spv`, `tsc`, `admin`, `superadmin`):
+
+### 1. Visualisasi Ikon Rumah (Glyph) & Pewarnaan Bergulir Bulan Pasang
+- Titik pelanggan terpasang digambar menggunakan siluet ikon rumah (*house glyph*) untuk membedakannya secara visual dari titik Homepass (bulatan kecil).
+- Warna ikon rumah bergulir dinamis (*rolling window*) mengikuti selisih bulan pemasangan (`install_date`) terhadap bulan berjalan saat aplikasi dibuka (WIB):
+  - 🔴 **Merah (`#E53935`):** Pemasangan bulan ini (0 bulan).
+  - 🔵 **Biru Tua (`#1E3A8A`):** Pemasangan bulan lalu (1 bulan lalu).
+  - 🌸 **Pink (`#EC407A`):** Pemasangan 2 bulan lalu.
+  - 🟤 **Cokelat (`#6D4C41`):** Pemasangan 3 bulan lalu.
+  - ⚪ **Abu-abu (`#757575`):** Pemasangan > 3 bulan lalu atau tanggal tidak tercatat.
+
+### 2. Kinerja Kanvas 60 FPS & Pemisahan Tegas dari RVAI
+- **Single CustomPainter & Viewport Culling:** Ribuan titik pelanggan digambar langsung di kanvas peta menggunakan culling area pandang layar (`camera.visibleBounds.contains(point)`), menjamin peta tetap ringan dan lancar di 60 FPS tanpa lag.
+- **Pemisahan Tegas dari RVAI:** Layer ini mengambil data dari tabel tersendiri `public.customer_map_points` yang disinkronkan otomatis lewat trigger database dari `customer_master`. Layer ini sama sekali **tidak mengubah kebijakan RLS `customer_master`**, tidak mempengaruhi "Pelanggan Saya", dan tidak memicu saran RVAI sales lain.
+- **Privasi Terjamin:** Hanya 9 kolom non-sensitif yang disinkronkan (`customer_id`, `latitude`, `longitude`, `install_date`, `address`, `package_name`, `sales_name`, `spv_name`, `tsc_name`). Nama pelanggan dan nomor telepon **tidak pernah dimasukkan** ke tabel map points.
+
+### 3. Filter Sales/SPV & Lembar Inspeksi Titik
+- **Filter Fleksibel:** Pengguna dapat menyaring titik peta berdasarkan nama sales, nama SPV, maupun menyaring kategori bulan pasang tertentu melalui lembar layer peta.
+- **Inspector Sheet (Radius 35m):** Mengetuk titik rumah membuka detail lengkap pelanggan (ID, Alamat, Paket, Tanggal Pasang + "N hari lalu", Sales, SPV, TSC, Koordinat GPS, dan Jarak Estimasi) lengkap dengan tombol **Salin ID**, **Salin Koordinat**, dan **Buka Navigasi Google Maps**.
+
+---
+
 ## 👥 Master Pelanggan KCLP ("Pelanggan Saya") & Saran RVAI
 
 Fitur ini memungkinkan setiap sales memilih pelanggan hasil instalasi miliknya sendiri tanpa mengetik ulang alamat, paket, dan koordinat, sekaligus menampilkan daftar **Saran RVAI** secara otomatis.
@@ -260,8 +284,10 @@ select public.make_superadmin('email_anda@gmail.com');
      5. `2026-11-09_visit_form_responses.sql`
      6. `2026-11-09_phase11_sa_incentive_sync.sql`
      7. `2026-11-09_visit_form_responses_fix_matching.sql`
+     8. `2026-11-10_phase12_import_customer_master.sql`
+     9. `2026-11-12_phase13_customer_map_points.sql`
      Sebelumnya, pastikan constraint role lama bernama `team_members_role_check` (`select conname from pg_constraint where conrelid = 'public.team_members'::regclass;`), kalau tidak, role `spv`/`tsc` masih ditolak.
-   - Skema membuat tabel `team_members`, `app_config`, `visit_activities`, `customer_master`, `visit_form_responses`, `sa_customers`, dan `incentive_records`, trigger pendaftaran akun & pencocokan otomatis jawaban Google Form dua arah, fungsi `is_superadmin`, `is_superadmin_exact`, `can_view_all`, `is_approved_member`, `my_sales_name`, serta RPC `redeem_access_code`, `admin_update_member_status`, `admin_update_member_role`, `admin_update_access_code`, `get_visit_summary`, `list_master_sales_names`, `claim_sales_name`, `admin_set_member_sales_name`, `get_master_status`, `get_rvai_compliance`, `admin_set_member_form_email`, `get_unmatched_form_responses`, `list_sa_customers`, `get_incentive_team_summary`, dan `make_superadmin`.
+   - Skema membuat tabel `team_members`, `app_config`, `visit_activities`, `customer_master`, `visit_form_responses`, `sa_customers`, `incentive_records`, dan `customer_map_points`, trigger pendaftaran akun, pencocokan otomatis jawaban Google Form dua arah, sinkronisasi otomatis titik peta pelanggan dari `customer_master`, fungsi `is_superadmin`, `is_superadmin_exact`, `can_view_all`, `is_approved_member`, `my_sales_name`, serta RPC `redeem_access_code`, `admin_update_member_status`, `admin_update_member_role`, `admin_update_access_code`, `get_visit_summary`, `list_master_sales_names`, `claim_sales_name`, `admin_set_member_sales_name`, `get_master_status`, `get_rvai_compliance`, `admin_set_member_form_email`, `get_unmatched_form_responses`, `list_sa_customers`, `get_incentive_team_summary`, `admin_import_customer_master`, dan `make_superadmin`.
 
 2. **Atur Kode Akses Tim Awal**:
    Jalankan query di SQL Editor Supabase:

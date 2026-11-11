@@ -19,9 +19,23 @@ class UpdateNotesScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildVersionCard(
-              version: 'Ver.1.2.3',
+              version: 'Ver.1.2.4',
               date: 'November 2026',
               isLatest: true,
+              changes: [
+                'Layer "Pelanggan Terpasang" di Peta Coverage: Menampilkan seluruh titik pelanggan KMZ (KCLP) di peta coverage untuk semua anggota tim (termasuk sales/member) secara read-only.',
+                'Ikon Rumah (Glyph) & Warna Bergulir Bulan Pasang: Titik pelanggan digambar berupa ikon rumah dengan pewarnaan dinamis terhadap bulan berjalan (Merah = Bulan ini, Biru Tua = 1 bulan lalu, Pink = 2 bulan lalu, Cokelat = 3 bulan lalu, Abu-abu = > 3 bulan lalu atau tanpa tanggal).',
+                'Rendering Kanvas Berkinerja Tinggi: Menggunakan single CustomPainter dan viewport culling pada peta sehingga ribuan titik tetap bergerak mulus di 60 FPS tanpa lag.',
+                'Filter Fleksibel Nama Sales & SPV: Dilengkapi dropdown filter sales dan SPV serta tombol toggle kategori bulan pasang di panel layer peta.',
+                'Inspector Sheet & Aksi Cepat: Mengetuk ikon rumah membuka lembar rincian pelanggan (ID, Alamat, Paket, Tanggal Pasang, Sales, SPV, TSC, Koordinat, Jarak) dengan tombol Salin ID, Salin Koordinat, dan Navigasi Google Maps.',
+                'Perbaikan Legenda Homepass: Meluruskan deskripsi warna titik Homepass agar sesuai teknologi aktual (Ungu = Area FTTH fiber optik, Orange = FWA Outdoor, Hijau = FWA Indoor/Outdoor).',
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildVersionCard(
+              version: 'Ver.1.2.3',
+              date: 'November 2026',
+              isLatest: false,
               changes: [
                 'Impor Master Pelanggan KCLP di Aplikasi: Superadmin kini dapat mengimpor file KMZ/KML instalasi manajemen langsung dari Panel Superadmin tanpa perlu terminal atau script Python.',
                 'Background Isolate & Streaming Parser XML: Ekstraksi KMZ dan pembacaan KML dijalankan di latar belakang (isolate) dengan batas hingga 50 MB tanpa membuat UI macet.',
