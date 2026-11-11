@@ -9,6 +9,8 @@ enum InstallMonthCategory {
   threeMonthsAgo('3 bulan lalu', Color(0xFF6D4C41)),
   older('Lebih lama / tanpa tanggal', Color(0xFF757575));
 
+  static const InstallMonthCategory olderOrNone = older;
+
   final String label;
   final Color color;
 
@@ -24,9 +26,11 @@ InstallMonthCategory installMonthBucket(DateTime? installDate, DateTime now) {
   final int diffMonths =
       (now.year - installDate.year) * 12 + (now.month - installDate.month);
 
+  if (diffMonths <= 0) {
+    return InstallMonthCategory.thisMonth;
+  }
+
   switch (diffMonths) {
-    case 0:
-      return InstallMonthCategory.thisMonth;
     case 1:
       return InstallMonthCategory.lastMonth;
     case 2:
@@ -145,5 +149,25 @@ class CustomerMapPoint {
       'tsc_name': tscName,
       'synced_at': syncedAt,
     };
+  }
+}
+
+extension CustomerMapPointUiExt on CustomerMapPoint {
+  InstallMonthCategory monthBucket([DateTime? now]) => getMonthCategory(now);
+
+  String get installDateFormatted {
+    final dt = installDate;
+    if (dt == null) return 'Tanpa tanggal';
+    final d = dt.day.toString().padLeft(2, '0');
+    final m = dt.month.toString().padLeft(2, '0');
+    final y = dt.year.toString();
+    final now = DateTime.now();
+    final diffDays = now.difference(dt).inDays;
+    final rel = diffDays == 0
+        ? '(hari ini)'
+        : diffDays < 30
+            ? '($diffDays hari lalu)'
+            : '(${(diffDays / 30).floor()} bulan lalu)';
+    return '$d/$m/$y $rel';
   }
 }

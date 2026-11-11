@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:latlong2/latlong.dart' hide Path;
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../maps/models/map_models.dart';
@@ -1660,7 +1660,7 @@ class _CoverageMapScreenState extends ConsumerState<CoverageMapScreen> {
               ),
               const SizedBox(height: 10),
               _buildHouseLegendRow(
-                InstallMonthCategory.olderOrNone.color,
+                InstallMonthCategory.older.color,
                 'ABU-ABU : LEBIH LAMA / TANPA TANGGAL',
                 'Pemasangan > 3 bulan lalu atau tanggal tidak tercatat',
               ),
@@ -1831,7 +1831,7 @@ class _CustomerMapPointsCanvasLayer extends StatelessWidget {
           selectedPoint: selectedPoint,
           referenceNow: referenceNow,
         ),
-        size: Size(camera.size.x, camera.size.y),
+        size: camera.size,
       ),
     );
   }

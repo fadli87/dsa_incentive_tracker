@@ -42,6 +42,8 @@ class CustomerMapPointsSyncState {
       revision: revision ?? this.revision,
     );
   }
+
+  bool get isLoading => isSyncing;
 }
 
 class CustomerMapPointsSyncNotifier
@@ -102,6 +104,10 @@ class CustomerMapPointsSyncNotifier
     }
     return res;
   }
+
+  Future<CustomerMapPointsSyncResult> syncAll({bool force = false}) {
+    return force ? syncNow() : syncIfNeeded();
+  }
 }
 
 /// Provider pengelola status sinkronisasi `customer_map_points`.
@@ -149,6 +155,14 @@ class CustomerMapPointsFilterState {
           enabledMonthCategories ?? this.enabledMonthCategories,
     );
   }
+
+  String? get salesName => selectedSales;
+  String? get spvName => selectedSpv;
+  Set<InstallMonthCategory> get selectedCategories => enabledMonthCategories;
+  bool get hasActiveFilters =>
+      selectedSales != null ||
+      selectedSpv != null ||
+      enabledMonthCategories.length < InstallMonthCategory.values.length;
 }
 
 class CustomerMapPointsFilterNotifier
@@ -184,9 +198,13 @@ class CustomerMapPointsFilterNotifier
     state = state.copyWith(enabledMonthCategories: current);
   }
 
+  void toggleCategory(InstallMonthCategory category) => toggleMonthCategory(category);
+
   void resetFilters() {
     state = const CustomerMapPointsFilterState();
   }
+
+  void reset() => resetFilters();
 }
 
 final customerMapPointsFilterProvider = StateNotifierProvider<
@@ -287,3 +305,9 @@ final filteredCustomerMapPointsProvider = Provider<List<CustomerMapPoint>>((
     orElse: () => const [],
   );
 });
+
+// Ergonomic aliases
+final customerMapPointFilterProvider = customerMapPointsFilterProvider;
+final customerMapPointSalesListProvider = uniqueMasterSalesNamesProvider;
+final customerMapPointSpvListProvider = uniqueMasterSpvNamesProvider;
+final customerMapPointMonthCountsProvider = customerMapPointsMonthCountsProvider;
