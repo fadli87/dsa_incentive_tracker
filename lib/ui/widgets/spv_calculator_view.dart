@@ -23,30 +23,42 @@ class _SpvCalculatorViewState extends ConsumerState<SpvCalculatorView> {
     _controllers = {
       'regular': TextEditingController(text: _textVal(state.spvQtyRegular)),
       'pxgy': TextEditingController(text: _textVal(state.spvQtyPxgy)),
-      'activeAgents':
-          TextEditingController(text: _textVal(state.spvActiveAgents)),
-      'agentEarnAf':
-          TextEditingController(text: _textVal(state.spvAgentEarnAf)),
+      'activeAgents': TextEditingController(
+        text: _textVal(state.spvActiveAgents),
+      ),
+      'agentEarnAf': TextEditingController(
+        text: _textVal(state.spvAgentEarnAf),
+      ),
       'mob': TextEditingController(text: _textVal(state.spvMob)),
       'ojt': TextEditingController(text: _textVal(state.spvOjtCount)),
       'm3Baseline': TextEditingController(text: _textVal(state.spvM3Baseline)),
-      'm3Surviving':
-          TextEditingController(text: _textVal(state.spvM3Surviving)),
+      'm3Surviving': TextEditingController(
+        text: _textVal(state.spvM3Surviving),
+      ),
       'm5Baseline': TextEditingController(text: _textVal(state.spvM5Baseline)),
-      'm5Surviving':
-          TextEditingController(text: _textVal(state.spvM5Surviving)),
-      'ojtToProNormal':
-          TextEditingController(text: _textVal(state.spvOjtToProNormal)),
-      'ojtToProAccel':
-          TextEditingController(text: _textVal(state.spvOjtToProAccel)),
-      'proToEliteNormal':
-          TextEditingController(text: _textVal(state.spvProToEliteNormal)),
-      'proToEliteAccel':
-          TextEditingController(text: _textVal(state.spvProToEliteAccel)),
-      'quarterlyTeamSa':
-          TextEditingController(text: _textVal(state.spvQuarterlyTeamSa)),
+      'm5Surviving': TextEditingController(
+        text: _textVal(state.spvM5Surviving),
+      ),
+      'ojtToProNormal': TextEditingController(
+        text: _textVal(state.spvOjtToProNormal),
+      ),
+      'ojtToProAccel': TextEditingController(
+        text: _textVal(state.spvOjtToProAccel),
+      ),
+      'proToEliteNormal': TextEditingController(
+        text: _textVal(state.spvProToEliteNormal),
+      ),
+      'proToEliteAccel': TextEditingController(
+        text: _textVal(state.spvProToEliteAccel),
+      ),
+      'quarterlyTeamSa': TextEditingController(
+        text: _textVal(state.spvQuarterlyTeamSa),
+      ),
       'quarterlyM3Rate': TextEditingController(
-          text: state.spvQuarterlyM3Rate == 0 ? '' : (state.spvQuarterlyM3Rate * 100).toInt().toString()),
+        text: state.spvQuarterlyM3Rate == 0
+            ? ''
+            : (state.spvQuarterlyM3Rate * 100).toInt().toString(),
+      ),
     };
   }
 
@@ -65,12 +77,11 @@ class _SpvCalculatorViewState extends ConsumerState<SpvCalculatorView> {
     _controllers['m5Surviving']?.text = _textVal(state.spvM5Surviving);
     _controllers['ojtToProNormal']?.text = _textVal(state.spvOjtToProNormal);
     _controllers['ojtToProAccel']?.text = _textVal(state.spvOjtToProAccel);
-    _controllers['proToEliteNormal']?.text =
-        _textVal(state.spvProToEliteNormal);
-    _controllers['proToEliteAccel']?.text =
-        _textVal(state.spvProToEliteAccel);
-    _controllers['quarterlyTeamSa']?.text =
-        _textVal(state.spvQuarterlyTeamSa);
+    _controllers['proToEliteNormal']?.text = _textVal(
+      state.spvProToEliteNormal,
+    );
+    _controllers['proToEliteAccel']?.text = _textVal(state.spvProToEliteAccel);
+    _controllers['quarterlyTeamSa']?.text = _textVal(state.spvQuarterlyTeamSa);
     _controllers['quarterlyM3Rate']?.text = state.spvQuarterlyM3Rate == 0
         ? ''
         : (state.spvQuarterlyM3Rate * 100).toInt().toString();
@@ -119,8 +130,10 @@ class _SpvCalculatorViewState extends ConsumerState<SpvCalculatorView> {
             hintStyle: TextStyle(color: Colors.grey.shade400),
             filled: true,
             fillColor: const Color(0xFFF8FAFC),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 10,
+              vertical: 10,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(color: Colors.grey.shade300),
@@ -131,16 +144,23 @@ class _SpvCalculatorViewState extends ConsumerState<SpvCalculatorView> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFF002B66), width: 1.5),
+              borderSide: const BorderSide(
+                color: Color(0xFF002B66),
+                width: 1.5,
+              ),
             ),
           ),
           onChanged: (val) {
             if (fieldKey == 'quarterlyM3Rate') {
               final parsed = double.tryParse(val) ?? 0.0;
-              ref.read(calculatorProvider.notifier).updateSpvQuarterlyM3Rate(parsed / 100.0);
+              ref
+                  .read(calculatorProvider.notifier)
+                  .updateSpvQuarterlyM3Rate(parsed / 100.0);
             } else {
               final parsed = int.tryParse(val) ?? 0;
-              ref.read(calculatorProvider.notifier).updateSpvField(fieldKey, parsed);
+              ref
+                  .read(calculatorProvider.notifier)
+                  .updateSpvField(fieldKey, parsed);
             }
           },
         ),
@@ -190,7 +210,11 @@ class _SpvCalculatorViewState extends ConsumerState<SpvCalculatorView> {
                 children: [
                   Row(
                     children: const [
-                      Icon(Icons.military_tech, color: Colors.amberAccent, size: 24),
+                      Icon(
+                        Icons.military_tech,
+                        color: Colors.amberAccent,
+                        size: 24,
+                      ),
                       SizedBox(width: 8),
                       Text(
                         'SKEMA SPV BARU',
@@ -204,12 +228,16 @@ class _SpvCalculatorViewState extends ConsumerState<SpvCalculatorView> {
                     ],
                   ),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.amberAccent.withValues(alpha: 0.5)),
+                      border: Border.all(
+                        color: Colors.amberAccent.withValues(alpha: 0.5),
+                      ),
                     ),
                     child: Text(
                       'Basic Fee: ${_fmt(res.basicFee)}',
@@ -238,8 +266,15 @@ class _SpvCalculatorViewState extends ConsumerState<SpvCalculatorView> {
                       visualDensity: VisualDensity.compact,
                       padding: const EdgeInsets.symmetric(horizontal: 10),
                     ),
-                    icon: const Icon(Icons.flash_on, size: 14, color: Colors.amberAccent),
-                    label: const Text('Simulasi SPV A', style: TextStyle(fontSize: 11.5)),
+                    icon: const Icon(
+                      Icons.flash_on,
+                      size: 14,
+                      color: Colors.amberAccent,
+                    ),
+                    label: const Text(
+                      'Simulasi SPV A',
+                      style: TextStyle(fontSize: 11.5),
+                    ),
                     onPressed: () {
                       notifier.loadSpvPresetA();
                       _syncControllersWithState(ref.read(calculatorProvider));
@@ -252,8 +287,15 @@ class _SpvCalculatorViewState extends ConsumerState<SpvCalculatorView> {
                       visualDensity: VisualDensity.compact,
                       padding: const EdgeInsets.symmetric(horizontal: 10),
                     ),
-                    icon: const Icon(Icons.flash_on, size: 14, color: Colors.cyanAccent),
-                    label: const Text('Simulasi SPV B', style: TextStyle(fontSize: 11.5)),
+                    icon: const Icon(
+                      Icons.flash_on,
+                      size: 14,
+                      color: Colors.cyanAccent,
+                    ),
+                    label: const Text(
+                      'Simulasi SPV B',
+                      style: TextStyle(fontSize: 11.5),
+                    ),
                     onPressed: () {
                       notifier.loadSpvPresetB();
                       _syncControllersWithState(ref.read(calculatorProvider));
@@ -427,10 +469,7 @@ class _SpvCalculatorViewState extends ConsumerState<SpvCalculatorView> {
                 ],
               ),
               const SizedBox(height: 4),
-              _buildInfoRow(
-                'Total M3:',
-                _fmt(res.m3Survival.totalBonus),
-              ),
+              _buildInfoRow('Total M3:', _fmt(res.m3Survival.totalBonus)),
 
               const Divider(height: 18),
 
@@ -469,10 +508,7 @@ class _SpvCalculatorViewState extends ConsumerState<SpvCalculatorView> {
                 ],
               ),
               const SizedBox(height: 4),
-              _buildInfoRow(
-                'Total M5:',
-                _fmt(res.m5Survival.totalBonus),
-              ),
+              _buildInfoRow('Total M5:', _fmt(res.m5Survival.totalBonus)),
             ],
           ),
         ),
@@ -559,11 +595,16 @@ class _SpvCalculatorViewState extends ConsumerState<SpvCalculatorView> {
                 children: [
                   Text(
                     'Total SA Tim: ${res.totalTeamSa} Aktivasi',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
                   ),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: res.monthlyPerformance.bonusAmount > 0
                           ? Colors.green.shade50
@@ -631,8 +672,10 @@ class _SpvCalculatorViewState extends ConsumerState<SpvCalculatorView> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Status Gate Kelayakan (≥80%):',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                  const Text(
+                    'Status Gate Kelayakan (≥80%):',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
                   _buildGateBadge(
                     res.quarterlyDetail.isGatePassed,
                     '${(res.quarterlyDetail.m3SurvivalRate * 100).toStringAsFixed(0)}%',
@@ -664,7 +707,9 @@ class _SpvCalculatorViewState extends ConsumerState<SpvCalculatorView> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFF002B66).withValues(alpha: 0.2)),
+            border: Border.all(
+              color: const Color(0xFF002B66).withValues(alpha: 0.2),
+            ),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.08),
@@ -692,17 +737,26 @@ class _SpvCalculatorViewState extends ConsumerState<SpvCalculatorView> {
               ),
               const Divider(height: 20),
               _buildSummaryLine('Basic Fee SPV (Tetap):', _fmt(res.basicFee)),
-              _buildSummaryLine('1. KPI Bonus:', _fmt(res.kpiBonus.totalKpiBonus)),
               _buildSummaryLine(
-                  '2. Survival Rate:', _fmt(res.totalSurvivalIncentive)),
+                '1. KPI Bonus:',
+                _fmt(res.kpiBonus.totalKpiBonus),
+              ),
               _buildSummaryLine(
-                  '3. Graduation Bonus:', _fmt(res.graduation.totalBonus)),
+                '2. Survival Rate:',
+                _fmt(res.totalSurvivalIncentive),
+              ),
               _buildSummaryLine(
-                  '4. Monthly Performance:',
-                  _fmt(res.monthlyPerformance.bonusAmount)),
+                '3. Graduation Bonus:',
+                _fmt(res.graduation.totalBonus),
+              ),
               _buildSummaryLine(
-                  '5. Quarterly Bonus SPV:',
-                  _fmt(res.quarterlyDetail.totalQuarterlyBonus)),
+                '4. Monthly Performance:',
+                _fmt(res.monthlyPerformance.bonusAmount),
+              ),
+              _buildSummaryLine(
+                '5. Quarterly Bonus SPV:',
+                _fmt(res.quarterlyDetail.totalQuarterlyBonus),
+              ),
               const Divider(thickness: 1.5, height: 22),
               _buildSummaryLine(
                 'TOTAL INSENTIF:',
@@ -764,7 +818,8 @@ class _SpvCalculatorViewState extends ConsumerState<SpvCalculatorView> {
                     multRate: res.kpiBonus.kpiMultiplier,
                     multBonus: res.kpiBonus.totalKpiBonus,
                     progInc: res.totalSurvivalIncentive,
-                    specialInc: res.graduation.totalBonus +
+                    specialInc:
+                        res.graduation.totalBonus +
                         res.monthlyPerformance.bonusAmount,
                     monthlySubtotal: res.grandTotal,
                     grandTotal: res.grandTotal,
@@ -875,7 +930,9 @@ class _SpvCalculatorViewState extends ConsumerState<SpvCalculatorView> {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
-              color: isHighlight ? const Color(0xFF002B66) : const Color(0xFF0F172A),
+              color: isHighlight
+                  ? const Color(0xFF002B66)
+                  : const Color(0xFF0F172A),
             ),
           ),
         ],

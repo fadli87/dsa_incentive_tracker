@@ -77,3 +77,4 @@ create policy "cluster_maps storage superadmin delete" on storage.objects for de
     bucket_id = 'cluster-maps'
     and public.is_superadmin_exact(auth.uid())
   );
+

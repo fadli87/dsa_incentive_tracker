@@ -51,3 +51,4 @@ enum SchemeVersion {
   String get ftth125Full =>
       isNov2026 ? 'Rp 390.000 – Rp 599.999' : 'Rp 400.000 – Rp 599.999';
 }
+
