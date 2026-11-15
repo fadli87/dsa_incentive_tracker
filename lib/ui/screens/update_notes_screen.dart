@@ -23,6 +23,10 @@ class UpdateNotesScreen extends StatelessWidget {
               date: 'November 2026',
               isLatest: true,
               changes: [
+                'Fitur Baru "Peta Cluster" (KMZ Viewer per Cluster): Sales kini dapat membuka peta teknis rancangan cluster FTTH langsung dari file KMZ per cluster, lengkap dengan visualisasi titik ODP, rute kabel distribusi, dan boundary area.',
+                'Dukungan Penuh Offline Caching: File KMZ dan katalog cluster disimpan di memori lokal secara otomatis sehingga seluruh peta cluster dapat dibuka di lapangan tanpa sinyal internet.',
+                'Tombol Unduh Semua Cluster: Memungkinkan sales mengunduh seluruh peta cluster sekaligus sebelum turun ke lapangan.',
+                'Viewer Interaktif & Buka PDF: Dilengkapi pemilih tile layer satelit hybrid/OSM, filter toggle folder layer, modal detail titik ODP dengan tombol salin koordinat dan navigasi Google Maps, serta pembuka dokumen desain PDF cluster bawaan.',
                 'Pembaruan Skema Insentif November 2026: Mengadopsi penyesuaian resmi skema insentif DTD/DSA (berlaku untuk kinerja 1 November 2026, payout 15 Desember 2026).',
                 'Penyesuaian Tiering Progresif OJT: Rate progresif per SA untuk AE OJT diperbarui menjadi 1–2 SA = Rp 60.000, 3–4 SA = Rp 90.000, 5–6 SA = Rp 150.000, 7–9 SA = Rp 180.000, dan ≥10 SA = Rp 200.000 (lump sum min 3 SA = 325rb & min 7 SA = 600rb tetap dipertahankan).',
                 'Ambang Batas Baru FTTH Product Mix: Paket FTTH Rp 290.000–Rp 389.999 (seperti paket 299rb) kini naik ke bucket Rp 100.000, dan paket Rp 390.000–Rp 599.999 (seperti paket 399rb) masuk ke bucket Rp 125.000.',

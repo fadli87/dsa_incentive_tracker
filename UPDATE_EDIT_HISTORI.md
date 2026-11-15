@@ -35,6 +35,19 @@ Pembaruan ini mengadopsi dokumen resmi **DTD - Nov26 Incentive Scheme Program Up
   - Tombol **Input SA** di Map Inspector Sheet disembunyikan.
   - Seluruh kode controller, service, dan screen tetap utuh dan siap diaktifkan kembali jika dibutuhkan di masa mendatang.
 
+### 4. 🗺️ Fitur Baru "Peta Cluster" (KMZ Viewer per Cluster & Offline Cache)
+- **Visualisasi Peta KMZ per Cluster:** Sales dapat memilih cluster FTTH dari katalog, memuat dan merender seluruh titik ODP, jalur kabel fiber optik distribusi, serta polygon boundary rancangan cluster.
+- **Arsitektur Offline Caching Mandiri:** Menyimpan metadata katalog dan file KMZ di direktori dokumen lokal perangkat. Saat berada di lokasi blank spot/tanpa sinyal, sales tetap dapat membuka seluruh cluster yang sudah tersimpan.
+- **Tombol "Unduh Semua":** Fitur unduh batch untuk menyimpan seluruh KMZ sebelum sales turun ke lapangan.
+- **Peta Interaktif & Desain PDF:**
+  - Pilihan layer satelit hybrid Google dan OpenStreetMap.
+  - Filter toggle on/off untuk setiap Folder/Layer KML.
+  - Tap pada titik ODP memunculkan modal detail (spesifikasi, kapasitas, koordinat, tombol salin dan navigasi Google Maps).
+  - Pembuka dokumen PDF rancangan cluster (`open_filex`) langsung dari peta.
+- **Backend & Script Upload Massal:**
+  - Migrasi `2026-11-15_phase14_cluster_maps.sql` (tabel `public.cluster_maps` dan bucket privat Supabase Storage `cluster-maps`).
+  - Script Python `tools/upload_cluster_maps/upload_cluster_maps.py` untuk otomatisasi scan dan upload ribuan cluster dari Google Drive `KAB.CILACAP`.
+
 ---
 
 ## 📌 Arsip Pembaruan Sebelumnya (Ver.1.2.4 - November 2026)

@@ -18,6 +18,7 @@ import 'coverage_map_screen.dart';
 import 'visit_daily_screen.dart';
 import 'visit_team_summary_screen.dart';
 import 'sa_team_list_screen.dart';
+import 'cluster_map_list_screen.dart';
 import '../../core/constants/app_constants.dart';
 import '../../ai/widgets/ai_coach_chat_sheet.dart';
 
@@ -475,7 +476,7 @@ class DashboardScreen extends ConsumerWidget {
 
                         // 6. Peta Coverage & BTS XL
                         _buildCircularMenuItem(
-                          icon: Icons.map_rounded,
+                          icon: Icons.public_rounded,
                           iconColor: const Color(0xFF1E88E5),
                           gradientColors: const [Color(0xFFE1F5FE), Color(0xFFB3E5FC)],
                           shadowColor: const Color(0xFF0288D1).withValues(alpha: 0.25),
@@ -485,6 +486,22 @@ class DashboardScreen extends ConsumerWidget {
                               context,
                               MaterialPageRoute(
                                   builder: (_) => const CoverageMapScreen()),
+                            );
+                          },
+                        ),
+
+                        // 7. Peta Cluster (KMZ Viewer FTTH)
+                        _buildCircularMenuItem(
+                          icon: Icons.map_rounded,
+                          iconColor: const Color(0xFF0284C7),
+                          gradientColors: const [Color(0xFFE0F2FE), Color(0xFFBAE6FD)],
+                          shadowColor: const Color(0xFF0284C7).withValues(alpha: 0.25),
+                          title: 'Peta Cluster',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const ClusterMapListScreen()),
                             );
                           },
                         ),

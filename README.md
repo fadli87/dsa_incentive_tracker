@@ -15,10 +15,15 @@ Aplikasi komprehensif untuk Direct Sales Agency (DSA) XL Satu — mencakup kalku
    - 24 distrik pemetaan Kabupaten Cilacap & Banyumas.
    - Deteksi Homepass 3 warna (Ungu: FTTH, Hijau: FWA Indoor/Outdoor, Orange: FWA Outdoor).
    - Perhitungan jarak tower BTS terdekat & parsir koordinat WhatsApp Shareloc / Google Maps.
-3. **AURA AI Coach & Diagnostik Jaringan**:
+3. **Peta Cluster (KMZ Viewer & Offline Caching)**:
+   - Membuka dan merender rancangan teknis cluster FTTH dari file KMZ per cluster (titik ODP, kabel distribusi/feeder, boundary area).
+   - Penyimpanan offline otomatis di HP: dapat dibuka di lapangan tanpa sinyal internet.
+   - Tombol "Unduh Semua Cluster" untuk persiapan sebelum turun ke lapangan.
+   - Pilihan satelit hybrid/OSM, toggle layer per folder, salin koordinat, navigasi Google Maps, dan pembuka dokumen desain PDF cluster.
+4. **AURA AI Coach & Diagnostik Jaringan**:
    - RF Diagnostic & eNodeB / Cell ID separator.
    - Panduan pitching & objection handling penjualan XL Satu.
-4. **Aktivitas Harian Visit (RVAI / Dismantle / Unpaid) & Master Pelanggan KCLP ("Pelanggan Saya")**:
+5. **Aktivitas Harian Visit (RVAI / Dismantle / Unpaid) & Master Pelanggan KCLP ("Pelanggan Saya")**:
    - Pencatatan target kunjungan harian (**RVAI** hijau, **Dismantle** merah, **Unpaid** kuning) 100% *offline-first* (SQLite v8) dengan sinkronisasi otomatis ke Supabase saat terhubung internet.
    - Integrasi **Master Pelanggan KCLP ("Pelanggan Saya")**: pilih pelanggan langsung dari daftar milik sales sendiri (autofill Customer ID, alamat, paket, dan koordinat) serta **Saran RVAI otomatis** (H+7 setelah tanggal install).
    - Input titik koordinat via GPS saat ini, tempel tautan Google Maps / Shareloc WhatsApp, atau input manual.
