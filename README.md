@@ -6,9 +6,11 @@ Aplikasi komprehensif untuk Direct Sales Agency (DSA) XL Satu — mencakup kalku
 
 ## 🚀 Fitur Utama
 
-1. **Simulasi Skema Insentif September 2026**:
-   - Skema DSA: OJT, Pro, dan Elite (Basic Fee, Tier Progresif SA, Multiplier, Survival Rate M3/M5, Quarterly Bonus, Net Add Incentive).
-   - Skema SPV: Basic Fee, Multiplier Tim, MoB Support <= 3 bulan, dan Quarterly Bonus Tim.
+1. **Simulasi Skema Insentif November 2026 & Proteksi Riwayat Historis**:
+   - Skema DSA: OJT (tier 60k/90k/150k/180k/200k & lump sum), Pro, dan Elite (Basic Fee, Tier Progresif SA, Multiplier, Survival Rate M3/M5, Quarterly Bonus, Net Add Incentive).
+   - Ambang FTTH Regular Baru: Rp 290k–389k masuk bucket 100k, Rp 390k–599k masuk bucket 125k.
+   - Skema SPV: Basic Fee, Multiplier Tim, MoB Support <= 3 bulan, Graduation Bonus (akselerasi Pro ke Elite nonaktif), dan Quarterly Bonus Tim.
+   - Dukungan Multi-Versi Skema (`SchemeVersion`): Menjamin akurasi perhitungan riwayat bulan-bulan sebelumnya saat diedit.
 2. **Peta GIS Coverage & BTS Tower**:
    - 24 distrik pemetaan Kabupaten Cilacap & Banyumas.
    - Deteksi Homepass 3 warna (Ungu: FTTH, Hijau: FWA Indoor/Outdoor, Orange: FWA Outdoor).

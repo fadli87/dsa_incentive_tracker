@@ -1,4 +1,5 @@
 import '../models/calculator_models.dart';
+import 'scheme_version.dart';
 
 class CalculatorEngine {
   static const String defaultCity = 'KAB. CILACAP';
@@ -68,9 +69,9 @@ class CalculatorEngine {
     return 0.0;
   }
 
-  /// Perhitungan terstruktur dan lengkap untuk skema SPV September 2026
-  /// Perhitungan terstruktur dan lengkap untuk skema SPV September 2026
+  /// Perhitungan terstruktur dan lengkap untuk skema SPV September & November 2026
   static SpvCalculationResult calculateSpvDetailed({
+    SchemeVersion scheme = SchemeVersion.latest,
     String city = defaultCity,
     required int qtyRegular,
     required int qtyPxgy,
@@ -196,7 +197,7 @@ class CalculatorEngine {
     final double totalGraduation = (ojtToProNormal * 500000.0) +
         (ojtToProAccel * 700000.0) +
         (proToEliteNormal * 600000.0) +
-        (proToEliteAccel * 800000.0);
+        (scheme.spvProToEliteAccelPaid ? proToEliteAccel * 800000.0 : 0.0);
 
     final graduationDetail = SpvGraduationDetail(
       ojtToProNormal: ojtToProNormal,
@@ -405,6 +406,7 @@ class CalculatorEngine {
 
   /// Perhitungan terstruktur dan lengkap yang mengembalikan CalculationResult
   static CalculationResult calculateDetailed({
+    SchemeVersion scheme = SchemeVersion.latest,
     PositionType position = PositionType.elite,
     String city = defaultCity,
     required int f0,
@@ -447,19 +449,19 @@ class CalculatorEngine {
 
     if (position == PositionType.ojt) {
       // --- SKEMA KHUSUS AE OJT (Slide 4 & Guiding Principle Poin 6) ---
-      // Tiering Progresif SA OJT:
-      // 1–2 @ 80k, 3–4 @ 100k, 5–6 @ 130k, 7–9 @ 150k, ≥10 @ 200k
+      // Tiering Progresif SA OJT dinamis mengikuti versi skema (Sept 2026 vs Nov 2026).
+      final ojtRates = scheme.ojtTierRates;
       final int b1 = totalSa.clamp(0, 2);
       final int b2 = (totalSa - 2).clamp(0, 2);
       final int b3 = (totalSa - 4).clamp(0, 2);
       final int b4 = (totalSa - 6).clamp(0, 3);
       final int b5 = (totalSa - 9) > 0 ? (totalSa - 9) : 0;
 
-      progInc = (b1 * 80000.0) +
-          (b2 * 100000.0) +
-          (b3 * 130000.0) +
-          (b4 * 150000.0) +
-          (b5 * 200000.0);
+      progInc = (b1 * ojtRates[0]) +
+          (b2 * ojtRates[1]) +
+          (b3 * ojtRates[2]) +
+          (b4 * ojtRates[3]) +
+          (b5 * ojtRates[4]);
 
       // OJT TIDAK memiliki Multiplier terhadap Product Mix
       multRate = 0.0;
@@ -475,42 +477,42 @@ class CalculatorEngine {
       tierRows = [
         TierRow(
           tierRange: '1 – 2 akt',
-          ratePerAkt: 80000,
+          ratePerAkt: ojtRates[0],
           multiplier: 0,
           unitsInTier: b1,
-          subtotalProgressive: b1 * 80000.0,
+          subtotalProgressive: b1 * ojtRates[0],
           isCurrentTier: totalSa > 0 && totalSa <= 2,
         ),
         TierRow(
           tierRange: '3 – 4 akt',
-          ratePerAkt: 100000,
+          ratePerAkt: ojtRates[1],
           multiplier: 0,
           unitsInTier: b2,
-          subtotalProgressive: b2 * 100000.0,
+          subtotalProgressive: b2 * ojtRates[1],
           isCurrentTier: totalSa >= 3 && totalSa <= 4,
         ),
         TierRow(
           tierRange: '5 – 6 akt',
-          ratePerAkt: 130000,
+          ratePerAkt: ojtRates[2],
           multiplier: 0,
           unitsInTier: b3,
-          subtotalProgressive: b3 * 130000.0,
+          subtotalProgressive: b3 * ojtRates[2],
           isCurrentTier: totalSa >= 5 && totalSa <= 6,
         ),
         TierRow(
           tierRange: '7 – 9 akt',
-          ratePerAkt: 150000,
+          ratePerAkt: ojtRates[3],
           multiplier: 0,
           unitsInTier: b4,
-          subtotalProgressive: b4 * 150000.0,
+          subtotalProgressive: b4 * ojtRates[3],
           isCurrentTier: totalSa >= 7 && totalSa <= 9,
         ),
         TierRow(
           tierRange: '≥ 10 akt',
-          ratePerAkt: 200000,
+          ratePerAkt: ojtRates[4],
           multiplier: 0,
           unitsInTier: b5,
-          subtotalProgressive: b5 * 200000.0,
+          subtotalProgressive: b5 * ojtRates[4],
           isCurrentTier: totalSa >= 10,
         ),
       ];

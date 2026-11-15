@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../providers/calculator_provider.dart';
 import '../../providers/history_provider.dart';
 import '../../data/models/incentive_record.dart';
+import '../../core/engine/scheme_version.dart';
 
 class SpvCalculatorView extends ConsumerStatefulWidget {
   const SpvCalculatorView({super.key});
@@ -526,14 +527,16 @@ class _SpvCalculatorViewState extends ConsumerState<SpvCalculatorView> {
                       fieldKey: 'proToEliteNormal',
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _buildField(
-                      label: 'Akselerasi (<3 bln)',
-                      helper: 'Rp 800k / sales',
-                      fieldKey: 'proToEliteAccel',
+                  if (SchemeVersion.latest.spvProToEliteAccelPaid) ...[
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _buildField(
+                        label: 'Akselerasi (<3 bln)',
+                        helper: 'Rp 800k / sales',
+                        fieldKey: 'proToEliteAccel',
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ],

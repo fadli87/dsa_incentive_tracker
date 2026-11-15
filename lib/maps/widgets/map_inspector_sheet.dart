@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import '../models/map_models.dart';
+import '../../core/constants/app_constants.dart';
 import '../../ui/screens/sa_form_screen.dart';
 import '../../ai/widgets/ai_coach_chat_sheet.dart';
 
@@ -234,35 +235,37 @@ class MapInspectorSheet extends StatelessWidget {
                     },
                   ),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: FilledButton.icon(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF002B66),
-                      padding: const EdgeInsets.symmetric(vertical: 11),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
-                    label: const Text(
-                      'Input SA',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                    ),
-                    onPressed: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => SaFormScreen(
-                            initialLatitude: point.latitude,
-                            initialLongitude: point.longitude,
-                          ),
+                if (AppConstants.showCustomerDataFeature) ...[
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFF002B66),
+                        padding: const EdgeInsets.symmetric(vertical: 11),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
                         ),
-                      );
-                    },
+                      ),
+                      icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
+                      label: const Text(
+                        'Input SA',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => SaFormScreen(
+                              initialLatitude: point.latitude,
+                              initialLongitude: point.longitude,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ],

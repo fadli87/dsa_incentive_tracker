@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dsa_incentive_tracker/core/catalog/package_catalog.dart';
 import 'package:dsa_incentive_tracker/core/engine/incentive_bucket.dart';
+import 'package:dsa_incentive_tracker/core/engine/scheme_version.dart';
 
 void main() {
   group('PackageCatalog Tests', () {
@@ -34,7 +35,13 @@ void main() {
       expect(IncentiveBucket.forPackage(ftth250), equals(IncentiveBucket.f50));
 
       final ftth500 = PackageCatalog.findById('ftth-ultra-high-500-mbps')!;
-      expect(IncentiveBucket.forPackage(ftth500), equals(IncentiveBucket.f100));
+      // Skema Sept 2026: 399k masuk bucket f100 (300k–399k)
+      expect(
+        IncentiveBucket.forPackage(ftth500, scheme: SchemeVersion.sept2026),
+        equals(IncentiveBucket.f100),
+      );
+      // Skema Nov 2026 (default/latest): 399k masuk bucket f125 (390k–599k)
+      expect(IncentiveBucket.forPackage(ftth500), equals(IncentiveBucket.f125));
 
       final ftth1gb = PackageCatalog.findById('ftth-ultra-high-1-gbps')!;
       expect(IncentiveBucket.forPackage(ftth1gb), equals(IncentiveBucket.f200));

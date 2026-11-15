@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/engine/scheme_version.dart';
 
 class GuideScreen extends StatelessWidget {
   const GuideScreen({super.key});
@@ -171,9 +172,9 @@ class GuideScreen extends StatelessWidget {
               headers: ['Plan Tiering / Paket', 'Insentif / SA'],
               rows: [
                 ['FTTH < Rp 229.000', 'Rp 0'],
-                ['FTTH Rp 229.000 – Rp 299.999', 'Rp 50.000'],
-                ['FTTH Rp 300.000 – Rp 399.999', 'Rp 100.000'],
-                ['FTTH Rp 400.000 – Rp 599.999', 'Rp 125.000'],
+                ['FTTH ${SchemeVersion.latest.ftth50Full}', 'Rp 50.000'],
+                ['FTTH ${SchemeVersion.latest.ftth100Full}', 'Rp 100.000'],
+                ['FTTH ${SchemeVersion.latest.ftth125Full}', 'Rp 125.000'],
                 ['FTTH ≥ Rp 600.000', 'Rp 200.000'],
                 ['FWA Regular (≥ Rp 219.000)', 'Rp 50.000'],
               ],
@@ -239,10 +240,10 @@ class GuideScreen extends StatelessWidget {
                   _buildTierTable(
                     headers: ['Jenjang SA OJT', 'Rate Progresif / SA'],
                     rows: [
-                      ['1 – 2 SA', 'Rp 80.000'],
-                      ['3 – 4 SA', 'Rp 100.000'],
-                      ['5 – 6 SA', 'Rp 130.000'],
-                      ['7 – 9 SA', 'Rp 150.000'],
+                      ['1 – 2 SA', 'Rp 60.000'],
+                      ['3 – 4 SA', 'Rp 90.000'],
+                      ['5 – 6 SA', 'Rp 150.000'],
+                      ['7 – 9 SA', 'Rp 180.000'],
                       ['≥ 10 SA', 'Rp 200.000'],
                     ],
                   ),
@@ -396,7 +397,7 @@ class GuideScreen extends StatelessWidget {
           icon: Icons.rule_outlined,
           accentColor: const Color(0xFF002B66),
           children: [
-            _buildBullet('1. Skema berlaku mulai Performance 1 September 2026 (Payout 15 Oktober 2026).'),
+            _buildBullet('1. Skema berlaku mulai Performance 1 November 2026 (Payout 15 Desember 2026). Perhitungan bulan sebelumnya mengikuti skema Sept/Okt 2026.'),
             _buildBullet('2. Populasi SA yang diperhitungkan adalah SA month 1 bulan full sesuai data Power BI (tidak menggunakan SO dan SA Paid, carry over tidak berlaku lagi).'),
             _buildBullet('3. Posisi sales yang digunakan dalam perhitungan Activation Fee adalah latest position end of month.'),
             _buildBullet('4. Jika AE terbukti melakukan FRAUD, maka seluruh Insentif dan Basic Fee tidak akan dibayarkan.'),
@@ -619,7 +620,7 @@ class GuideScreen extends StatelessWidget {
               headers: ['Jalur Promosi', 'Jalur Normal (≥3 Bln)', 'Akselerasi (<3 Bln)'],
               rows: [
                 ['Promote OJT ➔ AE PRO', 'Rp 500.000 / sales', 'Rp 700.000 / sales'],
-                ['Promote AE PRO ➔ AE ELITE', 'Rp 600.000 / sales', 'Rp 800.000 / sales'],
+                ['Promote AE PRO ➔ AE ELITE', 'Rp 600.000 / sales', 'Tidak berlaku (mulai Nov 2026)'],
               ],
             ),
           ],

@@ -7,6 +7,7 @@ import '../../providers/user_info_provider.dart';
 import '../../data/models/incentive_record.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/models/calculator_models.dart';
+import '../../core/engine/scheme_version.dart';
 import '../widgets/position_selector_tabs.dart';
 import '../widgets/tier_productivity_table.dart';
 import '../widgets/result_card.dart';
@@ -96,7 +97,7 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
               ),
             ),
             Text(
-              'XL SATU CILACAP · TSC PIPIN · Effective Sept 2026',
+              'XL SATU CILACAP · TSC PIPIN · Effective Nov 2026',
               style: TextStyle(fontSize: 10.5, color: Colors.white70),
             ),
           ],
@@ -335,11 +336,11 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
                   ),
                   const SizedBox(height: 12),
                   _buildInputRow('FTTH < 229', 'Rp 0/aktivasi', 'f0', notifier),
-                  _buildInputRow('FTTH 229–299', 'Rp 50.000/aktivasi', 'f50',
+                  _buildInputRow('FTTH ${SchemeVersion.latest.ftth50Range}', 'Rp 50.000/aktivasi', 'f50',
                       notifier),
-                  _buildInputRow('FTTH 300–399', 'Rp 100.000/aktivasi', 'f100',
+                  _buildInputRow('FTTH ${SchemeVersion.latest.ftth100Range}', 'Rp 100.000/aktivasi', 'f100',
                       notifier),
-                  _buildInputRow('FTTH 400–599', 'Rp 125.000/aktivasi', 'f125',
+                  _buildInputRow('FTTH ${SchemeVersion.latest.ftth125Range}', 'Rp 125.000/aktivasi', 'f125',
                       notifier),
                   _buildInputRow('FTTH ≥ 600', 'Rp 200.000/aktivasi', 'f200',
                       notifier),

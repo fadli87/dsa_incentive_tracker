@@ -378,21 +378,22 @@ class DashboardScreen extends ConsumerWidget {
                           },
                         ),
 
-                        // 3. Data Pelanggan (SA)
-                        _buildCircularMenuItem(
-                          icon: Icons.people_alt_rounded,
-                          iconColor: const Color(0xFF00897B),
-                          gradientColors: const [Color(0xFFE0F2F1), Color(0xFFB2DFDB)],
-                          shadowColor: const Color(0xFF00897B).withValues(alpha: 0.25),
-                          title: 'Data Pelanggan',
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const SaListScreen()),
-                            );
-                          },
-                        ),
+                        // 3. Data Pelanggan (SA) - toggle via AppConstants.showCustomerDataFeature
+                        if (AppConstants.showCustomerDataFeature)
+                          _buildCircularMenuItem(
+                            icon: Icons.people_alt_rounded,
+                            iconColor: const Color(0xFF00897B),
+                            gradientColors: const [Color(0xFFE0F2F1), Color(0xFFB2DFDB)],
+                            shadowColor: const Color(0xFF00897B).withValues(alpha: 0.25),
+                            title: 'Data Pelanggan',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const SaListScreen()),
+                              );
+                            },
+                          ),
 
                         // 4. Aktivitas Harian Visit (RVAI / Dismantle / Unpaid)
                         _buildCircularMenuItem(
@@ -427,8 +428,8 @@ class DashboardScreen extends ConsumerWidget {
                             },
                           ),
 
-                        // Data SA Tim (Tampil HANYA bila canViewAllProvider == true)
-                        if (canViewAll)
+                        // Data SA Tim (Tampil HANYA bila canViewAllProvider == true && showCustomerDataFeature)
+                        if (canViewAll && AppConstants.showCustomerDataFeature)
                           _buildCircularMenuItem(
                             icon: Icons.supervised_user_circle_rounded,
                             iconColor: const Color(0xFF0369A1),

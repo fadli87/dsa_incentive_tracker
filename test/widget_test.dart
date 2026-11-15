@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dsa_incentive_tracker/main.dart';
+import 'package:dsa_incentive_tracker/core/constants/app_constants.dart';
 import 'package:dsa_incentive_tracker/data/models/sa_record.dart';
 import 'package:dsa_incentive_tracker/data/models/user_profile.dart';
 import 'package:dsa_incentive_tracker/ui/screens/user_info_screen.dart';
@@ -54,15 +55,19 @@ void main() {
     await tester.pageBack();
     await tester.pumpAndSettle();
 
-    // 3. Tap menu 'Data Pelanggan'
-    await tester.tap(find.text('Data Pelanggan'));
-    await tester.pumpAndSettle();
-    expect(find.text('DATA PELANGGAN (SA)'), findsOneWidget);
-    expect(find.text('OFFLINE'), findsOneWidget);
+    // 3. Menu 'Data Pelanggan' (tersembunyi bila showCustomerDataFeature == false)
+    if (AppConstants.showCustomerDataFeature) {
+      await tester.tap(find.text('Data Pelanggan'));
+      await tester.pumpAndSettle();
+      expect(find.text('DATA PELANGGAN (SA)'), findsOneWidget);
+      expect(find.text('OFFLINE'), findsOneWidget);
 
-    // Kembali ke Dashboard
-    await tester.pageBack();
-    await tester.pumpAndSettle();
+      // Kembali ke Dashboard
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+    } else {
+      expect(find.text('Data Pelanggan'), findsNothing);
+    }
 
     // 4. Tap menu 'Panduan Skema'
     await tester.tap(find.text('Panduan Skema'));

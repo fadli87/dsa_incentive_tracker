@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dsa_incentive_tracker/core/engine/calculator_engine.dart';
+import 'package:dsa_incentive_tracker/core/engine/scheme_version.dart';
 import 'package:dsa_incentive_tracker/core/models/calculator_models.dart';
 
 void main() {
@@ -29,9 +30,10 @@ void main() {
       expect(CalculatorEngine.getBasicFee(PositionType.elite), 2773184.0);
     });
 
-    test('Perhitungan OJT: Progressive tier OJT, Lump Sum, dan tanpa Multiplier', () {
-      // Test OJT dengan 4 SA (f100: 4)
+    test('Perhitungan OJT (Skema Sept 2026): Progressive tier OJT lama, Lump Sum, dan tanpa Multiplier', () {
+      // Test OJT dengan 4 SA (f100: 4) pada skema Sept 2026
       final res4 = CalculatorEngine.calculateDetailed(
+        scheme: SchemeVersion.sept2026,
         position: PositionType.ojt,
         f0: 0,
         f50: 0,
@@ -44,7 +46,7 @@ void main() {
       );
 
       expect(res4.totalSa, 4);
-      // OJT Tier: 1-2 @ 80k (160k), 3-4 @ 100k (200k) -> progInc = 360.000
+      // OJT Tier lama: 1-2 @ 80k (160k), 3-4 @ 100k (200k) -> progInc = 360.000
       expect(res4.progInc, 360000.0);
       // Lump Sum min 3 SA = 325.000
       expect(res4.lumpSumBonus, 325000.0);
@@ -56,8 +58,9 @@ void main() {
       // Grand total: basicFee (1.900.000) + prog (360.000) + pmBase (400.000) + lumpSum (325.000)
       expect(res4.grandTotal, 1900000.0 + 360000.0 + 400000.0 + 325000.0);
 
-      // Test OJT dengan 7 SA (f100: 7)
+      // Test OJT dengan 7 SA (f100: 7) pada skema Sept 2026
       final res7 = CalculatorEngine.calculateDetailed(
+        scheme: SchemeVersion.sept2026,
         position: PositionType.ojt,
         f0: 0,
         f50: 0,
@@ -70,7 +73,7 @@ void main() {
       );
 
       expect(res7.totalSa, 7);
-      // OJT Tier 7 SA:
+      // OJT Tier 7 SA lama:
       // 1-2 (2*80k = 160k) + 3-4 (2*100k = 200k) + 5-6 (2*130k = 260k) + 7 (1*150k = 150k)
       // progInc = 160k + 200k + 260k + 150k = 770.000
       expect(res7.progInc, 770000.0);
@@ -487,9 +490,10 @@ void main() {
       expect(resNonDtd.leadsFromDtd, isFalse);
     });
 
-    test('Skenario OJT 3 SA (Slide 4)', () {
+    test('Skenario OJT 3 SA (Slide 4, Skema Sept 2026)', () {
       // 3 SA f100 -> prog: 2*80k + 1*100k = 260.000, pmBase: 300.000, lumpSum: 325.000
       final res = CalculatorEngine.calculateDetailed(
+        scheme: SchemeVersion.sept2026,
         position: PositionType.ojt,
         f0: 0,
         f50: 0,
@@ -598,6 +602,172 @@ void main() {
       expect(res50.pmBase, 5000000.0);
       expect(res50.multRate, 4.65);
       expect(res50.multBonus, 23250000.0);
+    });
+  });
+
+  group('CalculatorEngine Tests - Skema Insentif November 2026', () {
+    test('SchemeVersion resolver berdasarkan periodMonth dan periode label', () {
+      // Test via periodMonth YYYY-MM-DD
+      expect(SchemeVersion.forPeriodMonth('2026-09-01'), SchemeVersion.sept2026);
+      expect(SchemeVersion.forPeriodMonth('2026-10-01'), SchemeVersion.sept2026);
+      expect(SchemeVersion.forPeriodMonth('2026-10-31'), SchemeVersion.sept2026);
+      expect(SchemeVersion.forPeriodMonth('2026-11-01'), SchemeVersion.nov2026);
+      expect(SchemeVersion.forPeriodMonth('2026-12-01'), SchemeVersion.nov2026);
+      expect(SchemeVersion.forPeriodMonth('2027-01-01'), SchemeVersion.nov2026);
+      expect(SchemeVersion.forPeriodMonth(null), SchemeVersion.latest);
+
+      // Test via forRecord (fallback ke periode bila periodMonth null)
+      expect(SchemeVersion.forRecord(periodMonth: '2026-09-01', periode: 'Bulan Bebas'), SchemeVersion.sept2026);
+      expect(SchemeVersion.forRecord(periodMonth: null, periode: 'September 2026'), SchemeVersion.sept2026);
+      expect(SchemeVersion.forRecord(periodMonth: null, periode: 'Oktober 2026'), SchemeVersion.sept2026);
+      expect(SchemeVersion.forRecord(periodMonth: null, periode: 'Okt 2026'), SchemeVersion.sept2026);
+      expect(SchemeVersion.forRecord(periodMonth: null, periode: '2026-10'), SchemeVersion.sept2026);
+      expect(SchemeVersion.forRecord(periodMonth: null, periode: 'November 2026'), SchemeVersion.nov2026);
+      expect(SchemeVersion.forRecord(periodMonth: null, periode: 'Desember 2026'), SchemeVersion.nov2026);
+      expect(SchemeVersion.forRecord(periodMonth: null, periode: null), SchemeVersion.latest);
+    });
+
+    test('OJT Nov 2026: Tier progresif 60k, 90k, 150k, 180k, 200k', () {
+      // 4 SA (f100: 4): 2 * 60k (120k) + 2 * 90k (180k) = 300.000
+      // Lump Sum min 3 SA = 325.000
+      final res4 = CalculatorEngine.calculateDetailed(
+        scheme: SchemeVersion.nov2026,
+        position: PositionType.ojt,
+        f0: 0,
+        f50: 0,
+        f100: 4,
+        f125: 0,
+        f200: 0,
+        fwa: 0,
+        p35: 0,
+        p6: 0,
+      );
+      expect(res4.totalSa, 4);
+      expect(res4.progInc, 300000.0);
+      expect(res4.lumpSumBonus, 325000.0);
+      expect(res4.multBonus, 0.0);
+      expect(res4.grandTotal, 1900000.0 + 300000.0 + 400000.0 + 325000.0);
+
+      // Verifikasi rate per baris tier OJT Nov 2026
+      expect(res4.tierRows[0].ratePerAkt, 60000.0);
+      expect(res4.tierRows[1].ratePerAkt, 90000.0);
+      expect(res4.tierRows[2].ratePerAkt, 150000.0);
+      expect(res4.tierRows[3].ratePerAkt, 180000.0);
+      expect(res4.tierRows[4].ratePerAkt, 200000.0);
+
+      // 7 SA (f100: 7): 2*60k (120k) + 2*90k (180k) + 2*150k (300k) + 1*180k (180k) = 780.000
+      // Lump Sum min 7 SA = 600.000
+      final res7 = CalculatorEngine.calculateDetailed(
+        scheme: SchemeVersion.nov2026,
+        position: PositionType.ojt,
+        f0: 0,
+        f50: 0,
+        f100: 7,
+        f125: 0,
+        f200: 0,
+        fwa: 0,
+        p35: 0,
+        p6: 0,
+      );
+      expect(res7.totalSa, 7);
+      expect(res7.progInc, 780000.0);
+      expect(res7.lumpSumBonus, 600000.0);
+      expect(res7.grandTotal, 1900000.0 + 780000.0 + 700000.0 + 600000.0);
+
+      // 10 SA (f100: 10): 120k + 180k + 300k + 3*180k (540k) + 1*200k (200k) = 1.340.000
+      final res10 = CalculatorEngine.calculateDetailed(
+        scheme: SchemeVersion.nov2026,
+        position: PositionType.ojt,
+        f0: 0,
+        f50: 0,
+        f100: 10,
+        f125: 0,
+        f200: 0,
+        fwa: 0,
+        p35: 0,
+        p6: 0,
+      );
+      expect(res10.totalSa, 10);
+      expect(res10.progInc, 1340000.0);
+      expect(res10.lumpSumBonus, 600000.0);
+
+      // 12 SA (f100: 12): 1.340.000 + 2*200k = 1.740.000
+      final res12 = CalculatorEngine.calculateDetailed(
+        scheme: SchemeVersion.nov2026,
+        position: PositionType.ojt,
+        f0: 0,
+        f50: 0,
+        f100: 12,
+        f125: 0,
+        f200: 0,
+        fwa: 0,
+        p35: 0,
+        p6: 0,
+      );
+      expect(res12.totalSa, 12);
+      expect(res12.progInc, 1740000.0);
+    });
+
+    test('Elite Invariance: AE Elite tidak terpengaruh oleh pergantian skema', () {
+      for (final s in SchemeVersion.values) {
+        final res = CalculatorEngine.calculateDetailed(
+          scheme: s,
+          position: PositionType.elite,
+          f0: 0,
+          f50: 0,
+          f100: 4,
+          f125: 0,
+          f200: 0,
+          fwa: 0,
+          p35: 0,
+          p6: 0,
+        );
+        expect(res.progInc, 320000.0, reason: 'Scheme ${s.name} should preserve Elite 4 SA progInc');
+        expect(res.grandTotal, 2773184.0 + 320000.0 + 400000.0);
+      }
+    });
+
+    test('SPV Graduation Bonus: Pro ke Elite akselerasi tidak berlaku di Nov 2026', () {
+      // 1 OJT normal (500k), 1 OJT accel (700k), 1 Pro-Elite normal (600k), 2 Pro-Elite accel
+      // Sept 2026: 500k + 700k + 600k + 2*800k (1.600k) = 3.400.000
+      final resSept = CalculatorEngine.calculateSpvDetailed(
+        scheme: SchemeVersion.sept2026,
+        qtyRegular: 0,
+        qtyPxgy: 0,
+        totalActiveAgents: 10,
+        agentEarnAf: 10,
+        mobSpv: 12,
+        ojtCount: 0,
+        m3Baseline: 0,
+        m3Surviving: 0,
+        m5Baseline: 0,
+        m5Surviving: 0,
+        ojtToProNormal: 1,
+        ojtToProAccel: 1,
+        proToEliteNormal: 1,
+        proToEliteAccel: 2,
+      );
+      expect(resSept.graduation.totalBonus, 3400000.0);
+
+      // Nov 2026: Pro-Elite accel = 0 -> 500k + 700k + 600k + 0 = 1.800.000
+      final resNov = CalculatorEngine.calculateSpvDetailed(
+        scheme: SchemeVersion.nov2026,
+        qtyRegular: 0,
+        qtyPxgy: 0,
+        totalActiveAgents: 10,
+        agentEarnAf: 10,
+        mobSpv: 12,
+        ojtCount: 0,
+        m3Baseline: 0,
+        m3Surviving: 0,
+        m5Baseline: 0,
+        m5Surviving: 0,
+        ojtToProNormal: 1,
+        ojtToProAccel: 1,
+        proToEliteNormal: 1,
+        proToEliteAccel: 2,
+      );
+      expect(resNov.graduation.totalBonus, 1800000.0);
     });
   });
 }

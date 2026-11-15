@@ -90,3 +90,4 @@ on conflict (customer_id) do update set
   spv_name = excluded.spv_name,
   tsc_name = excluded.tsc_name,
   updated_at = now();
+

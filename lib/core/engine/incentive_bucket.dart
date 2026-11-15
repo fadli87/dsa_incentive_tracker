@@ -1,4 +1,5 @@
 import '../catalog/package_catalog.dart';
+import 'scheme_version.dart';
 
 /// Helper mapping paket katalog ke kode bucket insentif di CalculatorEngine:
 /// `f0`, `f50`, `f100`, `f125`, `f200`, `fwa`, `p35`, `p6`.
@@ -15,7 +16,10 @@ class IncentiveBucket {
   static const String p6 = 'p6';
 
   /// Menentukan kode bucket insentif berdasarkan properti paket katalog
-  static String? forPackage(CatalogPackage pkg) {
+  static String? forPackage(
+    CatalogPackage pkg, {
+    SchemeVersion scheme = SchemeVersion.latest,
+  }) {
     final typeLower = pkg.type.toLowerCase();
     final titleLower = pkg.title.toLowerCase();
 
@@ -39,9 +43,9 @@ class IncentiveBucket {
     final price = pkg.price;
     if (price >= 600000) {
       return f200;
-    } else if (price >= 400000) {
+    } else if (price >= scheme.ftth125Threshold) {
       return f125;
-    } else if (price >= 300000) {
+    } else if (price >= scheme.ftth100Threshold) {
       return f100;
     } else if (price >= 229000) {
       return f50;
@@ -71,16 +75,19 @@ class IncentiveBucket {
   }
 
   /// Label tampilan UI untuk kode bucket
-  static String getLabel(String bucketCode) {
+  static String getLabel(
+    String bucketCode, {
+    SchemeVersion scheme = SchemeVersion.latest,
+  }) {
     switch (bucketCode) {
       case f0:
         return 'FTTH < 229K (Rp 0)';
       case f50:
-        return 'FTTH 229K–299K (Rp 50K)';
+        return 'FTTH ${scheme.ftth50Range}K (Rp 50K)';
       case f100:
-        return 'FTTH 300K–399K (Rp 100K)';
+        return 'FTTH ${scheme.ftth100Range}K (Rp 100K)';
       case f125:
-        return 'FTTH 400K–599K (Rp 125K)';
+        return 'FTTH ${scheme.ftth125Range}K (Rp 125K)';
       case f200:
         return 'FTTH ≥ 600K (Rp 200K)';
       case fwa:
@@ -95,16 +102,19 @@ class IncentiveBucket {
   }
 
   /// Keterangan ringkas bucket untuk penjelasan coach
-  static String getBucketName(String bucketCode) {
+  static String getBucketName(
+    String bucketCode, {
+    SchemeVersion scheme = SchemeVersion.latest,
+  }) {
     switch (bucketCode) {
       case f0:
         return 'FTTH < Rp 229.000';
       case f50:
-        return 'FTTH Rp 229.000 – Rp 299.000';
+        return 'FTTH ${scheme.ftth50Full}';
       case f100:
-        return 'FTTH Rp 300.000 – Rp 399.000';
+        return 'FTTH ${scheme.ftth100Full}';
       case f125:
-        return 'FTTH Rp 400.000 – Rp 599.000';
+        return 'FTTH ${scheme.ftth125Full}';
       case f200:
         return 'FTTH ≥ Rp 600.000';
       case fwa:

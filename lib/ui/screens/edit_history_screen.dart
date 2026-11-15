@@ -5,6 +5,7 @@ import '../../data/models/incentive_record.dart';
 import '../../providers/history_provider.dart';
 import '../widgets/result_card.dart';
 import '../../core/engine/calculator_engine.dart';
+import '../../core/engine/scheme_version.dart';
 
 class EditHistoryScreen extends ConsumerStatefulWidget {
   final IncentiveRecord record;
@@ -18,11 +19,16 @@ class EditHistoryScreen extends ConsumerStatefulWidget {
 class _EditHistoryScreenState extends ConsumerState<EditHistoryScreen> {
   late final Map<String, TextEditingController> ctrls;
 
-  final Map<String, String> labels = {
+  late final SchemeVersion scheme = SchemeVersion.forRecord(
+    periodMonth: widget.record.periodMonth,
+    periode: widget.record.periode,
+  );
+
+  late final Map<String, String> labels = {
     'f0': 'FTTH < 229',
-    'f50': 'FTTH 229–299',
-    'f100': 'FTTH 300–399',
-    'f125': 'FTTH 400–599',
+    'f50': 'FTTH ${scheme.ftth50Range}',
+    'f100': 'FTTH ${scheme.ftth100Range}',
+    'f125': 'FTTH ${scheme.ftth125Range}',
     'f200': 'FTTH ≥ 600',
     'fwa': 'FWA ≥ 219',
     'p35': 'PXGY 3–5 Bln',
@@ -67,6 +73,7 @@ class _EditHistoryScreenState extends ConsumerState<EditHistoryScreen> {
 
   CalculationResult buildPreview() {
     return CalculatorEngine.calculateDetailed(
+      scheme: scheme,
       position: _positionFromLabel(widget.record.position),
       city: widget.record.city,
       f0: int.tryParse(ctrls['f0']!.text) ?? 0,

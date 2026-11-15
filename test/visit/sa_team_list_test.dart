@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dsa_incentive_tracker/auth/models/member_status.dart';
 import 'package:dsa_incentive_tracker/auth/providers/auth_providers.dart';
+import 'package:dsa_incentive_tracker/core/constants/app_constants.dart';
 import 'package:dsa_incentive_tracker/data/services/sa_team_service.dart';
 import 'package:dsa_incentive_tracker/ui/screens/dashboard_screen.dart';
 import 'package:dsa_incentive_tracker/ui/screens/sa_team_list_screen.dart';
@@ -36,7 +37,7 @@ class _FakeSaTeamRemoteGateway implements SaTeamRemoteGateway {
 
 void main() {
   group('Phase 11D — Dashboard Data SA Tim & SaTeamListScreen Read-Only Tests', () {
-    testWidgets('Kartu Data SA Tim di Dashboard tersembunyi untuk member dan tampil untuk spv/tsc/admin/superadmin', (tester) async {
+    testWidgets('Kartu Data SA Tim di Dashboard tersembunyi untuk member dan mengikuti showCustomerDataFeature', (tester) async {
       // 1. Role member -> Data SA Tim tersembunyi
       await tester.pumpWidget(
         ProviderScope(
@@ -50,7 +51,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Data SA Tim'), findsNothing);
 
-      // 2. Role spv/tsc/admin/superadmin -> Data SA Tim tampil
+      // 2. Role spv/tsc/admin/superadmin -> Data SA Tim hanya tampil bila showCustomerDataFeature aktif
       for (final role in [
         TeamRole.spv,
         TeamRole.tsc,
@@ -67,7 +68,11 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-        expect(find.text('Data SA Tim'), findsOneWidget);
+        if (AppConstants.showCustomerDataFeature) {
+          expect(find.text('Data SA Tim'), findsOneWidget);
+        } else {
+          expect(find.text('Data SA Tim'), findsNothing);
+        }
       }
     });
 

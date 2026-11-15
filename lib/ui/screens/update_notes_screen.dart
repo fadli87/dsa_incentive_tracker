@@ -19,9 +19,23 @@ class UpdateNotesScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildVersionCard(
-              version: 'Ver.1.2.4',
+              version: 'Ver.1.2.5',
               date: 'November 2026',
               isLatest: true,
+              changes: [
+                'Pembaruan Skema Insentif November 2026: Mengadopsi penyesuaian resmi skema insentif DTD/DSA (berlaku untuk kinerja 1 November 2026, payout 15 Desember 2026).',
+                'Penyesuaian Tiering Progresif OJT: Rate progresif per SA untuk AE OJT diperbarui menjadi 1–2 SA = Rp 60.000, 3–4 SA = Rp 90.000, 5–6 SA = Rp 150.000, 7–9 SA = Rp 180.000, dan ≥10 SA = Rp 200.000 (lump sum min 3 SA = 325rb & min 7 SA = 600rb tetap dipertahankan).',
+                'Ambang Batas Baru FTTH Product Mix: Paket FTTH Rp 290.000–Rp 389.999 (seperti paket 299rb) kini naik ke bucket Rp 100.000, dan paket Rp 390.000–Rp 599.999 (seperti paket 399rb) masuk ke bucket Rp 125.000.',
+                'Pembaruan SPV Graduation Bonus: Bonus akselerasi kenaikan jenjang Pro ke Elite (< 3 bulan) telah dinonaktifkan sesuai ketentuan terbaru, dan kolom akselerasi disembunyikan di kalkulator SPV.',
+                'Proteksi Riwayat Perhitungan Lama: Nilai kalkulasi pada riwayat bulan-bulan sebelumnya (September & Oktober 2026) terlindungi dan tidak berubah nominalnya saat diedit.',
+                'Proteksi Privasi Tim Sales: Fitur Data Pelanggan (Data SA) dan Data SA Tim disembunyikan dari antarmuka aplikasi guna menjaga kerahasiaan data calon pelanggan.',
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildVersionCard(
+              version: 'Ver.1.2.4',
+              date: 'November 2026',
+              isLatest: false,
               changes: [
                 'Layer "Pelanggan Terpasang" di Peta Coverage: Menampilkan seluruh titik pelanggan KMZ (KCLP) di peta coverage untuk semua anggota tim (termasuk sales/member) secara read-only.',
                 'Ikon Rumah (Glyph) & Warna Bergulir Bulan Pasang: Titik pelanggan digambar berupa ikon rumah dengan pewarnaan dinamis terhadap bulan berjalan (Merah = Bulan ini, Biru Tua = 1 bulan lalu, Pink = 2 bulan lalu, Cokelat = 3 bulan lalu, Abu-abu = > 3 bulan lalu atau tanpa tanggal).',

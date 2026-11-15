@@ -39,7 +39,7 @@ class IncentiveHandlers {
     // Jika user hanya memberi total SA tanpa rincian bucket (misal: "15 SA")
     if (!entities.hasProductCounts && entities.totalSa != null && entities.totalSa! > 0) {
       final total = entities.totalSa!;
-      // Asumsi paket terlaris di lapangan: FTTH 229K-299K (f50)
+      // Asumsi paket terlaris di lapangan: FTTH 229K-289K (f50, skema Nov 2026)
       f50 = total;
       assumptionNote = '💡 *Asumsi simulasi:* Menggunakan paket terlaris (${IncentiveBucket.getLabel(IncentiveBucket.f50)}) sejumlah $total aktivasi.\n\n';
     } else if (!entities.hasProductCounts && (entities.totalSa == null || entities.totalSa == 0)) {

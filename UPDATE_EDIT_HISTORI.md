@@ -1,6 +1,43 @@
-# Dokumentasi Update & Catatan Rilis: DSA XL Satu Handbook (Ver.1.2.4)
+# Dokumentasi Update & Catatan Rilis: DSA XL Satu Handbook (Ver.1.2.5)
 
-## 📌 Ringkasan Pembaruan Utama (Ver.1.2.4 - November 2026)
+## 📌 Ringkasan Pembaruan Utama (Ver.1.2.5 - November 2026)
+
+Pembaruan ini mengadopsi dokumen resmi **DTD - Nov26 Incentive Scheme Program Update** (berlaku untuk kinerja 1 November 2026, payout 15 Desember 2026), memproteksi keutuhan riwayat perhitungan lama, serta menyembunyikan fitur Data SA (Data Pelanggan) demi privasi:
+
+### 1. 📈 Pembaruan Skema Insentif DSA (November 2026)
+- **Tiering Progresif AE OJT Baru:**
+  - **1–2 SA:** Rp 60.000 / SA (sebelumnya Rp 80.000)
+  - **3–4 SA:** Rp 90.000 / SA (sebelumnya Rp 100.000)
+  - **5–6 SA:** Rp 150.000 / SA (sebelumnya Rp 130.000)
+  - **7–9 SA:** Rp 180.000 / SA (sebelumnya Rp 150.000)
+  - **≥10 SA:** Rp 200.000 / SA (tetap Rp 200.000)
+  - *Lump Sum OJT:* Tetap dipertahankan (min 3 SA = Rp 325.000, min 7 SA = Rp 600.000).
+- **Pergeseran Ambang Batas FTTH Regular (Product Mix):**
+  - **f50 (Rp 50.000):** Rp 229.000 – Rp 289.999 (sebelumnya Rp 229k–Rp 299k)
+  - **f100 (Rp 100.000):** Rp 290.000 – Rp 389.999 (sebelumnya Rp 300k–Rp 399k) ➔ *Paket 299rb otomatis naik ke f100!*
+  - **f125 (Rp 125.000):** Rp 390.000 – Rp 599.999 (sebelumnya Rp 400k–Rp 599k) ➔ *Paket 399rb otomatis naik ke f125!*
+  - **f200 (Rp 200.000):** Rp 600.000+ (tetap)
+  - **f0:** < Rp 229.000 (tetap)
+- **Penonaktifan Graduation Bonus SPV Akselerasi Pro ke Elite:**
+  - Kenaikan Pro ke Elite dalam < 3 bulan (sebelumnya Rp 800.000) kini dinonaktifkan (Rp 0).
+  - Akselerasi OJT ke Pro (< 3 bulan = Rp 700.000) dan normal OJT ke Pro (Rp 500.000) serta normal Pro ke Elite (Rp 600.000) tetap berlaku.
+  - Kolom akselerasi Pro ke Elite disembunyikan secara dinamis di UI kalkulator SPV.
+
+### 2. 🛡️ Engine Berbasis Versi Skema & Proteksi Riwayat Historis (`SchemeVersion`)
+- Dibuat enum `SchemeVersion { sept2026, nov2026 }` dengan resolver deterministik `SchemeVersion.forRecord(periodMonth, periode)`.
+- **Kalkulator Baru & Default:** Otomatis menggunakan `SchemeVersion.latest` (`nov2026`).
+- **Edit Riwayat:** Menghitung ulang menggunakan skema sesuai bulan record historis (`sept2026` untuk Sept/Okt 2026, `nov2026` untuk Nov 2026 ke atas), menjamin tidak ada perubahan nominal lama saat diedit.
+
+### 3. 🔒 Proteksi Privasi & Penyembunyian Fitur Data SA (`showCustomerDataFeature = false`)
+- Berdasarkan masukan tim lapangan terkait privasi data calon pelanggan pribadi, seluruh pintu masuk ke fitur Data Pelanggan dan Data SA Tim disembunyikan via feature flag `AppConstants.showCustomerDataFeature = false`:
+  - Tombol **Data Pelanggan** di Dashboard disembunyikan.
+  - Tombol **Data SA Tim** di Dashboard disembunyikan.
+  - Tombol **Input SA** di Map Inspector Sheet disembunyikan.
+  - Seluruh kode controller, service, dan screen tetap utuh dan siap diaktifkan kembali jika dibutuhkan di masa mendatang.
+
+---
+
+## 📌 Arsip Pembaruan Sebelumnya (Ver.1.2.4 - November 2026)
 
 Pembaruan ini menghadirkan layer **Pelanggan Terpasang** di Peta Coverage yang bersumber langsung dari data mentah KMZ KCLP instalasi manajemen, dapat diakses oleh seluruh pengguna yang disetujui (termasuk sales/member), dengan visualisasi ikon rumah dan pewarnaan bergulir per bulan instalasi:
 

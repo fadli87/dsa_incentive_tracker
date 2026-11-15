@@ -3,8 +3,13 @@ class AppConstants {
   AppConstants._();
 
   static const String appName = 'DSA XL Satu Handbook';
-  static const String appVersion = 'v1.2.4';
-  static const String appVersionDisplay = 'Ver.1.2.4';
+  static const String appVersion = 'v1.2.5';
+  static const String appVersionDisplay = 'Ver.1.2.5';
+
+  /// Menampilkan fitur Data SA (Data Pelanggan) dan Data SA Tim.
+  /// Dimatikan karena tim tidak mengisi data pelanggan pribadi (alasan privasi & keamanan data).
+  /// Ubah ke true untuk menyalakan kembali seluruh akses UI ke fitur ini.
+  static const bool showCustomerDataFeature = false;
 
   static const List<String> _indonesianMonths = [
     'Januari',
