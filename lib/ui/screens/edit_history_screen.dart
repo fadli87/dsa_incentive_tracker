@@ -30,7 +30,7 @@ class _EditHistoryScreenState extends ConsumerState<EditHistoryScreen> {
     'f100': 'FTTH ${scheme.ftth100Range}',
     'f125': 'FTTH ${scheme.ftth125Range}',
     'f200': 'FTTH ≥ 600',
-    'fwa': 'FWA ≥ 219',
+    'fwa': 'FWA ≥ 219k / 220.890',
     'p35': 'PXGY 3–5 Bln',
     'p6': 'PXGY ≥ 6 Bln',
   };

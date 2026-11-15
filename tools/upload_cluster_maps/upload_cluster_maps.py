@@ -130,7 +130,22 @@ def upsert_cluster_record(supabase_url: str, service_key: str, record: dict) -> 
         return False
 
 
+def load_dotenv():
+    """Membaca file .env jika ada di folder kerja."""
+    env_file = Path(".env")
+    if env_file.exists():
+        with open(env_file, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    k, v = line.split("=", 1)
+                    k, v = k.strip(), v.strip().strip('"').strip("'")
+                    if k not in os.environ or "xyzabcdefg" in os.environ[k] or "your-project" in os.environ[k]:
+                        os.environ[k] = v
+
+
 def main():
+    load_dotenv()
     parser = argparse.ArgumentParser(description="Upload massal KMZ dan PDF Cluster ke Supabase Storage & Database")
     parser.add_argument("--dir", required=True, help="Path ke folder root KAB.CILACAP hasil unduh Drive")
     parser.add_argument("--url", default=os.getenv("SUPABASE_URL"), help="Supabase project URL")
@@ -140,6 +155,14 @@ def main():
 
     supabase_url = args.url
     service_key = args.key
+
+    # Jika user tidak sengaja memasukkan URL contoh
+    if supabase_url and ("xyzabcdefg" in supabase_url or "your-project" in supabase_url):
+        env_url = os.getenv("SUPABASE_URL")
+        if env_url and "xyzabcdefg" not in env_url and "your-project" not in env_url:
+            supabase_url = env_url
+        else:
+            supabase_url = "https://ycyzfrfvonxvxjpjrnoq.supabase.co"
 
     if not supabase_url or not service_key:
         print("[FATAL] SUPABASE_URL atau SUPABASE_SERVICE_KEY belum diatur!", file=sys.stderr)

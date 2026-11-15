@@ -1,4 +1,7 @@
-# Miscellaneous
+# Local scripts & credentials
+KMZ.cmd
+*.cmd
+.env
 *.class
 *.log
 *.pyc

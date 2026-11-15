@@ -176,7 +176,7 @@ class GuideScreen extends StatelessWidget {
                 ['FTTH ${SchemeVersion.latest.ftth100Full}', 'Rp 100.000'],
                 ['FTTH ${SchemeVersion.latest.ftth125Full}', 'Rp 125.000'],
                 ['FTTH ≥ Rp 600.000', 'Rp 200.000'],
-                ['FWA Regular (≥ Rp 219.000)', 'Rp 50.000'],
+                ['FWA Regular (≥ Rp 219.000 / Rp 220.890)', 'Rp 50.000'],
               ],
             ),
             const SizedBox(height: 10),

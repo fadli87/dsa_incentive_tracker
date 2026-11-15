@@ -378,7 +378,7 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
                   ),
                   const SizedBox(height: 12),
                   _buildInputRow(
-                      'FWA ≥ 219', '+Rp 50.000/aktivasi', 'fwa', notifier),
+                      'FWA ≥ 219k / 220.890', '+Rp 50.000/aktivasi', 'fwa', notifier),
                   _buildInputRow('PXGY 3–5 Bln', 'PM 125k + Spec 125k', 'p35',
                        notifier),
                   _buildInputRow('PXGY ≥ 6 Bln', 'PM 150k + Spec 150k', 'p6',

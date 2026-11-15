@@ -31,9 +31,9 @@ class IncentiveBucket {
       return p35; // Default advance (3-4 bulan)
     }
 
-    // 2. FWA (Fixed Wireless Access)
+    // 2. FWA (Fixed Wireless Access) - Termasuk paket Rp 199.000 nett / Rp 220.890 gross
     if (typeLower.contains('fwa') || titleLower.contains('fwa')) {
-      if (pkg.price >= 219000) {
+      if (pkg.price >= 199000) {
         return fwa;
       }
       return f0;
@@ -91,7 +91,7 @@ class IncentiveBucket {
       case f200:
         return 'FTTH ≥ 600K (Rp 200K)';
       case fwa:
-        return 'FWA ≥ 219K (+Rp 50K)';
+        return 'FWA ≥ 219K / 220.890 (+Rp 50K)';
       case p35:
         return 'PXGY 3–5 Bulan (Rp 125K)';
       case p6:
