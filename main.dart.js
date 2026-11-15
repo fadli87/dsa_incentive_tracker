@@ -40187,7 +40187,7 @@ c0=b9?e0*8e4:0
 return new A.aoe(e3,c8,b3,c2,c5,a2,a3,e,c6,d6,c,a1,b4,b4,new A.asP(d7,b5,b6,b7,d9,b8,b9,c0,b7+c0),A.bFO(e4,e3,e5),A.bFN(c7,c9,e3))},
 ayo(a){var s,r=a.f.toLowerCase(),q=a.c.toLowerCase()
 if(a.b===3||B.c.m(r,"bayar")){if(B.c.m(q,"6 bulan")||B.c.m(q,"12 bulan"))return"p6"
-return"p35"}if(B.c.m(r,"fwa")||B.c.m(q,"fwa")){if(a.x>=219e3)return"fwa"
+return"p35"}if(B.c.m(r,"fwa")||B.c.m(q,"fwa")){if(a.x>=199e3)return"fwa"
 return"f0"}s=a.x
 if(s>=6e5)return"f200"
 else if(s>=39e4)return"f125"
@@ -40204,7 +40204,7 @@ case"f50":return"FTTH 229\u2013289K (Rp 50K)"
 case"f100":return"FTTH 290\u2013389K (Rp 100K)"
 case"f125":return"FTTH 390\u2013599K (Rp 125K)"
 case"f200":return"FTTH \u2265 600K (Rp 200K)"
-case"fwa":return"FWA \u2265 219K (+Rp 50K)"
+case"fwa":return"FWA \u2265 219K / 220.890 (+Rp 50K)"
 case"p35":return"PXGY 3\u20135 Bulan (Rp 125K)"
 case"p6":return"PXGY \u2265 6 Bulan (Rp 150K)"
 default:return a.toUpperCase()}},
@@ -73617,7 +73617,7 @@ k=d.qZ("FTTH 290\u2013389","Rp 100.000/aktivasi","f100",a6)
 p=A.ez(new A.ac(B.b4,A.a6(A.a([n,B.Q,p,l,k,d.qZ("FTTH 390\u2013599","Rp 125.000/aktivasi","f125",a6),d.qZ("FTTH \u2265 600","Rp 200.000/aktivasi","f200",a6)],a4),B.t,B.h,B.i),c),B.j,2,c,c,new A.bb(o,B.r))
 o=A.F(14)
 n=A.V(B.a8M,B.l,B.h,B.i,0,c,c)
-l=d.qZ("FWA \u2265 219","+Rp 50.000/aktivasi","fwa",a6)
+l=d.qZ("FWA \u2265 219k / 220.890","+Rp 50.000/aktivasi","fwa",a6)
 k=d.qZ("PXGY 3\u20135 Bln","PM 125k + Spec 125k","p35",a6)
 j=d.qZ("PXGY \u2265 6 Bln","PM 150k + Spec 150k","p6",a6)
 i=a5.z
@@ -75438,7 +75438,7 @@ r=s?"229\u2013289":"229\u2013299"
 q=s?"290\u2013389":"300\u2013399"
 s=s?39e4:4e5
 p=t.N
-o=A.ai(["f0","FTTH < 229","f50","FTTH "+r,"f100","FTTH "+q,"f125","FTTH "+(""+(s/1000|0)+"\u2013599"),"f200","FTTH \u2265 600","fwa","FWA \u2265 219","p35","PXGY 3\u20135 Bln","p6","PXGY \u2265 6 Bln"],p,p)
+o=A.ai(["f0","FTTH < 229","f50","FTTH "+r,"f100","FTTH "+q,"f125","FTTH "+(""+(s/1000|0)+"\u2013599"),"f200","FTTH \u2265 600","fwa","FWA \u2265 219k / 220.890","p35","PXGY 3\u20135 Bln","p6","PXGY \u2265 6 Bln"],p,p)
 m.y!==$&&A.aG()
 m.y=o
 l=o}s=l.i(0,a.a)
@@ -75461,7 +75461,7 @@ p=A.a(["Plan Tiering / Paket","Insentif / SA"],e)
 o=A.a(["FTTH < Rp 229.000","Rp 0"],e)
 n=A.a(["FTTH Rp 229.000 \u2013 Rp 289.999","Rp 50.000"],e)
 m=A.a(["FTTH Rp 290.000 \u2013 Rp 389.999","Rp 100.000"],e)
-q=l.kc(B.TY,A.a([q,B.R,B.aH0,B.ad,l.hZ(p,A.a([o,n,m,A.a(["FTTH Rp 390.000 \u2013 Rp 599.999","Rp 125.000"],e),A.a(["FTTH \u2265 Rp 600.000","Rp 200.000"],e),A.a(["FWA Regular (\u2265 Rp 219.000)","Rp 50.000"],e)],s)),B.as,B.aJm,B.ad,l.hZ(A.a(["Masa Paket (Tenure)","Product Mix","Special Inc.","Total / SA"],e),A.a([A.a(["3 \u2013 5 Bulan","Rp 125.000","Rp 125.000","Rp 250.000"],e),A.a(["\u2265 6 Bulan","Rp 150.000","Rp 150.000","Rp 300.000"],e)],s)),B.R,l.GG("Catatan Penting PXGY: Special Incentive PXGY merupakan insentif tambahan langsung di luar Product Mix Base dan dibayarkan penuh per aktivasi.",B.cc,B.em,B.kr)],h),B.A4,"2. Product Mix & Special PXGY")
+q=l.kc(B.TY,A.a([q,B.R,B.aH0,B.ad,l.hZ(p,A.a([o,n,m,A.a(["FTTH Rp 390.000 \u2013 Rp 599.999","Rp 125.000"],e),A.a(["FTTH \u2265 Rp 600.000","Rp 200.000"],e),A.a(["FWA Regular (\u2265 Rp 219.000 / Rp 220.890)","Rp 50.000"],e)],s)),B.as,B.aJm,B.ad,l.hZ(A.a(["Masa Paket (Tenure)","Product Mix","Special Inc.","Total / SA"],e),A.a([A.a(["3 \u2013 5 Bulan","Rp 125.000","Rp 125.000","Rp 250.000"],e),A.a(["\u2265 6 Bulan","Rp 150.000","Rp 150.000","Rp 300.000"],e)],s)),B.R,l.GG("Catatan Penting PXGY: Special Incentive PXGY merupakan insentif tambahan langsung di luar Product Mix Base dan dibayarkan penuh per aktivasi.",B.cc,B.em,B.kr)],h),B.A4,"2. Product Mix & Special PXGY")
 p=A.t("Terdapat 2 skema yang sangat berbeda antara Account Executive OJT dengan AE Pro/Elite sesuai Guiding Principle Poin 6:",k,k,k,k,k,A.W(k,k,B.aG,k,k,k,k,k,k,k,k,11.5,k,k,k,k,1.4,!0,k,k,k,k,k,k,k,k),k,k,k)
 o=A.F(10)
 n=A.aV(B.io,1)
