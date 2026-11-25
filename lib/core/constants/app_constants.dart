@@ -7,9 +7,8 @@ class AppConstants {
   static const String appVersionDisplay = 'Ver.1.2.5';
 
   /// Menampilkan fitur Data SA (Data Pelanggan) dan Data SA Tim.
-  /// Dimatikan karena tim tidak mengisi data pelanggan pribadi (alasan privasi & keamanan data).
-  /// Ubah ke true untuk menyalakan kembali seluruh akses UI ke fitur ini.
-  static const bool showCustomerDataFeature = false;
+  /// Diaktifkan menggunakan data master resmi KCLP (1.189 pelanggan).
+  static const bool showCustomerDataFeature = true;
 
   static const List<String> _indonesianMonths = [
     'Januari',
