@@ -3,8 +3,8 @@ class AppConstants {
   AppConstants._();
 
   static const String appName = 'DSA XL Satu Handbook';
-  static const String appVersion = 'v1.2.5';
-  static const String appVersionDisplay = 'Ver.1.2.5';
+  static const String appVersion = 'v1.2.6';
+  static const String appVersionDisplay = 'Ver.1.2.6';
 
   /// Menampilkan fitur Data SA (Data Pelanggan) dan Data SA Tim.
   /// Diaktifkan menggunakan data master resmi KCLP (1.189 pelanggan).
