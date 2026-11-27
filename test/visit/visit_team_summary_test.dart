@@ -7,6 +7,7 @@ import 'package:dsa_incentive_tracker/auth/models/member_status.dart';
 import 'package:dsa_incentive_tracker/auth/models/team_member_item.dart';
 import 'package:dsa_incentive_tracker/auth/providers/auth_providers.dart';
 import 'package:dsa_incentive_tracker/auth/screens/super_admin_panel_screen.dart';
+import 'package:dsa_incentive_tracker/core/constants/app_constants.dart';
 import 'package:dsa_incentive_tracker/data/models/master_customer.dart';
 import 'package:dsa_incentive_tracker/data/models/user_profile.dart';
 import 'package:dsa_incentive_tracker/data/models/visit_activity.dart';
@@ -160,8 +161,13 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Aktivitas Harian'), findsOneWidget);
-      expect(find.text('Rekap Tim'), findsNothing);
+      if (AppConstants.showVisitFeature) {
+        expect(find.text('Aktivitas Harian'), findsOneWidget);
+        expect(find.text('Rekap Tim'), findsNothing);
+      } else {
+        expect(find.text('Aktivitas Harian'), findsNothing);
+        expect(find.text('Rekap Tim'), findsNothing);
+      }
     });
 
     for (final role in [TeamRole.spv, TeamRole.tsc, TeamRole.superadmin]) {
@@ -179,8 +185,13 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.text('Aktivitas Harian'), findsOneWidget);
-        expect(find.text('Rekap Tim'), findsOneWidget);
+        if (AppConstants.showVisitFeature) {
+          expect(find.text('Aktivitas Harian'), findsOneWidget);
+          expect(find.text('Rekap Tim'), findsOneWidget);
+        } else {
+          expect(find.text('Aktivitas Harian'), findsNothing);
+          expect(find.text('Rekap Tim'), findsNothing);
+        }
       });
     }
   });

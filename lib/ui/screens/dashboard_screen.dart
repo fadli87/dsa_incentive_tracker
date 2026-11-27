@@ -397,23 +397,24 @@ class DashboardScreen extends ConsumerWidget {
                           ),
 
                         // 4. Aktivitas Harian Visit (RVAI / Dismantle / Unpaid)
-                        _buildCircularMenuItem(
-                          icon: Icons.fact_check_rounded,
-                          iconColor: const Color(0xFF15803D),
-                          gradientColors: const [Color(0xFFDCFCE7), Color(0xFFBBF7D0)],
-                          shadowColor: const Color(0xFF16A34A).withValues(alpha: 0.25),
-                          title: 'Aktivitas Harian',
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const VisitDailyScreen()),
-                            );
-                          },
-                        ),
+                        if (AppConstants.showVisitFeature)
+                          _buildCircularMenuItem(
+                            icon: Icons.fact_check_rounded,
+                            iconColor: const Color(0xFF15803D),
+                            gradientColors: const [Color(0xFFDCFCE7), Color(0xFFBBF7D0)],
+                            shadowColor: const Color(0xFF16A34A).withValues(alpha: 0.25),
+                            title: 'Aktivitas Harian',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const VisitDailyScreen()),
+                              );
+                            },
+                          ),
 
-                        // Rekap Tim (Tampil HANYA bila canViewAllProvider == true)
-                        if (canViewAll)
+                        // Rekap Tim (Tampil HANYA bila canViewAllProvider == true && showVisitFeature)
+                        if (canViewAll && AppConstants.showVisitFeature)
                           _buildCircularMenuItem(
                             icon: Icons.analytics_rounded,
                             iconColor: const Color(0xFF0F766E),

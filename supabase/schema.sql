@@ -111,7 +111,7 @@ alter table public.app_config enable row level security;
 
 -- Inisialisasi Kode Akses Tim Default
 insert into public.app_config (key, value)
-values ('access_code_hash', crypt('XLSATU2026', gen_salt('bf')))
+values ('access_code_hash', extensions.crypt('XLSATU2026', extensions.gen_salt('bf')))
 on conflict (key) do nothing;
 
 -- 6. RPC Function: Redeem Kode Akses Tim untuk Sales Baru
@@ -119,7 +119,7 @@ create or replace function public.redeem_access_code(input_code text)
 returns text
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare
   stored_hash text;
@@ -135,7 +135,7 @@ begin
     return 'config_missing';
   end if;
 
-  if crypt(input_code, stored_hash) <> stored_hash then
+  if extensions.crypt(input_code, stored_hash) <> stored_hash then
     return 'invalid_code';
   end if;
 
@@ -163,7 +163,7 @@ create or replace function public.admin_update_member_status(target_user_id uuid
 returns text
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare
   is_admin boolean;
@@ -194,7 +194,7 @@ create or replace function public.admin_update_access_code(new_code text)
 returns text
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare
   is_admin boolean;
@@ -209,9 +209,9 @@ begin
     return 'code_too_short';
   end if;
 
-  update public.app_config
-  set value = crypt(trim(new_code), gen_salt('bf'))
-  where key = 'access_code_hash';
+  insert into public.app_config (key, value)
+  values ('access_code_hash', extensions.crypt(trim(new_code), extensions.gen_salt('bf')))
+  on conflict (key) do update set value = excluded.value;
 
   return 'success';
 end;
